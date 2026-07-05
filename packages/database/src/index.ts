@@ -48,3 +48,6 @@ export async function disconnectDatabases(): Promise<void> {
     await redis.quit();
   }
 }
+
+export * from './models/student-profile.schema.js';
+export * from './models/tutor-profile.schema.js';

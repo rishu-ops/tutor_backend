@@ -5,6 +5,9 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import { logger } from 'logger';
 import { connectPostgres, connectMongoDB, connectRedis } from 'database';
 import { authRouter } from './modules/auth/index.js';
+import { onboardingRouter } from './modules/onboarding/index.js';
+import { studentRouter } from './modules/student/index.js';
+import { tutorRouter } from './modules/tutor/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +58,9 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *                   example: true
  */
 app.use('/api/auth', authRouter);
+app.use('/api/v1/onboarding', onboardingRouter);
+app.use('/api/v1/student', studentRouter);
+app.use('/api/v1/tutor', tutorRouter);
 
 app.get('/health', (req, res) => {
   res.json({ success: true });
