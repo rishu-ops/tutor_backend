@@ -43,10 +43,6 @@ bower_components
 # Feedback server
 .lock-wscript
 
-# Dependency directories
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
 
 # Optional npm cache directory
 .npm
