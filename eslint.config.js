@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/build/**',
       '**/coverage/**',
       'packages/database/src/generated/**',
+      'apps/web/**',
     ],
   },
   {
