@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Award, Plus, Trash2, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { onboardingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -277,7 +278,7 @@ export default function TutorOnboardingPage() {
 
       {/* Main stepper wrapper */}
       <main className="flex-1 flex justify-center px-6 py-12">
-        <div className="w-full max-w-[512px]">
+        <div className="w-full max-w-2xl">
           <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
             {/* Step progress tracker dots */}
             <div className="mb-6">
@@ -590,20 +591,15 @@ export default function TutorOnboardingPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
-                      Fee Type
-                    </label>
-                    <select
-                      value={feeType}
-                      onChange={(e) => setTutorField('feeType', e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-[#00060c] bg-white border border-[#dadee2] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb]"
-                    >
-                      <option value="Per Hour">Per Hour</option>
-                      <option value="Per Month">Per Month</option>
-                      <option value="Per Session">Per Session</option>
-                    </select>
-                  </div>
+                  <Select
+                    label="Fee Type"
+                    value={feeType}
+                    onChange={(e) => setTutorField('feeType', e.target.value)}
+                  >
+                    <option value="Per Hour">Per Hour</option>
+                    <option value="Per Month">Per Month</option>
+                    <option value="Per Session">Per Session</option>
+                  </Select>
                 </div>
               )}
 

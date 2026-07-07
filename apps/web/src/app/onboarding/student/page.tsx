@@ -180,9 +180,8 @@ export default function StudentOnboardingPage() {
         </div>
       </header>
 
-      {/* Main Stepper Wizard layout */}
       <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[448px]">
+        <div className="w-full max-w-xl">
           <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
             {/* Step Progress indicators */}
             <div className="mb-6">
