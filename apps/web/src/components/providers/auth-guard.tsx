@@ -34,7 +34,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       // Authenticated users
       const hasRole = user && user.role !== null;
 
-      if (isAuthRoute) {
+      if (pathname === '/') {
+        // Redirection away from landing page
+        if (hasRole) {
+          router.replace(ROUTES.DASHBOARD);
+        } else {
+          router.replace(ROUTES.ONBOARDING);
+        }
+      } else if (isAuthRoute) {
         // Prevent logged-in users from viewing auth screens
         if (hasRole) {
           router.replace(ROUTES.DASHBOARD);
@@ -78,6 +85,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isAuthRoute) return null;
     if (isOnboardingRoute && hasRole) return null;
     if (isDashboardRoute && !hasRole) return null;
+    if (pathname === '/') return null;
   }
 
   return <>{children}</>;
