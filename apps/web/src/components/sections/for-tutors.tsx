@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
@@ -40,7 +42,12 @@ export function ForTutors() {
 
             <div className="mt-8">
               <Link href="/auth/register">
-                <Button variant="primary" size="lg" className="rounded-[12px]">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="rounded-[12px]"
+                  onClick={() => sessionStorage.setItem('onboarding-role-intent', 'TUTOR')}
+                >
                   Start teaching today
                 </Button>
               </Link>

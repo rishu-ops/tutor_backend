@@ -9,6 +9,7 @@ interface User {
   phone: string;
   role: string | null;
   name: string | null;
+  city?: string | null;
   isPhoneVerified: boolean;
 }
 

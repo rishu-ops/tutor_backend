@@ -1,12 +1,7 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-
-const navLinks = [
-  { label: 'Community', href: '#features' },
-  { label: 'Find a Tutor', href: '/auth/login' },
-  { label: 'Become a Tutor', href: '/auth/register' },
-  { label: 'How it Works', href: '#how-it-works' },
-];
 
 export function Navbar() {
   return (
@@ -21,15 +16,32 @@ export function Navbar() {
 
         {/* Nav Links */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="text-sm font-medium text-[#384148] hover:text-[#00060c] transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Link
+            href="/auth/login"
+            onClick={() => sessionStorage.setItem('onboarding-role-intent', 'STUDENT')}
+            className="text-sm font-medium text-[#384148] hover:text-[#00060c] transition-colors"
+          >
+            Find a Tutor
+          </Link>
+          <Link
+            href="/auth/login"
+            onClick={() => sessionStorage.setItem('onboarding-role-intent', 'TUTOR')}
+            className="text-sm font-medium text-[#384148] hover:text-[#00060c] transition-colors"
+          >
+            Become a Tutor
+          </Link>
+          <Link
+            href="#features"
+            className="text-sm font-medium text-[#384148] hover:text-[#00060c] transition-colors"
+          >
+            Community
+          </Link>
+          <Link
+            href="#how-it-works"
+            className="text-sm font-medium text-[#384148] hover:text-[#00060c] transition-colors"
+          >
+            How it Works
+          </Link>
         </nav>
 
         {/* CTA */}

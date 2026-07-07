@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -103,18 +105,20 @@ export function Hero() {
                   variant="primary"
                   size="lg"
                   className="w-full text-sm font-bold justify-center rounded-[12px]"
+                  onClick={() => sessionStorage.setItem('onboarding-role-intent', 'STUDENT')}
                 >
                   Continue with phone number
                 </Button>
               </Link>
 
-              <Link href="#features" className="block w-full">
+              <Link href="/auth/login" className="block w-full">
                 <Button
                   variant="secondary"
                   size="lg"
                   className="w-full text-sm font-bold justify-center rounded-[12px]"
+                  onClick={() => sessionStorage.setItem('onboarding-role-intent', 'TUTOR')}
                 >
-                  Browse tutors first
+                  Become a tutor
                 </Button>
               </Link>
             </div>

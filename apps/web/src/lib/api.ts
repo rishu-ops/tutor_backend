@@ -62,6 +62,7 @@ export const authApi = {
         phone: string;
         role: string | null;
         name: string | null;
+        city?: string | null;
         isPhoneVerified: boolean;
       };
       accessToken: string;
@@ -81,5 +82,15 @@ export const authApi = {
     api('/api/auth/logout', {
       method: 'POST',
       body: { refreshToken },
+    }),
+};
+
+// Onboarding-specific API calls
+export const onboardingApi = {
+  submit: (data: Record<string, unknown>, token: string) =>
+    api('/api/v1/onboarding', {
+      method: 'POST',
+      body: data,
+      token,
     }),
 };

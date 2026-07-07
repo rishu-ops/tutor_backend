@@ -55,8 +55,19 @@ function VerifyContent() {
 
           // Redirect based on role
           if (!result.data.user.role) {
-            router.push(ROUTES.ONBOARDING);
+            const intent = sessionStorage.getItem('onboarding-role-intent');
+            sessionStorage.removeItem('onboarding-role-intent');
+
+            if (intent === 'STUDENT') {
+              router.push('/onboarding/student');
+            } else if (intent === 'TUTOR') {
+              router.push('/onboarding/tutor');
+            } else {
+              router.push(ROUTES.ONBOARDING);
+            }
           } else {
+            // Already onboarded -> clear intent and go to dashboard
+            sessionStorage.removeItem('onboarding-role-intent');
             router.push(ROUTES.DASHBOARD);
           }
         }
