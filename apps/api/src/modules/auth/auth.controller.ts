@@ -33,8 +33,13 @@ export class AuthController {
       }
 
       const { phone } = parseResult.data;
-      await this.service.sendOtp(phone);
-      res.json({ success: true, message: 'OTP sent successfully' });
+      const otp = await this.service.sendOtp(phone);
+
+      const responseData: Record<string, any> = { success: true, message: 'OTP sent successfully' };
+      if (process.env.NODE_ENV === 'development') {
+        responseData.otp = otp;
+      }
+      res.json(responseData);
     } catch (error) {
       const err = error as any; // eslint-disable-line @typescript-eslint/no-explicit-any
       const status = err.statusCode || 500;

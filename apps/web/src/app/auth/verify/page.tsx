@@ -15,9 +15,10 @@ function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') || '';
+  const defaultCode = searchParams.get('code') || '';
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(defaultCode);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN);
@@ -69,6 +70,13 @@ function VerifyContent() {
     [phone, loading, setAuth, router]
   );
 
+  // Auto-submit pre-filled OTP in dev
+  useEffect(() => {
+    if (defaultCode.length === 6) {
+      handleVerify(defaultCode);
+    }
+  }, [defaultCode, handleVerify]);
+
   const handleOtpChange = (value: string) => {
     setOtp(value);
     setError('');
@@ -115,6 +123,13 @@ function VerifyContent() {
         {/* OTP Input */}
         <div className="space-y-4">
           <OtpInput value={otp} onChange={handleOtpChange} disabled={loading} error={error} />
+
+          {defaultCode && (
+            <div className="bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/20 rounded-[8px] p-3 text-xs text-center font-medium mt-3">
+              Dev Mode: Simulated OTP detected:{' '}
+              <span className="font-bold underline tracking-wider">{defaultCode}</span>
+            </div>
+          )}
 
           {loading && <p className="text-sm text-[#647380] text-center">Verifying...</p>}
         </div>

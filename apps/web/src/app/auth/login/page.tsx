@@ -29,8 +29,11 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await authApi.sendOtp(fullPhone);
-      router.push(`/auth/verify?phone=${encodeURIComponent(fullPhone)}`);
+      const res = await authApi.sendOtp(fullPhone);
+      const devOtp = (res as any).otp;
+      const baseUrl = `/auth/verify?phone=${encodeURIComponent(fullPhone)}`;
+      const url = devOtp ? `${baseUrl}&code=${encodeURIComponent(devOtp)}` : baseUrl;
+      router.push(url);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr.message || 'Failed to send OTP. Please try again.');

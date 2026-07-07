@@ -17,7 +17,7 @@ export class AuthService {
   }
 
   // 1. Send OTP
-  async sendOtp(phone: string): Promise<boolean> {
+  async sendOtp(phone: string): Promise<string> {
     const rateLimitKey = `rate-limit:otp:${phone}`;
     const otpKey = `otp:${phone}`;
 
@@ -54,7 +54,7 @@ export class AuthService {
     const smsMessage = `Your project-tutor verification code is ${otp}. It expires in 5 minutes.`;
     await this.smsProvider.sendSms(phone, smsMessage);
 
-    return true;
+    return otp;
   }
 
   // 2. Verify OTP & Login/Create User
