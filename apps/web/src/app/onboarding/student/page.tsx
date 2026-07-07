@@ -168,9 +168,12 @@ export default function StudentOnboardingPage() {
       {/* Header */}
       <header className="w-full border-b border-[#dadee2] bg-white">
         <div className="mx-auto max-w-[1280px] px-6 h-16 flex items-center justify-between">
-          <span className="text-[#00A453] font-bold text-xl tracking-tight">
-            project<span className="font-extrabold text-[#00060c]">tutor</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <img src="/favicon.svg" alt="FindMyTutor Logo" className="h-7 w-7" />
+            <span className="text-[#00A453] font-bold text-xl tracking-tight">
+              FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
+            </span>
+          </div>
           <Link
             href="/onboarding"
             className="flex items-center gap-1.5 text-sm text-[#647380] hover:text-[#00060c] font-semibold"
@@ -394,7 +397,7 @@ export default function StudentOnboardingPage() {
       <footer className="border-t border-[#dadee2] bg-white mt-auto">
         <div className="mx-auto max-w-[1280px] px-6 py-4 text-center">
           <p className="text-xs text-[#647380]">
-            &copy; {new Date().getFullYear()} Project Tutor. All rights reserved.
+            &copy; {new Date().getFullYear()} FindMyTutor. All rights reserved.
           </p>
         </div>
       </footer>

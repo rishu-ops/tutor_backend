@@ -9,9 +9,10 @@ export default function OnboardingChoicePage() {
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
       {/* Header */}
       <header className="w-full border-b border-[#dadee2] bg-white">
-        <div className="mx-auto max-w-[1280px] px-6 h-16 flex items-center">
+        <div className="mx-auto max-w-[1280px] px-6 h-16 flex items-center gap-2">
+          <img src="/favicon.svg" alt="FindMyTutor Logo" className="h-7 w-7" />
           <span className="text-[#00A453] font-bold text-xl tracking-tight">
-            project<span className="font-extrabold text-[#00060c]">tutor</span>
+            FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
           </span>
         </div>
       </header>
@@ -21,7 +22,7 @@ export default function OnboardingChoicePage() {
         <div className="w-full max-w-xl">
           <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm text-center">
             {/* Title */}
-            <h1 className="text-2xl font-extrabold text-[#00060c]">Welcome to Project Tutor</h1>
+            <h1 className="text-2xl font-extrabold text-[#00060c]">Welcome to FindMyTutor</h1>
             <p className="mt-2 text-sm text-[#647380] max-w-sm mx-auto">
               Please choose how you would like to use the platform to complete your profile setup.
             </p>
@@ -61,7 +62,7 @@ export default function OnboardingChoicePage() {
                     variant="secondary"
                     className="w-full text-xs font-bold rounded-[12px] h-[40px]"
                   >
-                    Teach on Project Tutor
+                    Teach on FindMyTutor
                   </Button>
                 </Link>
               </div>
@@ -74,7 +75,7 @@ export default function OnboardingChoicePage() {
       <footer className="border-t border-[#dadee2] bg-white">
         <div className="mx-auto max-w-[1280px] px-6 py-4 text-center">
           <p className="text-xs text-[#647380]">
-            &copy; {new Date().getFullYear()} Project Tutor. All rights reserved.
+            &copy; {new Date().getFullYear()} FindMyTutor. All rights reserved.
           </p>
         </div>
       </footer>

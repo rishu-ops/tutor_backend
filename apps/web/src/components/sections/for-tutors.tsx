@@ -22,7 +22,7 @@ export function ForTutors() {
           <div>
             <p className="text-sm font-semibold text-[#00A453] mb-2">For tutors</p>
             <h2 className="text-3xl font-extrabold text-[#00060c] tracking-tight">
-              Grow your tutoring practice with Project Tutor
+              Grow your tutoring practice with FindMyTutor
             </h2>
             <p className="mt-4 text-[#384148] leading-relaxed">
               Join thousands of tutors who have built sustainable teaching practices on our

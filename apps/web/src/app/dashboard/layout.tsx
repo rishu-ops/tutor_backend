@@ -45,9 +45,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-40 w-full border-b border-[#dadee2] bg-white h-16 shrink-0">
         <div className="mx-auto max-w-[1440px] px-6 h-full flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="FindMyTutor Logo" className="h-7 w-7" />
             <span className="text-[#00A453] font-bold text-xl tracking-tight">
-              project<span className="font-extrabold text-[#00060c]">tutor</span>
+              FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
             </span>
             <span className="bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/25 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider scale-90">
               {user?.role}

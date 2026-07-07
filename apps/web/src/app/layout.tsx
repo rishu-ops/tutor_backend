@@ -10,12 +10,12 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'Project Tutor — Find Expert Tutors',
+  title: 'FindMyTutor — Find Expert Tutors',
   description:
     'Connect with verified tutors for every subject and every level. Book sessions online or offline, at your pace.',
   keywords: ['tutor', 'online tutoring', 'find a tutor', 'education', 'learning'],
   openGraph: {
-    title: 'Project Tutor — Find Expert Tutors',
+    title: 'FindMyTutor — Find Expert Tutors',
     description: 'Connect with verified tutors for every subject and every level.',
     type: 'website',
   },

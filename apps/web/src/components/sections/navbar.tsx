@@ -8,9 +8,10 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-white border-b border-[#dadee2]">
       <div className="mx-auto max-w-[1280px] px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="text-[#00A453] font-bold text-xl tracking-tight low-case">
-            project<span className="font-extrabold text-[#00060c]">tutor</span>
+        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <img src="/favicon.svg" alt="FindMyTutor Logo" className="h-7 w-7" />
+          <span className="text-[#00A453] font-bold text-xl tracking-tight">
+            FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
           </span>
         </Link>
 

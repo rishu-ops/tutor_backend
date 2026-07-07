@@ -28,8 +28,11 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand column */}
           <div>
-            <Link href="/" className="text-[#00A453] font-bold text-xl tracking-tight low-case">
-              project<span className="font-extrabold text-[#00060c]">tutor</span>
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/favicon.svg" alt="FindMyTutor Logo" className="h-6 w-6" />
+              <span className="text-[#00A453] font-bold text-lg tracking-tight">
+                FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
+              </span>
             </Link>
             <p className="mt-3 text-sm text-[#647380] leading-relaxed">
               Connecting students with expert tutors across India.
@@ -59,7 +62,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-10 pt-6 border-t border-[#dadee2] flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-[#647380]">
-            &copy; {new Date().getFullYear()} Project Tutor. All rights reserved.
+            &copy; {new Date().getFullYear()} FindMyTutor. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <Link
