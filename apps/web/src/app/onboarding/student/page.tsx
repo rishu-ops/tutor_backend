@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronRight, ChevronLeft, Check, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Confetti } from '@/components/ui/confetti';
 import { onboardingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -27,6 +28,7 @@ export default function StudentOnboardingPage() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   // Sync state values on initial mount
   useEffect(() => {
@@ -40,6 +42,16 @@ export default function StudentOnboardingPage() {
       if (!studentState.city) setStudentField('city', user.city || '');
     }
   }, [mounted, user, studentState.name, studentState.city, setStudentField]);
+
+  // Hook tab close / reload warnings
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you want to leave? Your onboarding progress is saved.';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   if (!mounted) {
     return (
@@ -174,12 +186,12 @@ export default function StudentOnboardingPage() {
               FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
             </span>
           </div>
-          <Link
-            href="/onboarding"
-            className="flex items-center gap-1.5 text-sm text-[#647380] hover:text-[#00060c] font-semibold"
+          <button
+            onClick={() => setShowLeaveModal(true)}
+            className="flex items-center gap-1.5 text-sm text-[#647380] hover:text-[#00060c] font-semibold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Cancel
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -401,6 +413,45 @@ export default function StudentOnboardingPage() {
           </p>
         </div>
       </footer>
+
+      {/* Celebration animation when onboarding finishes */}
+      {step === 4 && <Confetti />}
+
+      {/* Leave warning popup modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00060c]/50 p-4">
+          <div className="bg-white border border-[#dadee2] rounded-[18px] p-6 max-w-sm w-full text-center shadow-lg animate-in fade-in zoom-in-95 duration-200">
+            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-red-50 text-red-500 mb-4">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#00060c] mb-2">
+              Are you sure you want to leave?
+            </h3>
+            <p className="text-xs text-[#647380] leading-relaxed mb-6">
+              Your progress is saved automatically. You can safely return and complete your profile
+              setup anytime!
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="primary"
+                onClick={() => setShowLeaveModal(false)}
+                className="w-full justify-center h-[40px] text-xs font-bold rounded-[12px]"
+              >
+                Continue Onboarding
+              </Button>
+              <button
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  router.push('/onboarding');
+                }}
+                className="w-full py-2.5 text-xs text-[#647380] hover:text-red-500 font-bold transition-colors"
+              >
+                Leave anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
