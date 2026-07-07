@@ -60,24 +60,26 @@ export default function LoginPage() {
             <label htmlFor="phone" className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
               Phone number
             </label>
-            <div className="flex items-stretch gap-2">
-              <div className="flex items-center px-3 bg-[#FAFAFA] border border-[#dadee2] rounded-[12px] text-sm font-semibold text-[#647380] shrink-0">
+            <div className="flex items-start gap-2">
+              <div className="flex items-center justify-center h-10 px-3 bg-[#FAFAFA] border border-[#dadee2] rounded-[12px] text-sm font-semibold text-[#647380] shrink-0">
                 +91
               </div>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Enter your 10-digit number"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  setError('');
-                }}
-                error={error}
-                disabled={loading}
-                className="rounded-[12px]"
-                autoFocus
-              />
+              <div className="flex-1">
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your 10-digit number"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    setError('');
+                  }}
+                  error={error}
+                  disabled={loading}
+                  className="rounded-[12px] h-10"
+                  autoFocus
+                />
+              </div>
             </div>
           </div>
 
