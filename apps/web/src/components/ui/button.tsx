@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'dark' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,17 +14,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#0F766E] text-white border border-[#0F766E] hover:bg-[#0d6460] hover:border-[#0d6460]',
-  secondary: 'bg-white text-[#0F766E] border border-[#0F766E] hover:bg-[#f0fdfb]',
-  ghost: 'bg-transparent text-[#111827] border border-[#E5E7EB] hover:bg-[#f3f4f6]',
+    'bg-[#4cd681] text-[#00060c] border border-[#00060c] shadow-[3px_3px_0px_#00060c] transition-all duration-100 hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#00060c] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#00060c]',
+  secondary:
+    'bg-white text-[#00060c] border border-[#00060c] shadow-[3px_3px_0px_#00060c] transition-all duration-100 hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#00060c] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#00060c]',
+  dark: 'bg-[#00060c] text-white border border-[#00060c] shadow-[3px_3px_0px_#00060c] transition-all duration-100 hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#00060c] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#00060c]',
+  ghost: 'bg-transparent text-[#384148] hover:bg-[#f3f4f6] transition-colors',
   danger:
-    'bg-[#DC2626] text-white border border-[#DC2626] hover:bg-[#b91c1c] hover:border-[#b91c1c]',
+    'bg-[#DC2626] text-white border border-[#DC2626] hover:bg-[#b91c1c] hover:border-[#b91c1c] transition-colors',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-2.5 text-base',
+  sm: 'px-4 py-1.5 text-sm font-semibold h-[32px]',
+  md: 'px-5 py-2 text-sm font-semibold h-[40px]',
+  lg: 'px-6 py-2.5 text-base font-semibold h-[48px]',
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -37,10 +39,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center gap-2 font-medium',
+          'inline-flex items-center justify-center gap-2 font-semibold',
           'transition-colors duration-150 cursor-pointer',
-          'rounded-[4px]',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2',
+          'rounded-[var(--radius-btn)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004fcb] focus-visible:ring-offset-2',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variantStyles[variant],
           sizeStyles[size],

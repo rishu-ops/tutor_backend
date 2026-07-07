@@ -42,14 +42,14 @@ export default function LoginPage() {
   return (
     <div>
       {/* Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-[6px] p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="h-10 w-10 flex items-center justify-center rounded-[6px] bg-[#f0fdfb] border border-[#0F766E]/20 mb-4">
-            <Phone className="h-5 w-5 text-[#0F766E]" />
-          </div>
-          <h1 className="text-xl font-semibold text-[#111827]">Welcome back</h1>
-          <p className="mt-1 text-sm text-[#4B5563]">
+      <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
+        {/* Logo Header */}
+        <div className="text-center mb-6">
+          <span className="text-[#00A453] font-bold text-xl tracking-tight">
+            project<span className="font-extrabold text-[#00060c]">tutor</span>
+          </span>
+          <h1 className="text-xl font-bold text-[#00060c] mt-4">Sign in or create account</h1>
+          <p className="mt-1.5 text-sm text-[#384148]">
             Enter your phone number to receive a verification code.
           </p>
         </div>
@@ -57,11 +57,11 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-[#111827] mb-1.5">
+            <label htmlFor="phone" className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
               Phone number
             </label>
             <div className="flex items-stretch gap-2">
-              <div className="flex items-center px-3 bg-[#FAFAFA] border border-[#E5E7EB] rounded-[4px] text-sm text-[#6B7280] shrink-0">
+              <div className="flex items-center px-3 bg-[#FAFAFA] border border-[#dadee2] rounded-[12px] text-sm font-semibold text-[#647380] shrink-0">
                 +91
               </div>
               <Input
@@ -75,26 +75,32 @@ export default function LoginPage() {
                 }}
                 error={error}
                 disabled={loading}
+                className="rounded-[12px]"
                 autoFocus
               />
             </div>
           </div>
 
-          <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={loading}
+            className="w-full rounded-[12px]"
+          >
             Continue
-            <ArrowRight className="h-4 w-4" />
           </Button>
         </form>
       </div>
 
       {/* Footer text */}
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
+      <p className="mt-4 text-center text-xs text-[#647380] leading-relaxed">
         By continuing, you agree to our{' '}
-        <Link href="#" className="text-[#0F766E] hover:underline">
+        <Link href="#" className="text-[#00A453] hover:underline font-semibold">
           Terms of Service
         </Link>{' '}
         and{' '}
-        <Link href="#" className="text-[#0F766E] hover:underline">
+        <Link href="#" className="text-[#00A453] hover:underline font-semibold">
           Privacy Policy
         </Link>
         .

@@ -99,16 +99,16 @@ function VerifyContent() {
   return (
     <div>
       {/* Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-[6px] p-6">
+      <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
         {/* Header */}
         <div className="mb-6 text-center">
-          <div className="mx-auto h-10 w-10 flex items-center justify-center rounded-[6px] bg-[#f0fdfb] border border-[#0F766E]/20 mb-4">
-            <ShieldCheck className="h-5 w-5 text-[#0F766E]" />
-          </div>
-          <h1 className="text-xl font-semibold text-[#111827]">Verify your phone</h1>
-          <p className="mt-1 text-sm text-[#4B5563]">
+          <span className="text-[#00A453] font-bold text-xl tracking-tight">
+            project<span className="font-extrabold text-[#00060c]">tutor</span>
+          </span>
+          <h1 className="text-xl font-bold text-[#00060c] mt-4">Verify your phone</h1>
+          <p className="mt-1.5 text-sm text-[#384148]">
             We sent a 6-digit code to{' '}
-            <span className="font-medium text-[#111827]">{maskedPhone}</span>
+            <span className="font-semibold text-[#00060c]">{maskedPhone}</span>
           </p>
         </div>
 
@@ -116,15 +116,15 @@ function VerifyContent() {
         <div className="space-y-4">
           <OtpInput value={otp} onChange={handleOtpChange} disabled={loading} error={error} />
 
-          {loading && <p className="text-sm text-[#6B7280] text-center">Verifying...</p>}
+          {loading && <p className="text-sm text-[#647380] text-center">Verifying...</p>}
         </div>
 
         {/* Resend */}
         <div className="mt-6 text-center">
           {resendCooldown > 0 ? (
-            <p className="text-sm text-[#6B7280]">
+            <p className="text-sm text-[#647380]">
               Resend code in{' '}
-              <span className="font-medium text-[#111827] tabular-nums">{resendCooldown}s</span>
+              <span className="font-medium text-[#00060c] tabular-nums">{resendCooldown}s</span>
             </p>
           ) : (
             <Button
@@ -132,9 +132,9 @@ function VerifyContent() {
               size="sm"
               onClick={handleResend}
               loading={resending}
-              className="text-[#0F766E]"
+              className="text-[#00A453] hover:text-[#008f47]"
             >
-              <RotateCw className="h-3.5 w-3.5" />
+              <RotateCw className="h-3.5 w-3.5 animate-spin-hover" />
               Resend code
             </Button>
           )}
@@ -142,11 +142,11 @@ function VerifyContent() {
       </div>
 
       {/* Back link */}
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
+      <p className="mt-4 text-center text-xs text-[#647380]">
         Wrong number?{' '}
         <button
           onClick={() => router.push(ROUTES.AUTH_LOGIN)}
-          className="text-[#0F766E] hover:underline cursor-pointer"
+          className="text-[#00A453] hover:underline font-semibold cursor-pointer"
         >
           Go back
         </button>

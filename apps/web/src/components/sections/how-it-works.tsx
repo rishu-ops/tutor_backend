@@ -21,15 +21,15 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-white border-b border-[#E5E7EB]">
+    <section id="how-it-works" className="bg-white border-b border-[#dadee2]">
       <div className="mx-auto max-w-[1280px] px-6 py-20">
         {/* Section header */}
         <div className="max-w-xl mb-12">
-          <p className="text-sm font-medium text-[#0F766E] mb-2">Simple process</p>
-          <h2 className="text-3xl font-semibold text-[#111827] tracking-tight">
+          <p className="text-sm font-semibold text-[#00A453] mb-2">Simple process</p>
+          <h2 className="text-3xl font-extrabold text-[#00060c] tracking-tight">
             Get started in three steps
           </h2>
-          <p className="mt-3 text-[#4B5563]">
+          <p className="mt-3 text-[#384148]">
             No complex onboarding. No lengthy setup. Just create your account and start learning.
           </p>
         </div>
@@ -39,14 +39,14 @@ export function HowItWorks() {
           {steps.map((step) => (
             <div key={step.number} className="flex flex-col">
               {/* Step number */}
-              <span className="text-4xl font-bold text-[#E5E7EB] mb-4 leading-none tabular-nums">
+              <span className="text-4xl font-extrabold text-[#dadee2] mb-4 leading-none tabular-nums">
                 {step.number}
               </span>
               {/* Divider */}
-              <div className="h-px w-full bg-[#E5E7EB] mb-5" />
+              <div className="h-px w-full bg-[#dadee2] mb-5" />
               {/* Content */}
-              <h3 className="text-base font-semibold text-[#111827] mb-2">{step.title}</h3>
-              <p className="text-sm text-[#4B5563] leading-relaxed">{step.description}</p>
+              <h3 className="text-base font-bold text-[#00060c] mb-2">{step.title}</h3>
+              <p className="text-sm text-[#384148] leading-relaxed">{step.description}</p>
             </div>
           ))}
         </div>

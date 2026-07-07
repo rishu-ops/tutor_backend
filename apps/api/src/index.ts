@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
@@ -14,6 +15,14 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// CORS - allow frontend to access API
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 

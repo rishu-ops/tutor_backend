@@ -23,15 +23,15 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-[#E5E7EB]">
+    <footer className="bg-white border-t border-[#dadee2]">
       <div className="mx-auto max-w-[1280px] px-6 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand column */}
           <div>
-            <Link href="/" className="text-[#0F766E] font-bold text-lg tracking-tight">
-              Project Tutor
+            <Link href="/" className="text-[#00A453] font-bold text-xl tracking-tight low-case">
+              project<span className="font-extrabold text-[#00060c]">tutor</span>
             </Link>
-            <p className="mt-3 text-sm text-[#6B7280] leading-relaxed">
+            <p className="mt-3 text-sm text-[#647380] leading-relaxed">
               Connecting students with expert tutors across India.
             </p>
           </div>
@@ -39,13 +39,13 @@ export function Footer() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-sm font-semibold text-[#111827] mb-3">{category}</h4>
+              <h4 className="text-sm font-semibold text-[#00060c] mb-3">{category}</h4>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-[#6B7280] hover:text-[#111827] transition-colors"
+                      className="text-sm text-[#647380] hover:text-[#00060c] transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -57,20 +57,20 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 pt-6 border-t border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#6B7280]">
+        <div className="mt-10 pt-6 border-t border-[#dadee2] flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-[#647380]">
             &copy; {new Date().getFullYear()} Project Tutor. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <Link
               href="#"
-              className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors"
+              className="text-xs text-[#647380] hover:text-[#00060c] transition-colors"
             >
               Privacy Policy
             </Link>
             <Link
               href="#"
-              className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors"
+              className="text-xs text-[#647380] hover:text-[#00060c] transition-colors"
             >
               Terms of Service
             </Link>

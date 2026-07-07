@@ -1,9 +1,8 @@
 import { Navbar } from '@/components/sections/navbar';
 import { Hero } from '@/components/sections/hero';
-import { Features } from '@/components/sections/features';
+import { CommunityFeed } from '@/components/sections/community-feed';
 import { HowItWorks } from '@/components/sections/how-it-works';
 import { ForTutors } from '@/components/sections/for-tutors';
-import { Testimonials } from '@/components/sections/testimonials';
 import { Footer } from '@/components/sections/footer';
 
 export default function LandingPage() {
@@ -12,10 +11,9 @@ export default function LandingPage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <Features />
+        <CommunityFeed />
         <HowItWorks />
         <ForTutors />
-        <Testimonials />
       </main>
       <Footer />
     </>

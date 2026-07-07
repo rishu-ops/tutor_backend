@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
-/* ─── FDD Design Tokens ─────────────────────────────────────── */
+/* ─── Glassdoor-inspired Design Tokens ───────────────────────── */
 :root {
   /* Colors */
-  --color-primary: #0f766e;
-  --color-primary-hover: #0d6460;
-  --color-secondary-brand: #2563eb;
+  --color-primary: #00A453; /* Glassdoor Brand Green */
+  --color-primary-hover: #008f47;
+  --color-secondary-brand: #004fcb; /* Indeed Blue */
+  --color-dark-neutral: #00060c; /* Near Black */
+  --color-charcoal: #2d2d2d; /* Form labels and main headers */
   --color-success: #16a34a;
   --color-warning: #f59e0b;
   --color-error: #dc2626;
-  --color-background: #fafafa;
+  --color-background: #ffffff; /* Clean white page background */
   --color-surface: #ffffff;
-  --color-border: #e5e7eb;
-  --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
-  --color-text-muted: #6b7280;
+  --color-border: #dadee2; /* Glassdoor light gray border */
+  --color-text-primary: #00060c;
+  --color-text-secondary: #384148; /* Slate gray */
+  --color-text-muted: #647380; /* Medium gray */
 
   /* Radius */
-  --radius-btn: 4px;
-  --radius-input: 4px;
-  --radius-card: 6px;
-  --radius-dialog: 8px;
+  --radius-btn: 8px;
+  --radius-input: 12px;
+  --radius-card: 8px;
+  --radius-dialog: 12px;
 
   /* Fonts */
   --font-sans: var(--font-geist-sans), "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -35,6 +37,8 @@
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
   --color-secondary-brand: var(--color-secondary-brand);
+  --color-dark-neutral: var(--color-dark-neutral);
+  --color-charcoal: var(--color-charcoal);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
