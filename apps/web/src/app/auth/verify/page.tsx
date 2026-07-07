@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ function VerifyContent() {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN);
   const [resending, setResending] = useState(false);
+  const autoVerifyAttempted = useRef(false);
 
   // Redirect if no phone
   useEffect(() => {
@@ -72,7 +73,8 @@ function VerifyContent() {
 
   // Auto-submit pre-filled OTP in dev
   useEffect(() => {
-    if (defaultCode.length === 6) {
+    if (defaultCode.length === 6 && !autoVerifyAttempted.current) {
+      autoVerifyAttempted.current = true;
       handleVerify(defaultCode);
     }
   }, [defaultCode, handleVerify]);

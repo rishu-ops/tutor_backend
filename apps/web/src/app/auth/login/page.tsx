@@ -14,6 +14,43 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Remove spaces, hyphens, etc.
+    const cleaned = phone.replace(/\D/g, '');
+
+    // Must be exactly 10 digits
+    if (!/^[6-9]\d{9}$/.test(cleaned)) {
+      return false;
+    }
+
+    // Reject all same digits
+    if (/^(\d)\1{9}$/.test(cleaned)) {
+      return false;
+    }
+
+    // Reject ascending sequence
+    if (cleaned === '1234567890') {
+      return false;
+    }
+
+    // Reject descending sequence
+    if (cleaned === '9876543210') {
+      return false;
+    }
+
+    // Reject alternating patterns
+    if (/^(\d\d)\1{4}$/.test(cleaned)) {
+      return false;
+    }
+
+    // Reject repeated 5-digit pattern
+    if (/^(\d{5})\1$/.test(cleaned)) {
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
