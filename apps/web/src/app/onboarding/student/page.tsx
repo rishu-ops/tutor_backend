@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { onboardingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 import { ROUTES } from '@/lib/constants';
 
 export default function StudentOnboardingPage() {
@@ -17,20 +18,40 @@ export default function StudentOnboardingPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
-  // Form States
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState(user?.name || '');
-  const [city, setCity] = useState(user?.city || '');
-  const [school, setSchool] = useState('');
-  const [studentClass, setStudentClass] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('');
-  const [learningMode, setLearningMode] = useState<'ONLINE' | 'OFFLINE' | 'HYBRID'>('ONLINE');
+  // Read persisted draft state from store
+  const studentState = useOnboardingStore((s) => s.student);
+  const setStudentField = useOnboardingStore((s) => s.setStudentField);
+  const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
 
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  // Local Step Validation before moving forward
+  // Sync state values on initial mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Hydrate name and city from logged in user if they are blank in the draft
+  useEffect(() => {
+    if (mounted && user) {
+      if (!studentState.name) setStudentField('name', user.name || '');
+      if (!studentState.city) setStudentField('city', user.city || '');
+    }
+  }, [mounted, user, studentState.name, studentState.city, setStudentField]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-[#00A453] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  const { step, name, city, studentClass, school, preferredLanguage, learningModes } = studentState;
+
+  // Local validation per step
   const validateStep = (currentStep: number): boolean => {
     const errors: Record<string, string> = {};
 
@@ -38,10 +59,12 @@ export default function StudentOnboardingPage() {
       if (!name.trim()) errors.name = 'Full name is required';
       if (!city.trim()) errors.city = 'City is required';
     } else if (currentStep === 2) {
-      if (!school.trim()) errors.school = 'School or institution is required';
-      if (!studentClass.trim()) errors.class = 'Class/Grade is required';
-    } else if (currentStep === 3) {
+      if (!studentClass.trim()) errors.studentClass = 'Class / Grade is required';
       if (!preferredLanguage.trim()) errors.preferredLanguage = 'Preferred language is required';
+    } else if (currentStep === 3) {
+      if (learningModes.length === 0) {
+        errors.learningModes = 'Please select at least one learning preference';
+      }
     }
 
     setFieldErrors(errors);
@@ -50,22 +73,31 @@ export default function StudentOnboardingPage() {
 
   const handleNext = () => {
     if (validateStep(step)) {
-      setStep((prev) => prev + 1);
+      setStudentField('step', step + 1);
       setError('');
     }
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(1, prev - 1));
+    setStudentField('step', Math.max(1, step - 1));
     setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleLearningMode = (mode: string) => {
+    if (learningModes.includes(mode)) {
+      setStudentField(
+        'learningModes',
+        learningModes.filter((m) => m !== mode)
+      );
+    } else {
+      setStudentField('learningModes', [...learningModes, mode]);
+    }
+    if (fieldErrors.learningModes) setFieldErrors({ ...fieldErrors, learningModes: '' });
+  };
+
+  const handleSubmit = async () => {
     setError('');
     setFieldErrors({});
-
-    if (!validateStep(3)) return;
 
     if (!accessToken || !user) {
       setError('Session expired. Please log in again.');
@@ -74,20 +106,35 @@ export default function StudentOnboardingPage() {
 
     setLoading(true);
     try {
+      // Map frontend multiple select inputs into backend enum (ONLINE / OFFLINE / HYBRID)
+      // Home Tuition = OFFLINE
+      // Online = ONLINE
+      // Group Classes / Multiple selections = HYBRID
+      let finalMode: 'ONLINE' | 'OFFLINE' | 'HYBRID' = 'ONLINE';
+      if (learningModes.includes('Home Tuition') && learningModes.includes('Online')) {
+        finalMode = 'HYBRID';
+      } else if (learningModes.includes('Group Classes') || learningModes.length > 1) {
+        finalMode = 'HYBRID';
+      } else if (learningModes.includes('Home Tuition')) {
+        finalMode = 'OFFLINE';
+      } else if (learningModes.includes('Online')) {
+        finalMode = 'ONLINE';
+      }
+
       await onboardingApi.submit(
         {
           role: 'STUDENT',
           name,
           city,
-          school,
+          school: school || 'Not Specified',
           class: studentClass,
           preferredLanguage,
-          learningMode,
+          learningMode: finalMode,
         },
         accessToken
       );
 
-      // Update store
+      // Save user profile state changes in local auth store
       const updatedUser = {
         ...user,
         role: 'STUDENT',
@@ -96,6 +143,10 @@ export default function StudentOnboardingPage() {
       };
       setUser(updatedUser);
 
+      // Clean up the draft
+      resetOnboarding();
+
+      // Forward to dashboard
       router.push(ROUTES.DASHBOARD);
     } catch (err: unknown) {
       const apiErr = err as { message?: string; errors?: any };
@@ -129,41 +180,42 @@ export default function StudentOnboardingPage() {
         </div>
       </header>
 
-      {/* Main Area */}
+      {/* Main Stepper Wizard layout */}
       <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-[448px]">
           <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
-            {/* Progress Stepper Bar */}
+            {/* Step Progress indicators */}
             <div className="mb-6">
-              <div className="flex justify-between text-xs font-semibold text-[#647380] mb-2 uppercase tracking-wide">
-                <span>Step {step} of 3</span>
-                <span>{Math.round((step / 3) * 100)}% Complete</span>
+              <div className="flex justify-between text-xs font-bold text-[#647380] mb-2 uppercase tracking-wide">
+                <span>Step {step} of 4</span>
+                <span>{Math.round((step / 4) * 100)}% Completed</span>
               </div>
-              <div className="w-full bg-[#f3f4f6] h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-[#00A453] h-full transition-all duration-300 rounded-full"
-                  style={{ width: `${(step / 3) * 100}%` }}
-                />
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4].map((s) => (
+                  <div
+                    key={s}
+                    className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
+                      s <= step ? 'bg-[#00A453]' : 'bg-[#dadee2]'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
 
-            {/* Step Heading */}
-            <div className="mb-6 flex items-center gap-3">
-              <div className="h-10 w-10 flex items-center justify-center rounded-[8px] bg-[#e6f6ee] text-[#00A453] shrink-0">
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-[#00060c]">
-                  {step === 1 && 'Tell us your name & city'}
-                  {step === 2 && 'Enter your education'}
-                  {step === 3 && 'Set your preferences'}
-                </h1>
-                <p className="text-xs text-[#647380]">
-                  {step === 1 && "Let's start with basic details."}
-                  {step === 2 && 'Help us understand your school/grade level.'}
-                  {step === 3 && 'Final step: how and in what language you learn.'}
-                </p>
-              </div>
+            {/* Step Headings */}
+            <div className="mb-8">
+              <h1 className="text-xl font-extrabold text-[#00060c]">
+                {step === 1 && 'Tell us about yourself'}
+                {step === 2 && 'What are you studying?'}
+                {step === 3 && 'How do you want to learn?'}
+                {step === 4 && '🎉 Your profile is ready.'}
+              </h1>
+              <p className="text-sm text-[#647380] mt-1.5">
+                {step === 1 && 'Start by introducing yourself to potential tutors.'}
+                {step === 2 && 'Enter your current grade and school details.'}
+                {step === 3 && 'Select your preferred learning models.'}
+                {step === 4 && 'Start posting your first tuition requirement.'}
+              </p>
             </div>
 
             {error && (
@@ -172,17 +224,17 @@ export default function StudentOnboardingPage() {
               </div>
             )}
 
-            {/* Stepped Form Elements */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* STEP 1: Basics */}
+            {/* Stepped inputs */}
+            <div className="space-y-4">
+              {/* Step 1: Basics */}
               {step === 1 && (
                 <div className="space-y-4">
                   <Input
-                    label="Full name"
+                    label="Full Name"
                     placeholder="Enter your name"
                     value={name}
                     onChange={(e) => {
-                      setName(e.target.value);
+                      setStudentField('name', e.target.value);
                       if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
                     }}
                     error={fieldErrors.name}
@@ -191,10 +243,10 @@ export default function StudentOnboardingPage() {
                   />
                   <Input
                     label="City"
-                    placeholder="e.g. Bangalore, New Delhi"
+                    placeholder="e.g. Bangalore, Mumbai"
                     value={city}
                     onChange={(e) => {
-                      setCity(e.target.value);
+                      setStudentField('city', e.target.value);
                       if (fieldErrors.city) setFieldErrors({ ...fieldErrors, city: '' });
                     }}
                     error={fieldErrors.city}
@@ -203,73 +255,95 @@ export default function StudentOnboardingPage() {
                 </div>
               )}
 
-              {/* STEP 2: Education */}
+              {/* Step 2: Academic Info */}
               {step === 2 && (
                 <div className="space-y-4">
-                  <Input
-                    label="School / Institution"
-                    placeholder="Enter your school name"
-                    value={school}
-                    onChange={(e) => {
-                      setSchool(e.target.value);
-                      if (fieldErrors.school) setFieldErrors({ ...fieldErrors, school: '' });
-                    }}
-                    error={fieldErrors.school}
-                    disabled={loading}
-                    autoFocus
-                  />
                   <Input
                     label="Class / Grade"
                     placeholder="e.g. Class 10, Grade 12"
                     value={studentClass}
                     onChange={(e) => {
-                      setStudentClass(e.target.value);
-                      if (fieldErrors.class) setFieldErrors({ ...fieldErrors, class: '' });
+                      setStudentField('studentClass', e.target.value);
+                      if (fieldErrors.studentClass)
+                        setFieldErrors({ ...fieldErrors, studentClass: '' });
                     }}
-                    error={fieldErrors.class}
+                    error={fieldErrors.studentClass}
+                    disabled={loading}
+                    autoFocus
+                  />
+                  <Input
+                    label="School / College (Optional)"
+                    placeholder="Enter your institution name"
+                    value={school}
+                    onChange={(e) => setStudentField('school', e.target.value)}
                     disabled={loading}
                   />
-                </div>
-              )}
-
-              {/* STEP 3: Preferences */}
-              {step === 3 && (
-                <div className="space-y-4">
                   <Input
-                    label="Preferred language"
-                    placeholder="e.g. English, Hindi, Tamil"
+                    label="Preferred Language"
+                    placeholder="e.g. English, Hindi"
                     value={preferredLanguage}
                     onChange={(e) => {
-                      setPreferredLanguage(e.target.value);
+                      setStudentField('preferredLanguage', e.target.value);
                       if (fieldErrors.preferredLanguage)
                         setFieldErrors({ ...fieldErrors, preferredLanguage: '' });
                     }}
                     error={fieldErrors.preferredLanguage}
                     disabled={loading}
-                    autoFocus
                   />
-
-                  <div>
-                    <label className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
-                      Learning mode
-                    </label>
-                    <select
-                      value={learningMode}
-                      onChange={(e) => setLearningMode(e.target.value as any)}
-                      disabled={loading}
-                      className="w-full px-3 py-2 text-sm text-[#00060c] bg-white border border-[#dadee2] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb]"
-                    >
-                      <option value="ONLINE">Online Classes</option>
-                      <option value="OFFLINE">Offline Home Classes</option>
-                      <option value="HYBRID">Hybrid Mode</option>
-                    </select>
-                  </div>
                 </div>
               )}
 
-              {/* Wizard Nav Controls */}
+              {/* Step 3: Learning Preferences */}
+              {step === 3 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
+                    Select Class Mode (Select all that apply)
+                  </label>
+
+                  {['Home Tuition', 'Online', 'Group Classes'].map((mode) => {
+                    const isSelected = learningModes.includes(mode);
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => toggleLearningMode(mode)}
+                        className={`w-full flex items-center justify-between px-4 py-3 border rounded-[12px] text-sm text-left transition-all ${
+                          isSelected
+                            ? 'bg-[#e6f6ee]/30 border-[#00A453] text-[#00060c] font-bold'
+                            : 'bg-white border-[#dadee2] text-[#384148] hover:border-[#00060c]'
+                        }`}
+                      >
+                        <span>{mode}</span>
+                        {isSelected && (
+                          <div className="h-5 w-5 flex items-center justify-center rounded-full bg-[#00A453] text-white">
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {fieldErrors.learningModes && (
+                    <p className="mt-1.5 text-xs text-[#DC2626]">{fieldErrors.learningModes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 4: Finish */}
+              {step === 4 && (
+                <div className="text-center py-6">
+                  <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-[#e6f6ee] text-[#00A453] mb-4">
+                    <Check className="h-8 w-8 stroke-[3]" />
+                  </div>
+                  <p className="text-sm text-[#384148] leading-relaxed max-w-xs mx-auto">
+                    Your profile is completely verified. Click below to enter your student dashboard
+                    and post requirements.
+                  </p>
+                </div>
+              )}
+
+              {/* Navigation triggers */}
               <div className="flex items-center gap-3 pt-6 border-t border-[#dadee2] mt-6">
-                {step > 1 && (
+                {step > 1 && step < 4 && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -288,20 +362,31 @@ export default function StudentOnboardingPage() {
                     onClick={handleNext}
                     className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
                   >
-                    Next <ChevronRight className="w-4 h-4" />
+                    Continue <ChevronRight className="w-4 h-4" />
                   </Button>
-                ) : (
+                ) : step === 3 ? (
                   <Button
-                    type="submit"
+                    type="button"
                     variant="primary"
                     loading={loading}
+                    onClick={handleSubmit}
                     className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
                   >
-                    Complete Setup
+                    Finish Setup
                   </Button>
+                ) : (
+                  <Link href={ROUTES.DASHBOARD} className="w-full">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      className="w-full h-[40px] text-xs font-bold rounded-[12px] justify-center"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  </Link>
                 )}
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </main>
