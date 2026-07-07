@@ -16,7 +16,12 @@ export default function LoginPage() {
 
   const validatePhoneNumber = (phone: string): boolean => {
     // Remove spaces, hyphens, etc.
-    const cleaned = phone.replace(/\D/g, '');
+    let cleaned = phone.replace(/\D/g, '');
+
+    // Strip country code 91 if present at start of a 12-digit number
+    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+      cleaned = cleaned.slice(2);
+    }
 
     // Must be exactly 10 digits
     if (!/^[6-9]\d{9}$/.test(cleaned)) {
@@ -63,6 +68,12 @@ export default function LoginPage() {
     }
 
     const fullPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
+
+    const isValidPhone = validatePhoneNumber(fullPhone);
+    if (!isValidPhone) {
+      setError('Please enter a valid 10-digit Indian phone number');
+      return;
+    }
 
     setLoading(true);
     try {
