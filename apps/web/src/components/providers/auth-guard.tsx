@@ -24,10 +24,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const isAuthRoute = pathname.startsWith('/auth');
     const isOnboardingRoute = pathname.startsWith('/onboarding');
     const isDashboardRoute = pathname.startsWith('/dashboard');
+    const isProfileRoute = pathname.startsWith('/profile');
 
     if (!isAuthenticated) {
       // Unauthenticated users can only access public routes (like landing page or auth screens)
-      if (isOnboardingRoute || isDashboardRoute) {
+      if (isOnboardingRoute || isDashboardRoute || isProfileRoute) {
         router.replace(ROUTES.AUTH_LOGIN);
       }
     } else {
@@ -53,8 +54,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (hasRole) {
           router.replace(ROUTES.DASHBOARD);
         }
-      } else if (isDashboardRoute) {
-        // Prevent new users without a profile from viewing the dashboard
+      } else if (isDashboardRoute || isProfileRoute) {
+        // Prevent new users without a profile from viewing the dashboard or profile
         if (!hasRole) {
           router.replace(ROUTES.ONBOARDING);
         }
@@ -75,8 +76,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const isAuthRoute = pathname.startsWith('/auth');
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isDashboardRoute = pathname.startsWith('/dashboard');
+  const isProfileRoute = pathname.startsWith('/profile');
 
-  if (!isAuthenticated && (isOnboardingRoute || isDashboardRoute)) {
+  if (!isAuthenticated && (isOnboardingRoute || isDashboardRoute || isProfileRoute)) {
     return null;
   }
 
@@ -84,7 +86,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const hasRole = user && user.role !== null;
     if (isAuthRoute) return null;
     if (isOnboardingRoute && hasRole) return null;
-    if (isDashboardRoute && !hasRole) return null;
+    if ((isDashboardRoute || isProfileRoute) && !hasRole) return null;
     if (pathname === '/') return null;
   }
 

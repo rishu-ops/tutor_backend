@@ -94,3 +94,18 @@ export const onboardingApi = {
       token,
     }),
 };
+
+// Profile-specific API calls
+export const profileApi = {
+  getStudentProfile: (token: string) =>
+    api<any>('/api/v1/student/profile', {
+      method: 'GET',
+      token,
+    }),
+
+  getTutorProfile: (token: string) =>
+    api<any>('/api/v1/tutor/profile', {
+      method: 'GET',
+      token,
+    }),
+};
