@@ -61,6 +61,8 @@ export default function StudentOnboardingPage() {
     );
   }
 
+  const STEPS_NAMES = ['Basics', 'Academic', 'Preferences', 'Ready'];
+
   const { step, name, city, studentClass, school, preferredLanguage, learningModes } = studentState;
 
   // Local validation per step
@@ -146,20 +148,8 @@ export default function StudentOnboardingPage() {
         accessToken
       );
 
-      // Save user profile state changes in local auth store
-      const updatedUser = {
-        ...user,
-        role: 'STUDENT',
-        name,
-        city,
-      };
-      setUser(updatedUser);
-
-      // Clean up the draft
-      resetOnboarding();
-
-      // Forward to dashboard
-      router.push(ROUTES.DASHBOARD);
+      // Advance to success step (Confetti / Thank you page)
+      setStudentField('step', 4);
     } catch (err: unknown) {
       const apiErr = err as { message?: string; errors?: any };
       setError(apiErr.message || 'Failed to submit onboarding profile.');
@@ -173,6 +163,20 @@ export default function StudentOnboardingPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFinishAndGoToDashboard = () => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        role: 'STUDENT' as const,
+        name,
+        city,
+      };
+      setUser(updatedUser);
+    }
+    resetOnboarding();
+    router.push(ROUTES.DASHBOARD);
   };
 
   return (
@@ -195,43 +199,59 @@ export default function StudentOnboardingPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
+      <main className="flex-1 flex flex-col items-center py-12 px-6">
+        {/* Step Progress indicators */}
         <div className="w-full max-w-xl">
-          <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
-            {/* Step Progress indicators */}
-            <div className="mb-6">
-              <div className="flex justify-between text-xs font-bold text-[#647380] mb-2 uppercase tracking-wide">
-                <span>Step {step} of 4</span>
-                <span>{Math.round((step / 4) * 100)}% Completed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4].map((s) => (
-                  <div
-                    key={s}
-                    className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
-                      s <= step ? 'bg-[#00A453]' : 'bg-[#dadee2]'
+          <div className="border border-[#dadee2] bg-[#FAFAFA] rounded-full px-5 py-2.5 flex items-center justify-between text-[10px] md:text-xs font-bold tracking-wide text-[#647380] shadow-sm">
+            {STEPS_NAMES.map((name, idx) => {
+              const s = idx + 1;
+              const isActive = step === s;
+              const isCompleted = step > s;
+              return (
+                <div
+                  key={name}
+                  className="flex items-center gap-1.5 md:gap-2 flex-1 justify-center last:flex-none"
+                >
+                  <span
+                    className={`transition-colors whitespace-nowrap ${
+                      isActive
+                        ? 'text-[#00A453] font-black'
+                        : isCompleted
+                          ? 'text-[#00A453]/70 font-semibold'
+                          : 'text-[#647380]'
                     }`}
-                  />
-                ))}
-              </div>
-            </div>
+                  >
+                    {isCompleted ? '✓ ' : ''}
+                    {name}
+                  </span>
+                  {idx < STEPS_NAMES.length - 1 && (
+                    <div className="h-px bg-[#dadee2] flex-1 min-w-[8px] mx-1 md:mx-1.5" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-            {/* Step Headings */}
-            <div className="mb-8">
-              <h1 className="text-xl font-extrabold text-[#00060c]">
-                {step === 1 && 'Tell us about yourself'}
-                {step === 2 && 'What are you studying?'}
-                {step === 3 && 'How do you want to learn?'}
-                {step === 4 && '🎉 Your profile is ready.'}
-              </h1>
-              <p className="text-sm text-[#647380] mt-1.5">
-                {step === 1 && 'Start by introducing yourself to potential tutors.'}
-                {step === 2 && 'Enter your current grade and school details.'}
-                {step === 3 && 'Select your preferred learning models.'}
-                {step === 4 && 'Start posting your first tuition requirement.'}
-              </p>
-            </div>
+        {/* Step Headings */}
+        <div className="text-center mt-10 mb-8 max-w-xl mx-auto">
+          <h1 className="text-3xl font-extrabold text-[#00060c]">
+            {step === 1 && 'Tell us about yourself'}
+            {step === 2 && 'What are you studying?'}
+            {step === 3 && 'How do you want to learn?'}
+            {step === 4 && '🎉 Your profile is ready.'}
+          </h1>
+          <p className="text-sm text-[#647380] mt-2 max-w-md mx-auto leading-relaxed">
+            {step === 1 && 'Start by introducing yourself to potential tutors.'}
+            {step === 2 && 'Enter your current grade and school details.'}
+            {step === 3 && 'Select your preferred learning models.'}
+            {step === 4 && 'Start posting your first tuition requirement.'}
+          </p>
+        </div>
 
+        {/* Card containing only inputs */}
+        <div className="w-full max-w-xl">
+          <div className="bg-white border border-[#dadee2]/60 rounded-[8px] p-8 shadow-none">
             {error && (
               <div className="bg-red-50 border border-red-200 text-[#DC2626] rounded-[8px] p-3 text-xs font-semibold mb-6">
                 {error}
@@ -354,53 +374,52 @@ export default function StudentOnboardingPage() {
                   </p>
                 </div>
               )}
-
-              {/* Navigation triggers */}
-              <div className="flex items-center gap-3 pt-6 border-t border-[#dadee2] mt-6">
-                {step > 1 && step < 4 && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleBack}
-                    disabled={loading}
-                    className="w-[100px] h-[40px] text-xs font-bold rounded-[12px]"
-                  >
-                    <ChevronLeft className="w-4 h-4" /> Back
-                  </Button>
-                )}
-
-                {step < 3 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={handleNext}
-                    className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                  >
-                    Continue <ChevronRight className="w-4 h-4" />
-                  </Button>
-                ) : step === 3 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    loading={loading}
-                    onClick={handleSubmit}
-                    className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                  >
-                    Finish Setup
-                  </Button>
-                ) : (
-                  <Link href={ROUTES.DASHBOARD} className="w-full">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      className="w-full h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                    >
-                      Go to Dashboard
-                    </Button>
-                  </Link>
-                )}
-              </div>
             </div>
+          </div>
+
+          {/* Navigation triggers */}
+          <div className="flex items-center justify-center gap-4 mt-8 w-full">
+            {step > 1 && step < 4 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleBack}
+                disabled={loading}
+                className="w-[120px] h-10 text-xs font-bold rounded-[12px] shrink-0"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back
+              </Button>
+            )}
+
+            {step < 3 ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleNext}
+                className="flex-1 max-w-[200px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Continue <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : step === 3 ? (
+              <Button
+                type="button"
+                variant="primary"
+                loading={loading}
+                onClick={handleSubmit}
+                className="flex-1 max-w-[200px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Finish Setup
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleFinishAndGoToDashboard}
+                className="w-full max-w-[240px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Go to Dashboard
+              </Button>
+            )}
           </div>
         </div>
       </main>

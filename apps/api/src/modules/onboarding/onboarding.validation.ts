@@ -33,6 +33,16 @@ export const onboardingTutorSchema = z.object({
     city: z.string().min(1, 'City is required'),
     area: z.string().min(1, 'Area is required'),
   }),
+  qualifications: z
+    .array(
+      z.object({
+        degree: z.string().min(1, 'Degree is required'),
+        institution: z.string().min(1, 'Institution is required'),
+        year: z.coerce.number().int().positive('Year must be a positive integer'),
+      })
+    )
+    .optional(),
+  availability: z.array(z.string()).optional(),
 });
 
 // Discriminated union for routing and validation

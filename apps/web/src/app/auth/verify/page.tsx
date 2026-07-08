@@ -118,7 +118,7 @@ function VerifyContent() {
   const maskedPhone = phone ? phone.slice(0, 4) + '****' + phone.slice(-2) : '';
 
   return (
-    <div>
+    <div className="w-full max-w-sm mx-auto">
       {/* Card */}
       <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
         {/* Header */}

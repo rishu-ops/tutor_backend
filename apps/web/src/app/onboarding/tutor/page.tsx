@@ -88,6 +88,8 @@ export default function TutorOnboardingPage() {
     );
   }
 
+  const STEPS_NAMES = ['Basics', 'Bio', 'Subjects', 'Formats', 'Fees', 'Degree', 'Time', 'Ready'];
+
   const {
     step,
     name,
@@ -245,26 +247,19 @@ export default function TutorOnboardingPage() {
             level: s.level,
             experienceYears: Number(s.experienceYears),
           })),
-        qualifications: qualifications.filter((q) => q.degree.trim() && q.institution.trim()),
+        qualifications: qualifications
+          .filter((q) => q.degree.trim() && q.institution.trim())
+          .map((q) => ({
+            ...q,
+            year: parseInt(q.year, 10) || 0,
+          })),
         availability,
       };
 
       await onboardingApi.submit(payload as any, accessToken);
 
-      // Save store auth user
-      const updatedUser = {
-        ...user,
-        role: 'TUTOR',
-        name,
-        city,
-      };
-      setUser(updatedUser);
-
-      // Reset the draft
-      resetOnboarding();
-
-      // Forward to dashboard
-      router.push(ROUTES.DASHBOARD);
+      // Advance to success step (Confetti / Thank you page)
+      setTutorField('step', 8);
     } catch (err: unknown) {
       const apiErr = err as { message?: string; errors?: any };
       setError(apiErr.message || 'Failed to complete onboarding.');
@@ -278,6 +273,20 @@ export default function TutorOnboardingPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFinishAndGoToDashboard = () => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        role: 'TUTOR' as const,
+        name,
+        city,
+      };
+      setUser(updatedUser);
+    }
+    resetOnboarding();
+    router.push(ROUTES.DASHBOARD);
   };
 
   return (
@@ -301,54 +310,67 @@ export default function TutorOnboardingPage() {
       </header>
 
       {/* Main stepper wrapper */}
-      <main className="flex-1 flex justify-center px-6 py-12">
+      <main className="flex-1 flex flex-col items-center py-12 px-6">
+        {/* Step progress tracker dots */}
         <div className="w-full max-w-2xl">
-          <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
-            {/* Step progress tracker dots */}
-            <div className="mb-6">
-              <div className="flex justify-between text-xs font-bold text-[#647380] mb-2 uppercase tracking-wide">
-                <span>Step {step} of 8</span>
-                <span>{Math.round((step / 8) * 100)}% Completed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: 8 }).map((_, idx) => {
-                  const s = idx + 1;
-                  return (
-                    <div
-                      key={s}
-                      className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
-                        s <= step ? 'bg-[#00A453]' : 'bg-[#dadee2]'
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
+          <div className="border border-[#dadee2] bg-[#FAFAFA] rounded-full px-4 md:px-6 py-2.5 flex items-center justify-between text-[9px] md:text-xs font-bold tracking-wide text-[#647380] shadow-sm overflow-x-auto whitespace-nowrap scrollbar-none">
+            {STEPS_NAMES.map((name, idx) => {
+              const s = idx + 1;
+              const isActive = step === s;
+              const isCompleted = step > s;
+              return (
+                <div
+                  key={name}
+                  className="flex items-center gap-1 md:gap-2 flex-1 justify-center last:flex-none"
+                >
+                  <span
+                    className={`transition-colors whitespace-nowrap ${
+                      isActive
+                        ? 'text-[#00A453] font-black'
+                        : isCompleted
+                          ? 'text-[#00A453]/70 font-semibold'
+                          : 'text-[#647380]'
+                    }`}
+                  >
+                    {isCompleted ? '✓ ' : ''}
+                    {name}
+                  </span>
+                  {idx < STEPS_NAMES.length - 1 && (
+                    <div className="h-px bg-[#dadee2] flex-1 min-w-[6px] mx-0.5 md:mx-1" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-            {/* Headers */}
-            <div className="mb-8">
-              <h1 className="text-xl font-extrabold text-[#00060c]">
-                {step === 1 && "Welcome! Let's introduce you."}
-                {step === 2 && 'Tell students about yourself.'}
-                {step === 3 && 'What do you teach?'}
-                {step === 4 && 'How do you teach?'}
-                {step === 5 && 'Set your fee.'}
-                {step === 6 && 'Tell us about your education.'}
-                {step === 7 && 'When are you available?'}
-                {step === 8 && '🎉 Your tutor profile is ready.'}
-              </h1>
-              <p className="text-sm text-[#647380] mt-1.5">
-                {step === 1 && 'Start with your name and primary location.'}
-                {step === 2 && 'A short summary helps students know your style.'}
-                {step === 3 && 'Specify your subjects, teaching level, and experience.'}
-                {step === 4 && 'Select languages spoken and available formats.'}
-                {step === 5 && 'Specify your min/max fees and billing frequency.'}
-                {step === 6 && 'Add degrees or educational certificates (Optional).'}
-                {step === 7 && 'Select times/days you are open for requests (Optional).'}
-                {step === 8 && 'Start exploring student requirements.'}
-              </p>
-            </div>
+        {/* Headers */}
+        <div className="text-center mt-10 mb-8 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-extrabold text-[#00060c]">
+            {step === 1 && "Welcome! Let's introduce you."}
+            {step === 2 && 'Tell students about yourself.'}
+            {step === 3 && 'What do you teach?'}
+            {step === 4 && 'How do you teach?'}
+            {step === 5 && 'Set your fee.'}
+            {step === 6 && 'Tell us about your education.'}
+            {step === 7 && 'When are you available?'}
+            {step === 8 && '🎉 Your tutor profile is ready.'}
+          </h1>
+          <p className="text-sm text-[#647380] mt-2 max-w-md mx-auto leading-relaxed">
+            {step === 1 && 'Start with your name and primary location.'}
+            {step === 2 && 'A short summary helps students know your style.'}
+            {step === 3 && 'Specify your subjects, teaching level, and experience.'}
+            {step === 4 && 'Select languages spoken and available formats.'}
+            {step === 5 && 'Specify your min/max fees and billing frequency.'}
+            {step === 6 && 'Add degrees or educational certificates (Optional).'}
+            {step === 7 && 'Select times/days you are open for requests (Optional).'}
+            {step === 8 && 'Start exploring student requirements.'}
+          </p>
+        </div>
 
+        {/* Card containing only inputs */}
+        <div className="w-full max-w-2xl">
+          <div className="bg-white border border-[#dadee2]/60 rounded-[8px] p-8 shadow-none w-full">
             {error && (
               <div className="bg-red-50 border border-red-200 text-[#DC2626] rounded-[8px] p-3 text-xs font-semibold mb-6">
                 {error}
@@ -736,53 +758,52 @@ export default function TutorOnboardingPage() {
                   </p>
                 </div>
               )}
-
-              {/* Navigation trigger controls */}
-              <div className="flex items-center gap-3 pt-6 border-t border-[#dadee2] mt-6">
-                {step > 1 && step < 8 && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleBack}
-                    disabled={loading}
-                    className="w-[100px] h-[40px] text-xs font-bold rounded-[12px]"
-                  >
-                    <ChevronLeft className="w-4 h-4" /> Back
-                  </Button>
-                )}
-
-                {step < 7 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={handleNext}
-                    className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                  >
-                    Continue <ChevronRight className="w-4 h-4" />
-                  </Button>
-                ) : step === 7 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    loading={loading}
-                    onClick={handleSubmit}
-                    className="flex-1 h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                  >
-                    Finish Setup
-                  </Button>
-                ) : (
-                  <Link href={ROUTES.DASHBOARD} className="w-full">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      className="w-full h-[40px] text-xs font-bold rounded-[12px] justify-center"
-                    >
-                      Go to Dashboard
-                    </Button>
-                  </Link>
-                )}
-              </div>
             </div>
+          </div>
+
+          {/* Navigation trigger controls */}
+          <div className="flex items-center justify-center gap-4 mt-8 w-full">
+            {step > 1 && step < 8 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleBack}
+                disabled={loading}
+                className="w-[120px] h-10 text-xs font-bold rounded-[12px] shrink-0"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back
+              </Button>
+            )}
+
+            {step < 7 ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleNext}
+                className="flex-1 max-w-[200px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Continue <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : step === 7 ? (
+              <Button
+                type="button"
+                variant="primary"
+                loading={loading}
+                onClick={handleSubmit}
+                className="flex-1 max-w-[200px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Finish Setup
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleFinishAndGoToDashboard}
+                className="w-full max-w-[240px] h-10 text-xs font-bold rounded-[12px] justify-center"
+              >
+                Go to Dashboard
+              </Button>
+            )}
           </div>
         </div>
       </main>

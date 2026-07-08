@@ -91,73 +91,98 @@ export default function LoginPage() {
   };
 
   return (
-    <div>
-      {/* Card */}
-      <div className="bg-white border border-[#dadee2] rounded-[12px] p-8 shadow-sm">
-        {/* Logo Header */}
-        <div className="text-center mb-6">
-          <span className="text-[#00A453] font-bold text-xl tracking-tight">
-            project<span className="font-extrabold text-[#00060c]">tutor</span>
-          </span>
-          <h1 className="text-xl font-bold text-[#00060c] mt-4">Sign in or create account</h1>
-          <p className="mt-1.5 text-sm text-[#384148]">
-            Enter your phone number to receive a verification code.
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      {/* Left side: Illustration */}
+      <div className="hidden lg:flex lg:col-span-6 flex-col items-center justify-center text-center space-y-6">
+        <div className="relative w-full max-w-[540px] aspect-square rounded-[24px] overflow-hidden">
+          <img
+            src="/login_illustration.png"
+            alt="FindMyTutor Design Illustration"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="max-w-[480px] space-y-2">
+          <h2 className="text-3xl font-extrabold text-[#00060c] tracking-tight">
+            Find the tutor <span className="text-[#00A453]">made for you</span>
+          </h2>
+          <p className="text-sm text-[#647380] leading-relaxed">
+            Browse verified profiles, view teaching history, check hourly rates, and schedule
+            sessions with private tutors in your city.
           </p>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="phone" className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
-              Phone number
-            </label>
-            <div className="flex items-start gap-2">
-              <div className="flex items-center justify-center h-10 px-3 bg-[#FAFAFA] border border-[#dadee2] rounded-[12px] text-sm font-semibold text-[#647380] shrink-0">
-                +91
-              </div>
-              <div className="flex-1">
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Enter your 10-digit number"
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    setError('');
-                  }}
-                  error={error}
-                  disabled={loading}
-                  className="rounded-[12px] h-10"
-                  autoFocus
-                />
-              </div>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            loading={loading}
-            className="w-full rounded-[12px]"
-          >
-            Continue
-          </Button>
-        </form>
       </div>
 
-      {/* Footer text */}
-      <p className="mt-4 text-center text-xs text-[#647380] leading-relaxed">
-        By continuing, you agree to our{' '}
-        <Link href="#" className="text-[#00A453] hover:underline font-semibold">
-          Terms of Service
-        </Link>{' '}
-        and{' '}
-        <Link href="#" className="text-[#00A453] hover:underline font-semibold">
-          Privacy Policy
-        </Link>
-        .
-      </p>
+      {/* Right side: Login Card */}
+      <div className="col-span-12 lg:col-span-6 w-full max-w-lg mx-auto">
+        <div className="p-0 md:p-6">
+          {/* Logo Header */}
+          <div className="text-center mb-8">
+            <span className="text-[#00A453] font-bold text-3xl tracking-tight">
+              FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
+            </span>
+            <h1 className="text-xl font-bold text-[#00060c] mt-4">Sign in or create account</h1>
+            <p className="mt-2 text-sm text-[#647380] leading-relaxed">
+              Enter your mobile phone number to verify your identity.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-xs font-bold text-[#647380] mb-2 uppercase tracking-wider"
+              >
+                Mobile Phone Number
+              </label>
+              <div className="flex items-start gap-2">
+                <div className="flex items-center justify-center h-10 px-3.5 bg-[#FAFAFA] border border-[#dadee2] rounded-[12px] text-sm font-semibold text-[#00060c] shrink-0">
+                  +91
+                </div>
+                <div className="flex-1">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="Enter your 10-digit number"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setError('');
+                    }}
+                    error={error}
+                    disabled={loading}
+                    className="rounded-[12px] h-10 text-sm"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              loading={loading}
+              className="w-full rounded-[12px] font-bold text-sm h-11"
+            >
+              Continue
+            </Button>
+          </form>
+        </div>
+
+        {/* Footer text */}
+        <p className="mt-6 text-center text-[12px] text-[#647380] leading-relaxed max-w-[320px] mx-auto">
+          By continuing, you accept our{' '}
+          <Link href="#" className="text-[#00A453] hover:underline font-semibold">
+            terms and conditions
+          </Link>{' '}
+          and our{' '}
+          <Link href="#" className="text-[#00A453] hover:underline font-semibold">
+            privacy policy
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   );
 }
