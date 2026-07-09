@@ -135,3 +135,64 @@ export const profileApi = {
       token,
     }),
 };
+
+// Requirement-specific API calls
+export const requirementApi = {
+  createRequirement: (data: Record<string, unknown>, token: string) =>
+    api<any>('/api/v1/requirements', {
+      method: 'POST',
+      body: data,
+      token,
+    }),
+
+  getMyRequirements: (token: string) =>
+    api<any[]>('/api/v1/requirements/me', {
+      method: 'GET',
+      token,
+    }),
+
+  getRequirementDetail: (id: string, token: string) =>
+    api<any>(`/api/v1/requirements/${id}`, {
+      method: 'GET',
+      token,
+    }),
+
+  updateRequirement: (id: string, data: Record<string, unknown>, token: string) =>
+    api<any>(`/api/v1/requirements/${id}`, {
+      method: 'PATCH',
+      body: data,
+      token,
+    }),
+
+  closeRequirement: (id: string, token: string) =>
+    api<any>(`/api/v1/requirements/${id}/close`, {
+      method: 'PATCH',
+      token,
+    }),
+
+  searchRequirements: (
+    filters: Record<string, any>,
+    page: number,
+    limit: number,
+    token: string
+  ) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        params.append(key, String(val));
+      }
+    });
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+    return api<any>(`/api/v1/requirements?${params.toString()}`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>;
+  },
+
+  getTutorFeed: (page: number, limit: number, token: string) =>
+    api<any>(`/api/v1/requirements/tutor/feed?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+};

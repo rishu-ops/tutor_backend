@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { authApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
@@ -11,6 +11,7 @@ import { registerAuthErrorHandler, unregisterAuthErrorHandler } from '@/lib/auth
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const logoutStore = useAuthStore((s) => s.logout);
@@ -68,6 +69,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               FindMy<span className="font-extrabold text-[#00060c]">Tutor</span>
             </span>
           </Link>
+
+          {/* Top navigation */}
+          {user && (
+            <nav className="hidden md:flex items-center gap-8 flex-1 ml-10">
+              <Link
+                href="/dashboard"
+                className={`text-sm font-semibold transition-colors ${
+                  pathname === '/dashboard'
+                    ? 'text-[#00A453]'
+                    : 'text-[#647380] hover:text-[#2d2d2d]'
+                }`}
+              >
+                Home
+              </Link>
+              {user.role === 'STUDENT' && (
+                <Link
+                  href="/dashboard/requirements"
+                  className={`text-sm font-semibold transition-colors ${
+                    pathname.startsWith('/dashboard/requirements') && !pathname.includes('/browse')
+                      ? 'text-[#00A453]'
+                      : 'text-[#647380] hover:text-[#2d2d2d]'
+                  }`}
+                >
+                  My Requirements
+                </Link>
+              )}
+              {user.role === 'TUTOR' && (
+                <Link
+                  href="/dashboard/requirements/browse"
+                  className={`text-sm font-semibold transition-colors ${
+                    pathname.includes('/browse') ||
+                    (pathname.startsWith('/dashboard/requirements/') &&
+                      !pathname.includes('/create') &&
+                      !pathname.includes('/edit') &&
+                      !pathname.endsWith('/requirements'))
+                      ? 'text-[#00A453]'
+                      : 'text-[#647380] hover:text-[#2d2d2d]'
+                  }`}
+                >
+                  Browse Requirements
+                </Link>
+              )}
+            </nav>
+          )}
 
           {/* Avatar dropdown */}
           <div className="relative" ref={dropdownRef}>
