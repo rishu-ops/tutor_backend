@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './constants';
+import { triggerAuthError } from './auth-error-handler';
 
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -37,9 +38,20 @@ export async function api<T = unknown>(
   const json = await res.json();
 
   if (!res.ok) {
+    const message = json.error || json.message || 'Something went wrong';
+
+    // Automatically log out when the access token is invalid / expired
+    if (
+      res.status === 401 &&
+      typeof message === 'string' &&
+      message.toLowerCase().includes('invalid or expired access token')
+    ) {
+      triggerAuthError();
+    }
+
     throw {
       status: res.status,
-      message: json.error || json.message || 'Something went wrong',
+      message,
       errors: json.errors,
     };
   }
@@ -106,6 +118,20 @@ export const profileApi = {
   getTutorProfile: (token: string) =>
     api<any>('/api/v1/tutor/profile', {
       method: 'GET',
+      token,
+    }),
+
+  updateStudentProfile: (data: Record<string, unknown>, token: string) =>
+    api<any>('/api/v1/student/profile', {
+      method: 'PATCH',
+      body: data,
+      token,
+    }),
+
+  updateTutorProfile: (data: Record<string, unknown>, token: string) =>
+    api<any>('/api/v1/tutor/profile', {
+      method: 'PATCH',
+      body: data,
       token,
     }),
 };

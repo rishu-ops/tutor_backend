@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { authApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
 import { ChevronDown } from 'lucide-react';
+import { registerAuthErrorHandler, unregisterAuthErrorHandler } from '@/lib/auth-error-handler';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -47,6 +48,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-logout when the API returns "Invalid or expired access token"
+  useEffect(() => {
+    registerAuthErrorHandler(() => {
+      logoutStore();
+      router.push(ROUTES.HOME);
+    });
+    return () => unregisterAuthErrorHandler();
+  }, [logoutStore, router]);
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
       <header className="sticky top-0 z-40 w-full border-b border-[#dadee2] bg-white h-16 shrink-0">
@@ -74,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 top-12 w-64 bg-white border border-[#dadee2] rounded-[8px] shadow-lg py-2 z-50">
+              <div className="absolute right-0 top-12 w-72 bg-white border border-[#dadee2]  shadow-md py-2 z-50">
                 {/* User identity */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-[#dadee2]">
                   <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center shrink-0">
@@ -88,31 +98,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {/* Personal */}
                 <div className="pt-2">
-                  <p className="text-xs text-[#647380] px-4 py-1 font-medium">Personal</p>
+                  <p className="text-sm text-[#647380] px-4 py-1 font-medium">Personal</p>
                   <Link
                     href="/profile"
                     onClick={() => setDropdownOpen(false)}
-                    className="block w-full text-left px-4 py-2.5 text-sm text-[#2d2d2d] hover:bg-gray-50 transition-colors"
+                    className="block w-full text-left px-4 py-2.5 text-md text-[#2d2d2d] hover:bg-gray-50 transition-colors"
                   >
                     Edit profile
                   </Link>
-                  <button className="block w-full text-left px-4 py-2.5 text-sm text-[#2d2d2d] hover:bg-gray-50 transition-colors">
+                  <button className="block w-full text-left px-4 py-2.5 text-md text-[#2d2d2d] hover:bg-gray-50 transition-colors">
                     Settings
                   </button>
-                  <button className="block w-full text-left px-4 py-2.5 text-sm text-[#2d2d2d] hover:bg-gray-50 transition-colors">
+                  <button className="block w-full text-left px-4 py-2.5 text-md text-[#2d2d2d] hover:bg-gray-50 transition-colors">
                     Notifications
                   </button>
                 </div>
 
                 {/* Support */}
                 <div className="pt-2 border-t border-[#dadee2] mt-1">
-                  <p className="text-xs text-[#647380] px-4 py-1 font-medium">Support</p>
-                  <button className="block w-full text-left px-4 py-2.5 text-sm text-[#2d2d2d] hover:bg-gray-50 transition-colors">
+                  <p className="text-sm text-[#647380] px-4 py-1 font-medium">Support</p>
+                  <button className="block w-full text-left px-4 py-2.5 text-md text-[#2d2d2d] hover:bg-gray-50 transition-colors">
                     Help
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2.5 text-sm text-[#2d2d2d] hover:bg-gray-50 transition-colors"
+                    className="block w-full text-left px-4 py-2.5 text-md text-[#2d2d2d] hover:bg-gray-50 transition-colors"
                   >
                     Log out
                   </button>
