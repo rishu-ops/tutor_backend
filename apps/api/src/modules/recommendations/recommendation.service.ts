@@ -1,4 +1,4 @@
-import { RequirementModel, TutorProfileModel } from 'database';
+import { RequirementModel, TutorProfileModel, prisma } from 'database';
 
 export interface ScoredRequirement {
   requirement: any;
@@ -96,10 +96,11 @@ export class RecommendationService {
       return [];
     }
 
-    // Load open requirements (excluding tutor's own)
+    // Load open requirements (excluding tutor's own and soft-deleted ones)
     const requirements = await RequirementModel.find({
       status: 'OPEN',
       studentUserId: { $ne: tutorUserId },
+      isDeleted: { $ne: true },
     });
 
     const scored: ScoredRequirement[] = [];
@@ -181,12 +182,20 @@ export class RecommendationService {
       .map((s) => s.requirement)
       .slice(0, 5);
 
+    const posts = await prisma.adminPost.findMany({
+      where: { status: 'PUBLISHED' },
+      include: { author: { select: { name: true } } },
+      orderBy: { publishedAt: 'desc' },
+      take: 10,
+    });
+
     return {
       recommended,
       recent,
       nearby,
       highBudget,
       explore,
+      posts,
     };
   }
 

@@ -23,6 +23,8 @@ export interface IRequirement extends Document {
   description: string;
   status: 'OPEN' | 'IN_REVIEW' | 'MATCHED' | 'CLOSED';
   applicationsCount: number;
+  isDeleted?: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +62,8 @@ const RequirementSchema = new Schema<IRequirement>(
       required: true,
     },
     applicationsCount: { type: Number, default: 0 },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
   },
   {
     timestamps: true,

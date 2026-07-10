@@ -98,7 +98,7 @@ export default function MyRequirementsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-[1100px] mx-auto py-6 space-y-8">
         {/* Header Block */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dadee2] pb-6">
@@ -165,10 +165,11 @@ export default function MyRequirementsPage() {
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`pb-3 font-semibold text-sm transition-colors border-b-2 relative ${isActive
+                    className={`pb-3 font-semibold text-sm transition-colors border-b-2 relative ${
+                      isActive
                         ? 'border-[#2d2d2d] text-[#2d2d2d]'
                         : 'border-transparent text-[#647380] hover:text-[#2d2d2d]'
-                      }`}
+                    }`}
                   >
                     {filter === 'ALL'
                       ? 'All Requests'
@@ -287,6 +288,6 @@ export default function MyRequirementsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -13,6 +13,18 @@ import { requirementRouter } from './modules/requirements/index.js';
 import recommendationRouter from './modules/recommendations/recommendation.routes.js';
 import applicationRouter from './modules/applications/application.routes.js';
 import notificationRouter from './modules/notifications/notification.routes.js';
+import {
+  adminAuthRouter,
+  adminsRouter,
+  rolesRouter,
+  permissionsRouter,
+  usersRouter,
+  verificationsRouter,
+  reportsRouter,
+  adminPostsRouter,
+  analyticsRouter,
+  auditLogsRouter,
+} from './modules/admin/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -78,6 +90,18 @@ app.use('/api/v1/requirements', requirementRouter);
 app.use('/api/v1/recommendations', recommendationRouter);
 app.use('/api/v1/applications', applicationRouter);
 app.use('/api/v1/notifications', notificationRouter);
+
+// Admin Module Routes
+app.use('/api/admin', adminAuthRouter);
+app.use('/api/admins', adminsRouter);
+app.use('/api/roles', rolesRouter);
+app.use('/api/permissions', permissionsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/verifications', verificationsRouter);
+app.use('/api/reports', reportsRouter);
+app.use('/api/admin/posts', adminPostsRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/audit-logs', auditLogsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ success: true });

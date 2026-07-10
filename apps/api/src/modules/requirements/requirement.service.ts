@@ -52,7 +52,7 @@ export class RequirementService {
 
   async getRequirements(filters: any, page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
-    const query: any = { status: 'OPEN' }; // Only open requirements are visible to explore
+    const query: any = { status: 'OPEN', isDeleted: { $ne: true } }; // Only open requirements are visible to explore
 
     if (filters.category) {
       query.category = filters.category;
@@ -114,6 +114,7 @@ export class RequirementService {
     const query: any = {
       status: 'OPEN',
       studentUserId: { $ne: tutorUserId }, // Rule: cannot view own requirements
+      isDeleted: { $ne: true },
     };
 
     // Subject match rule

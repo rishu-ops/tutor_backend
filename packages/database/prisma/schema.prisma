@@ -16,6 +16,12 @@ model User {
   city            String?
   isPhoneVerified Boolean   @default(false)
   isActive        Boolean   @default(true)
+  passwordHash    String?   // Added for admin login
+
+  // Relations
+  roleId          String?
+  roleRef         Role?     @relation(fields: [roleId], references: [id])
+  posts           AdminPost[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -42,4 +48,45 @@ enum UserRole {
   TUTOR
   INSTITUTION
   ADMIN
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // e.g. "Super Admin", "Admin", "Moderator", "Support"
+  description String?
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. "user.view", "tutor.verify"
+  module      String   // feature area, e.g. "User Management"
+  description String?
+  roles       Role[]   @relation("RolePermissions")
+}
+
+model AdminPost {
+  id          String    @id @default(uuid())
+  title       String
+  content     String
+  type        String    // Announcement, Article, Platform Update, Release Notes, Safety Notice, Success Story, Educational Guide
+  status      String    // DRAFT, PUBLISHED
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  adminName  String
+  action     String   // e.g. "Approved Tutor #451"
+  module     String   // e.g. "Tutor Management"
+  resourceId String?
+  metadata   String?  // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 }

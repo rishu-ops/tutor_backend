@@ -282,3 +282,86 @@ export const notificationApi = {
       token,
     }),
 };
+
+export const adminApi = {
+  login: (body: any) =>
+    api<any>('/api/admin/login', {
+      method: 'POST',
+      body,
+    }) as Promise<any>,
+
+  getAdmins: (token: string) => api<any>('/api/admins', { method: 'GET', token }) as Promise<any>,
+
+  createAdmin: (body: any, token: string) =>
+    api<any>('/api/admins', { method: 'POST', body, token }) as Promise<any>,
+
+  updateAdmin: (id: string, body: any, token: string) =>
+    api<any>(`/api/admins/${id}`, { method: 'PATCH', body, token }) as Promise<any>,
+
+  deleteAdmin: (id: string, token: string) =>
+    api<any>(`/api/admins/${id}`, { method: 'DELETE', token }) as Promise<any>,
+
+  getRoles: (token: string) => api<any>('/api/roles', { method: 'GET', token }) as Promise<any>,
+
+  createRole: (body: any, token: string) =>
+    api<any>('/api/roles', { method: 'POST', body, token }) as Promise<any>,
+
+  updateRole: (id: string, body: any, token: string) =>
+    api<any>(`/api/roles/${id}`, { method: 'PATCH', body, token }) as Promise<any>,
+
+  getPermissions: (token: string) =>
+    api<any>('/api/permissions', { method: 'GET', token }) as Promise<any>,
+
+  getRolePermissions: (roleId: string, token: string) =>
+    api<any>(`/api/permissions/roles/${roleId}`, { method: 'GET', token }) as Promise<any>,
+
+  updateRolePermissions: (roleId: string, permissionIds: string[], token: string) =>
+    api<any>(`/api/permissions/roles/${roleId}`, {
+      method: 'PATCH',
+      body: { permissionIds },
+      token,
+    }) as Promise<any>,
+
+  getUsers: (token: string) => api<any>('/api/users', { method: 'GET', token }) as Promise<any>,
+
+  getUserDetail: (id: string, token: string) =>
+    api<any>(`/api/users/${id}`, { method: 'GET', token }) as Promise<any>,
+
+  updateUserStatus: (id: string, isActive: boolean, token: string) =>
+    api<any>(`/api/users/${id}`, { method: 'PATCH', body: { isActive }, token }) as Promise<any>,
+
+  deleteUser: (id: string, token: string) =>
+    api<any>(`/api/users/${id}`, { method: 'DELETE', token }) as Promise<any>,
+
+  getPendingVerifications: (token: string) =>
+    api<any>('/api/verifications', { method: 'GET', token }) as Promise<any>,
+
+  approveVerification: (id: string, token: string) =>
+    api<any>(`/api/verifications/${id}/approve`, { method: 'PATCH', token }) as Promise<any>,
+
+  rejectVerification: (id: string, token: string) =>
+    api<any>(`/api/verifications/${id}/reject`, { method: 'PATCH', token }) as Promise<any>,
+
+  getReports: (token: string) => api<any>('/api/reports', { method: 'GET', token }) as Promise<any>,
+
+  resolveReport: (id: string, body: any, token: string) =>
+    api<any>(`/api/reports/${id}/resolve`, { method: 'PATCH', body, token }) as Promise<any>,
+
+  getPosts: (token: string) =>
+    api<any>('/api/admin/posts', { method: 'GET', token }) as Promise<any>,
+
+  createPost: (body: any, token: string) =>
+    api<any>('/api/admin/posts', { method: 'POST', body, token }) as Promise<any>,
+
+  updatePost: (id: string, body: any, token: string) =>
+    api<any>(`/api/admin/posts/${id}`, { method: 'PATCH', body, token }) as Promise<any>,
+
+  deletePost: (id: string, token: string) =>
+    api<any>(`/api/admin/posts/${id}`, { method: 'DELETE', token }) as Promise<any>,
+
+  getOverview: (token: string) =>
+    api<any>('/api/analytics/overview', { method: 'GET', token }) as Promise<any>,
+
+  getAuditLogs: (token: string) =>
+    api<any>('/api/audit-logs', { method: 'GET', token }) as Promise<any>,
+};

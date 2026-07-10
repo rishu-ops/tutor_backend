@@ -10,4 +10,5 @@ export const ROUTES = {
 
 export const STORAGE_KEYS = {
   AUTH_STORE: 'project-tutor-auth',
+  ADMIN_AUTH_STORE: 'project-tutor-admin-auth',
 } as const;

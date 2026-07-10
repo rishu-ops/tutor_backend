@@ -54,3 +54,5 @@ export * from './models/tutor-profile.schema.js';
 export * from './models/requirement.schema.js';
 export * from './models/application.schema.js';
 export * from './models/notification.schema.js';
+export * from './models/report.schema.js';
+export * from './utils/hash.js';
