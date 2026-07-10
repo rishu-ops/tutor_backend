@@ -104,7 +104,7 @@ export default function DashboardPage() {
   const [studentRequirements, setStudentRequirements] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [hiredTutor, setHiredTutor] = useState<any>(null);
+  const [hiredTutors, setHiredTutors] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -131,16 +131,23 @@ export default function DashboardPage() {
       const reqsRes = await requirementApi.getMyRequirements(token);
       if (reqsRes.success && reqsRes.data) {
         setStudentRequirements(reqsRes.data);
-        // If a requirement has status MATCHED, load hired tutor details
-        const matched = reqsRes.data.find((r: any) => r.status === 'MATCHED');
-        if (matched && matched.acceptedTutorId) {
+        // Fetch public profiles for all MATCHED requirements
+        const matchedReqs = reqsRes.data.filter((r: any) => r.status === 'MATCHED');
+        if (matchedReqs.length > 0) {
           try {
-            const tutorRes = await profileApi.getPublicTutorProfile(matched.acceptedTutorId, token);
-            if (tutorRes.success && tutorRes.data) {
-              setHiredTutor(tutorRes.data);
-            }
+            const tutorPromises = matchedReqs.map(async (req: any) => {
+              if (req.acceptedTutorId) {
+                const tutorRes = await profileApi.getPublicTutorProfile(req.acceptedTutorId, token);
+                if (tutorRes.success && tutorRes.data) {
+                  return { ...tutorRes.data, subjectName: req.curriculum?.subject || req.category };
+                }
+              }
+              return null;
+            });
+            const resolved = await Promise.all(tutorPromises);
+            setHiredTutors(resolved.filter((t) => t !== null));
           } catch (e) {
-            console.error('Failed to load matched tutor public profile details:', e);
+            console.error('Failed to load matched tutors profiles:', e);
           }
         }
       }
@@ -530,7 +537,22 @@ export default function DashboardPage() {
 
   // State 3 — Tutor Accepted
   const renderStudentAccepted = () => {
-    const displayTutor = hiredTutor || MOCK_RECOMMENDED_TUTORS[0];
+    const displayTutors =
+      hiredTutors.length > 0
+        ? hiredTutors
+        : [
+            {
+              _id: 'mock-hired-1',
+              name: 'Dr. Rahul Sharma',
+              qualifications: ['PhD in Physics'],
+              experience: '8 Yrs',
+              subjects: ['Physics', 'Mathematics'],
+              subjectName: 'Physics (Class 12)',
+              hourlyRate: 800,
+              teachingMode: ['Home', 'Online'],
+            },
+          ];
+
     return (
       <div className="space-y-6">
         {/* Congratulations Hero */}
@@ -551,59 +573,71 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Hired Tutor Card */}
-        <div className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+        {/* Accepted Tutors Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
             <UserCheck className="w-4 h-4 text-emerald-600 animate-pulse" />
             <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
-              Your Hired Tutor
+              My Accepted Tutors
             </h3>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#e6f6ee] flex items-center justify-center font-bold text-emerald-700 text-base border border-emerald-100 shrink-0 animate-bounce">
-                {getInitials(displayTutor.name)}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <h4 className="text-sm font-extrabold text-[#2d2d2d]">{displayTutor.name}</h4>
-                  <span className="flex items-center gap-0.5 text-[9px] bg-emerald-50 text-emerald-600 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/50">
-                    <CheckCircle className="w-2.5 h-2.5 shrink-0 text-emerald-600" /> VERIFIED
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[#647380] font-semibold">
-                  <span>🎓 {displayTutor.qualifications?.join(', ') || 'PhD in Mathematics'}</span>
-                  <span>·</span>
-                  <span>💼 {displayTutor.experience || '8 Years'} Exp</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {(displayTutor.subjects || ['Mathematics', 'Physics']).map(
-                    (sub: string | any) => (
-                      <span
-                        key={typeof sub === 'string' ? sub : sub.subject}
-                        className="text-[9px] bg-gray-50 border border-gray-100 text-[#2d2d2d] font-bold px-2 py-0.5 rounded-lg"
-                      >
-                        {typeof sub === 'string' ? sub : sub.subject}
+          <div className="space-y-4">
+            {displayTutors.map((tutor) => (
+              <div
+                key={tutor._id}
+                className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#e6f6ee] flex items-center justify-center font-bold text-emerald-700 text-sm border border-emerald-100 shrink-0">
+                    {getInitials(tutor.name)}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
+                      <span className="flex items-center gap-0.5 text-[8px] bg-emerald-50 text-emerald-600 font-extrabold px-1.5 py-0.5 rounded-full border border-emerald-200/50">
+                        <CheckCircle className="w-2.5 h-2.5 shrink-0 text-emerald-600" /> VERIFIED
                       </span>
-                    )
-                  )}
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[#647380] font-semibold">
+                      <span>
+                        🎓 {tutor.qualifications?.join(', ') || tutor.qualifications?.[0] || 'PhD'}
+                      </span>
+                      <span>·</span>
+                      <span>💼 {tutor.experience || '8 Years'} Experience</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {(tutor.subjects || ['Mathematics', 'Physics']).map((sub: string | any) => (
+                        <span
+                          key={typeof sub === 'string' ? sub : sub.subject}
+                          className="text-[9px] bg-gray-50 border border-gray-100 text-[#2d2d2d] font-bold px-2 py-0.5 rounded-lg"
+                        >
+                          {typeof sub === 'string' ? sub : sub.subject}
+                        </span>
+                      ))}
+                      {tutor.subjectName && (
+                        <span className="text-[9px] bg-emerald-50 text-[#00A453] font-bold px-2 py-0.5 rounded-lg">
+                          Matched for {tutor.subjectName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-left sm:text-right shrink-0">
+                  <span className="text-[9px] text-[#b0b8c1] block uppercase tracking-wider font-extrabold">
+                    Proposed rate
+                  </span>
+                  <span className="text-xs font-extrabold text-[#2d2d2d]">
+                    ₹{tutor.hourlyRate || tutor.pricing?.min || 800}
+                    <span className="text-[10px] font-bold text-[#647380]">/hr</span>
+                  </span>
+                  <div className="text-[9px] text-[#647380] mt-1 font-bold">
+                    Format: {tutor.teachingMode?.join('/') || 'Online/Home'}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="text-left sm:text-right shrink-0">
-              <span className="text-[9px] text-[#b0b8c1] block uppercase tracking-wider font-extrabold">
-                Proposed rate
-              </span>
-              <span className="text-sm font-extrabold text-[#2d2d2d]">
-                ₹{displayTutor.hourlyRate || displayTutor.pricing?.min || 800}
-                <span className="text-[10px] font-bold text-[#647380]">/hr</span>
-              </span>
-              <div className="text-[9px] text-[#647380] mt-1 font-bold">
-                Teaching Format: {displayTutor.teachingMode?.join('/') || 'Online/Home'}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
