@@ -104,6 +104,7 @@ export default function DashboardPage() {
   const [studentRequirements, setStudentRequirements] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [hiredTutor, setHiredTutor] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -130,6 +131,18 @@ export default function DashboardPage() {
       const reqsRes = await requirementApi.getMyRequirements(token);
       if (reqsRes.success && reqsRes.data) {
         setStudentRequirements(reqsRes.data);
+        // If a requirement has status MATCHED, load hired tutor details
+        const matched = reqsRes.data.find((r: any) => r.status === 'MATCHED');
+        if (matched && matched.acceptedTutorId) {
+          try {
+            const tutorRes = await profileApi.getPublicTutorProfile(matched.acceptedTutorId, token);
+            if (tutorRes.success && tutorRes.data) {
+              setHiredTutor(tutorRes.data);
+            }
+          } catch (e) {
+            console.error('Failed to load matched tutor public profile details:', e);
+          }
+        }
       }
 
       const postsRes = await adminApi.getPublicPosts(token);
@@ -517,10 +530,9 @@ export default function DashboardPage() {
 
   // State 3 — Tutor Accepted
   const renderStudentAccepted = () => {
-    const primaryReq =
-      studentRequirements.find((r) => r.status === 'MATCHED') || studentRequirements[0] || {};
+    const displayTutor = hiredTutor || MOCK_RECOMMENDED_TUTORS[0];
     return (
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Congratulations Hero */}
         <div className="bg-emerald-600/90 text-white rounded-3xl p-8 shadow-sm space-y-5">
           <div className="space-y-1">
@@ -537,6 +549,62 @@ export default function DashboardPage() {
               Start Chatting <MessageSquare className="w-3.5 h-3.5" />
             </Button>
           </Link>
+        </div>
+
+        {/* Hired Tutor Card */}
+        <div className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+            <UserCheck className="w-4 h-4 text-emerald-600 animate-pulse" />
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+              Your Hired Tutor
+            </h3>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#e6f6ee] flex items-center justify-center font-bold text-emerald-700 text-base border border-emerald-100 shrink-0 animate-bounce">
+                {getInitials(displayTutor.name)}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-sm font-extrabold text-[#2d2d2d]">{displayTutor.name}</h4>
+                  <span className="flex items-center gap-0.5 text-[9px] bg-emerald-50 text-emerald-600 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/50">
+                    <CheckCircle className="w-2.5 h-2.5 shrink-0 text-emerald-600" /> VERIFIED
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[#647380] font-semibold">
+                  <span>🎓 {displayTutor.qualifications?.join(', ') || 'PhD in Mathematics'}</span>
+                  <span>·</span>
+                  <span>💼 {displayTutor.experience || '8 Years'} Exp</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {(displayTutor.subjects || ['Mathematics', 'Physics']).map(
+                    (sub: string | any) => (
+                      <span
+                        key={typeof sub === 'string' ? sub : sub.subject}
+                        className="text-[9px] bg-gray-50 border border-gray-100 text-[#2d2d2d] font-bold px-2 py-0.5 rounded-lg"
+                      >
+                        {typeof sub === 'string' ? sub : sub.subject}
+                      </span>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-left sm:text-right shrink-0">
+              <span className="text-[9px] text-[#b0b8c1] block uppercase tracking-wider font-extrabold">
+                Proposed rate
+              </span>
+              <span className="text-sm font-extrabold text-[#2d2d2d]">
+                ₹{displayTutor.hourlyRate || displayTutor.pricing?.min || 800}
+                <span className="text-[10px] font-bold text-[#647380]">/hr</span>
+              </span>
+              <div className="text-[9px] text-[#647380] mt-1 font-bold">
+                Teaching Format: {displayTutor.teachingMode?.join('/') || 'Online/Home'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Dashboard Panels */}
