@@ -111,11 +111,6 @@ export default function DashboardPage() {
 
   // Rotating announcement state
   const [activeAnnounceIndex, setActiveAnnounceIndex] = useState(0);
-
-  // DEV STATE OVERRIDES FOR EASY DEMONSTRATION & MANUAL TESTING
-  const [devModeEnabled, setDevModeEnabled] = useState(true);
-  const [forcedState, setForcedState] = useState<string | null>(null);
-
   // Compute profile completion percentage for Tutors
   const getProfileCompletionPercentage = () => {
     if (!tutorProfile) return 40; // Default base completion
@@ -211,10 +206,8 @@ export default function DashboardPage() {
       .slice(0, 2);
   };
 
-  // Determine current active state depending on user details or forced overrides
+  // Determine current active state depending on user details
   const getActiveState = () => {
-    if (forcedState) return forcedState;
-
     if (user?.role === 'STUDENT') {
       if (studentRequirements.length === 0) {
         return 'STATE_1_NEW_STUDENT';
@@ -966,127 +959,6 @@ export default function DashboardPage() {
         {renderAnnouncementWidget()}
         {renderEducationalGuides()}
       </div>
-
-      {/* DEV STATE OVERRIDES PANEL (For evaluation convenience) */}
-      {devModeEnabled && (
-        <div className="fixed bottom-6 right-6 bg-white border border-[#dadee2] rounded-3xl p-4 shadow-xl z-50 max-w-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-            <span className="text-[10px] font-extrabold text-[#2d2d2d] flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> JOURNEY DEMO CONTROLLER
-            </span>
-            <button
-              onClick={() => setDevModeEnabled(false)}
-              className="text-[10px] text-gray-400 hover:text-[#2d2d2d]"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="space-y-1.5 text-[10px] text-[#647380]">
-            <span className="block font-bold">Role: {user?.role} (Automatic)</span>
-            <div className="flex flex-col gap-1 pt-1">
-              <button
-                onClick={() => setForcedState(null)}
-                className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                  forcedState === null
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                Auto Detect State
-              </button>
-
-              {user?.role === 'STUDENT' ? (
-                <>
-                  <button
-                    onClick={() => setForcedState('STATE_1_NEW_STUDENT')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_1_NEW_STUDENT'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 1: New Student
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_2_REQ_POSTED')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_2_REQ_POSTED'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 2: Req Posted
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_3_TUTOR_ACCEPTED')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_3_TUTOR_ACCEPTED'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 3: Tutor Accepted
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_4_COMPLETED')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_4_COMPLETED'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 4: Completed
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setForcedState('STATE_1_NEW_TUTOR')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_1_NEW_TUTOR'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 1: New Tutor
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_2_READY_TO_APPLY')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_2_READY_TO_APPLY'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 2: Ready
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_3_APPS_SENT')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_3_APPS_SENT'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 3: Apps Sent
-                  </button>
-                  <button
-                    onClick={() => setForcedState('STATE_4_TUTOR_ACCEPTED')}
-                    className={`py-1 px-2.5 rounded-lg text-left font-bold ${
-                      forcedState === 'STATE_4_TUTOR_ACCEPTED'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    State 4: Hired Accepted
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
