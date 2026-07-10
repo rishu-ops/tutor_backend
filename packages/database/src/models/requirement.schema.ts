@@ -23,6 +23,9 @@ export interface IRequirement extends Document {
   description: string;
   status: 'OPEN' | 'IN_REVIEW' | 'MATCHED' | 'CLOSED';
   applicationsCount: number;
+  acceptedTutorId?: string;
+  matchedAt?: Date;
+  closedAt?: Date;
   isDeleted?: boolean;
   deletedAt?: Date;
   createdAt: Date;
@@ -62,6 +65,9 @@ const RequirementSchema = new Schema<IRequirement>(
       required: true,
     },
     applicationsCount: { type: Number, default: 0 },
+    acceptedTutorId: { type: String, default: null },
+    matchedAt: { type: Date, default: null },
+    closedAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
   },

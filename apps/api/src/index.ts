@@ -13,6 +13,7 @@ import { requirementRouter } from './modules/requirements/index.js';
 import recommendationRouter from './modules/recommendations/recommendation.routes.js';
 import applicationRouter from './modules/applications/application.routes.js';
 import notificationRouter from './modules/notifications/notification.routes.js';
+import conversationRouter from './modules/conversations/conversation.routes.js';
 import {
   adminAuthRouter,
   adminsRouter,
@@ -90,6 +91,7 @@ app.use('/api/v1/requirements', requirementRouter);
 app.use('/api/v1/recommendations', recommendationRouter);
 app.use('/api/v1/applications', applicationRouter);
 app.use('/api/v1/notifications', notificationRouter);
+app.use('/api/v1/conversations', conversationRouter);
 
 // Admin Module Routes
 app.use('/api/admin', adminAuthRouter);

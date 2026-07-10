@@ -10,6 +10,7 @@ export interface IApplication extends Document {
   freeDemo: boolean;
   message: string;
   status: 'SENT' | 'VIEWED' | 'SHORTLISTED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  conversationId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,7 @@ const ApplicationSchema = new Schema<IApplication>(
       default: 'SENT',
       required: true,
     },
+    conversationId: { type: String, default: null, index: true },
   },
   {
     timestamps: true,

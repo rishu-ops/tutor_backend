@@ -188,6 +188,6 @@ export class RequirementService {
       throw err;
     }
 
-    return this.repository.update(id, { status: 'CLOSED' });
+    return this.repository.update(id, { status: 'CLOSED', closedAt: new Date() });
   }
 }

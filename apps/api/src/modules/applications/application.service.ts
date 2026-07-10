@@ -4,6 +4,7 @@ import {
   RequirementModel,
   TutorProfileModel,
   NotificationModel,
+  ConversationModel,
   prisma,
 } from 'database';
 
@@ -61,6 +62,23 @@ export class ApplicationService {
       message: proposal.message.trim(),
       status: 'SENT',
     });
+
+    // Create LOCKED conversation shell
+    let conversation;
+    try {
+      conversation = await ConversationModel.create({
+        requirementId,
+        studentUserId: requirement.studentUserId,
+        tutorUserId,
+        applicationId: application._id,
+        status: 'LOCKED',
+      });
+      application.conversationId = conversation._id;
+      await application.save();
+    } catch (convoErr) {
+      // In case unique index violations trigger (compound unique index matches existing)
+      console.error('Failed to create locked conversation shell:', convoErr);
+    }
 
     // Increment applications count
     const updatedCount = requirement.applicationsCount + 1;
@@ -204,6 +222,21 @@ export class ApplicationService {
     application.status = 'ACCEPTED';
     await application.save();
 
+    // Activate the LOCKED conversation shell
+    if (application.conversationId) {
+      await ConversationModel.findByIdAndUpdate(application.conversationId, { status: 'ACTIVE' });
+    } else {
+      // Fallback
+      await ConversationModel.findOneAndUpdate(
+        {
+          requirementId: requirement._id,
+          tutorUserId: application.tutorUserId,
+          applicationId: application._id,
+        },
+        { status: 'ACTIVE' }
+      );
+    }
+
     // 2. Reject all other pending applications for this requirement
     const otherApps = await ApplicationModel.find({
       requirementId: requirement._id,
@@ -226,6 +259,8 @@ export class ApplicationService {
 
     // 3. Update requirement status
     requirement.status = 'MATCHED';
+    requirement.acceptedTutorId = application.tutorUserId;
+    requirement.matchedAt = new Date();
     await requirement.save();
 
     // 4. Notify accepted tutor
