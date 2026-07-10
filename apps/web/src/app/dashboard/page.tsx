@@ -122,6 +122,8 @@ export default function DashboardPage() {
     explore: [],
   });
 
+  const [posts, setPosts] = useState<any[]>([]);
+
   const [activeTab, setActiveTab] = useState<
     'recommended' | 'recent' | 'nearby' | 'high-budget' | 'explore'
   >('recommended');
@@ -129,35 +131,41 @@ export default function DashboardPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchTutorData = useCallback(async () => {
-    if (!token || user?.role !== 'TUTOR') return;
+  const fetchFeedData = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
-    setProfileLoading(true);
     setError('');
 
     try {
-      // Get tutor profile
-      const profRes = await profileApi.getTutorProfile(token);
-      if (profRes.success && profRes.data) {
-        setTutorProfile(profRes.data);
+      if (user?.role === 'TUTOR') {
+        setProfileLoading(true);
+        // Get tutor profile
+        const profRes = await profileApi.getTutorProfile(token);
+        if (profRes.success && profRes.data) {
+          setTutorProfile(profRes.data);
+        }
+        setProfileLoading(false);
       }
 
-      // Get home recommendations sections mapping
+      // Get home recommendations & announcements posts
       const recRes = await recommendationApi.getHomeRecommendations(token);
       if (recRes.success) {
-        setRecommendations({
-          recommended: recRes.recommended || [],
-          recent: recRes.recent || [],
-          nearby: recRes.nearby || [],
-          highBudget: recRes.highBudget || [],
-          explore: recRes.explore || [],
-        });
+        setPosts(recRes.posts || []);
+        if (user?.role === 'TUTOR') {
+          setRecommendations({
+            recommended: recRes.recommended || [],
+            recent: recRes.recent || [],
+            nearby: recRes.nearby || [],
+            highBudget: recRes.highBudget || [],
+            explore: recRes.explore || [],
+          });
+        }
       } else {
         setError(recRes.error || recRes.message || 'Failed to fetch recommendations.');
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'An error occurred while loading recommendation data.');
+      setError(err.message || 'An error occurred while loading feed data.');
     } finally {
       setLoading(false);
       setProfileLoading(false);
@@ -165,8 +173,8 @@ export default function DashboardPage() {
   }, [token, user]);
 
   useEffect(() => {
-    fetchTutorData();
-  }, [fetchTutorData]);
+    fetchFeedData();
+  }, [fetchFeedData]);
 
   const getInitials = () => {
     if (!user?.name) return 'U';
@@ -487,6 +495,41 @@ export default function DashboardPage() {
 
         {/* RIGHT COLUMN: TIPS & ADVICE (20% weight) */}
         <div className="md:col-span-1 space-y-6">
+          {/* Platform Announcements */}
+          {posts.length > 0 && (
+            <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
+                  📢 Platform Announcements
+                </h3>
+                <span className="text-[10px] text-[#647380] font-medium block">
+                  Updates from Project Tutor Team
+                </span>
+              </div>
+              <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="space-y-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-1.5 py-0.5 rounded shrink-0">
+                        {post.type}
+                      </span>
+                      <span className="text-[9px] text-[#b0b8c1]">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-[#2d2d2d] leading-snug">{post.title}</h4>
+                    <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
+                      {post.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Advice card */}
           <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
             <div className="space-y-1">
@@ -692,6 +735,41 @@ export default function DashboardPage() {
 
       {/* 3. RIGHT SIDEBAR: TUTORS FOR YOU */}
       <div className="md:col-span-1 space-y-6">
+        {/* Platform Announcements */}
+        {posts.length > 0 && (
+          <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
+                📢 Platform Announcements
+              </h3>
+              <span className="text-[10px] text-[#647380] font-medium block">
+                Updates from Project Tutor Team
+              </span>
+            </div>
+            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="space-y-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-1.5 py-0.5 rounded shrink-0">
+                      {post.type}
+                    </span>
+                    <span className="text-[9px] text-[#b0b8c1]">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-[#2d2d2d] leading-snug">{post.title}</h4>
+                  <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
+                    {post.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
           <div className="space-y-1">
             <h3 className="text-sm font-extrabold text-[#2d2d2d]">Tutors for you</h3>
