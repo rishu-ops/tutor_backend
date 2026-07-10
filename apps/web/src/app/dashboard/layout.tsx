@@ -124,32 +124,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 Home
               </Link>
               {user.role === 'STUDENT' && (
-                <Link
-                  href="/dashboard/requirements"
-                  className={`text-sm font-semibold transition-colors ${
-                    pathname.startsWith('/dashboard/requirements') && !pathname.includes('/browse')
-                      ? 'text-[#00A453]'
-                      : 'text-[#647380] hover:text-[#2d2d2d]'
-                  }`}
-                >
-                  My Requirements
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/tutors"
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.startsWith('/dashboard/tutors')
+                        ? 'text-[#00A453]'
+                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                    }`}
+                  >
+                    Find Tutors
+                  </Link>
+                  <Link
+                    href="/dashboard/requirements"
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.startsWith('/dashboard/requirements')
+                        ? 'text-[#00A453]'
+                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                    }`}
+                  >
+                    My Requirements
+                  </Link>
+                </>
               )}
               {user.role === 'TUTOR' && (
                 <>
                   <Link
                     href="/dashboard/requirements/browse"
                     className={`text-sm font-semibold transition-colors ${
-                      pathname.includes('/browse') ||
-                      (pathname.startsWith('/dashboard/requirements/') &&
-                        !pathname.includes('/create') &&
-                        !pathname.includes('/edit') &&
-                        !pathname.endsWith('/requirements'))
+                      pathname.includes('/browse')
                         ? 'text-[#00A453]'
                         : 'text-[#647380] hover:text-[#2d2d2d]'
                     }`}
                   >
-                    Browse Requirements
+                    Find Students
                   </Link>
                   <Link
                     href="/dashboard/applications"
@@ -159,10 +167,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-[#647380] hover:text-[#2d2d2d]'
                     }`}
                   >
-                    My Proposals
+                    My Applications
                   </Link>
                 </>
               )}
+              <Link
+                href="/dashboard/messages"
+                className={`text-sm font-semibold transition-colors ${
+                  pathname.startsWith('/dashboard/messages')
+                    ? 'text-[#00A453]'
+                    : 'text-[#647380] hover:text-[#2d2d2d]'
+                }`}
+              >
+                Messages
+              </Link>
             </nav>
           )}
 

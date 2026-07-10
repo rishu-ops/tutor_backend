@@ -4,101 +4,68 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import Link from 'next/link';
 import {
-  Search,
   Plus,
   Compass,
-  MoreHorizontal,
-  ChevronDown,
   ArrowRight,
   MapPin,
   Clock,
-  Layers,
   Sparkles,
   BookOpen,
   Award,
-  BookMarked,
   Info,
   Calendar,
+  MessageSquare,
+  Search,
+  CheckCircle,
+  Star,
+  Users,
+  ChevronRight,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { requirementApi, profileApi, recommendationApi, adminApi } from '@/lib/api';
 
-// Mock list of "My Subjects" for Students (Grapevine's "My Bowls")
-const MY_SUBJECTS = [
-  { name: 'Mathematics', count: '12+' },
-  { name: 'Web Development', count: '4' },
-  { name: 'Physics (Class 12)', count: '99+' },
-  { name: 'English Spoken', count: '2' },
-];
-
-// Mock list of tutors for the Student's right sidebar (Grapevine's "Bowls for you")
-const SUGGESTED_TUTORS = [
+// Recent Educational Articles for Task Dashboards
+const MOCK_ARTICLES = [
   {
-    id: 'tutor-1',
-    initials: 'AK',
-    name: 'Amit Kumar',
-    tag: 'IIT Delhi · Physics expert',
-    students: '1.2K',
-    role: 'Tutor',
+    id: 'art-1',
+    title: '5 Habits of High-Scoring CBSE Math Students',
+    readTime: '4 min read',
+    category: 'Study Strategy',
   },
   {
-    id: 'tutor-2',
-    initials: 'SS',
-    name: 'Sanjana Sen',
-    tag: 'LSR · English Literature',
-    students: '450',
-    role: 'Tutor',
-  },
-  {
-    id: 'tutor-3',
-    initials: 'RG',
-    name: 'Rohan Gupta',
-    tag: 'Google SWE · Programming',
-    students: '3.1K',
-    role: 'Tutor',
+    id: 'art-2',
+    title: 'Understanding Online vs Home Tuition: Which is best?',
+    readTime: '6 min read',
+    category: 'Parent Guide',
   },
 ];
 
-// Mock list of recent requirements in the Student's feed
-const STUDENT_FEED_POSTS = [
+// Fallback suggestions of Tutors for student carousel
+const FALLBACK_TUTORS = [
   {
-    id: 'req-1',
-    subject: 'Mathematics (CBSE)',
-    studentName: 'Anonymous Student',
-    role: 'Class 10 Student',
-    time: '2h',
-    budget: '₹500 - ₹800 / Hr',
-    description:
-      'Looking for a mathematics tutor who can teach Class 10 CBSE Board syllabus. Need home tuition in Andheri West. Focus on trigonometry and calculus fundamentals.',
-    reactions: '5 tutors interested',
+    _id: 't-1',
+    name: 'Dr. Rahul Sharma',
+    subjects: ['Math', 'Physics'],
+    ratingAvg: 4.9,
+    experience: '8 Yrs',
+    verified: true,
   },
   {
-    id: 'req-2',
-    subject: 'React.js & Next.js Development',
-    studentName: 'Anonymous Student',
-    role: 'College Student',
-    time: '1d',
-    budget: '₹800 - ₹1200 / Hr',
-    description:
-      'Need help with React context API, state management, and SSR deployment in Next.js. Beginner to intermediate level. Online sessions only. Weekly 3 days.',
-    reactions: '12 tutors interested',
-  },
-];
-
-// Tutor feed tips
-const PLATFORM_TIPS = [
-  {
-    id: 'tip-1',
-    title: 'How to write a winning tutor profile?',
-    desc: 'Tutors with completed qualifications and structured hourly pricing get 4x more direct student contacts.',
-    icon: Sparkles,
+    _id: 't-2',
+    name: 'Priya Patel',
+    subjects: ['Chemistry', 'Biology'],
+    ratingAvg: 4.8,
+    experience: '5 Yrs',
+    verified: true,
   },
   {
-    id: 'tip-2',
-    title: 'Preparing for demo sessions',
-    desc: 'Always align on syllabus benchmarks during the free 30-min discovery call before charging.',
-    icon: Info,
+    _id: 't-3',
+    name: "Sarah D'Souza",
+    subjects: ['English'],
+    ratingAvg: 5.0,
+    experience: '12 Yrs',
+    verified: true,
   },
 ];
 
@@ -106,7 +73,7 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.accessToken);
 
-  // Tutor states
+  // States
   const [tutorProfile, setTutorProfile] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<{
     recommended: any[];
@@ -122,14 +89,26 @@ export default function DashboardPage() {
     explore: [],
   });
 
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]); // Announcements
+  const [studentRequirements, setStudentRequirements] = useState<any[]>([]);
+  const [activeArticleIndex, setActiveArticleIndex] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<
-    'recommended' | 'recent' | 'nearby' | 'high-budget' | 'explore'
-  >('recommended');
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch student requirements directly if user is STUDENT
+  const fetchStudentRequirements = useCallback(async () => {
+    if (!token || user?.role !== 'STUDENT') return;
+    try {
+      const res = await requirementApi.getMyRequirements(token);
+      if (res.success && res.data) {
+        setStudentRequirements(res.data.slice(0, 3)); // show top 3 active requirements
+      }
+    } catch (e) {
+      console.error('Failed to load student requirements:', e);
+    }
+  }, [token, user]);
 
   const fetchFeedData = useCallback(async () => {
     if (!token) return;
@@ -168,6 +147,7 @@ export default function DashboardPage() {
         } else {
           setError(postsRes.error || postsRes.message || 'Failed to fetch announcements.');
         }
+        await fetchStudentRequirements();
       }
     } catch (err: any) {
       console.error(err);
@@ -176,11 +156,20 @@ export default function DashboardPage() {
       setLoading(false);
       setProfileLoading(false);
     }
-  }, [token, user]);
+  }, [token, user, fetchStudentRequirements]);
 
   useEffect(() => {
     fetchFeedData();
   }, [fetchFeedData]);
+
+  // Rotate Right-Sidebar Single Announcement Card every 12 seconds
+  useEffect(() => {
+    if (posts.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveArticleIndex((prevIndex) => (prevIndex + 1) % posts.length);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [posts]);
 
   const getInitials = () => {
     if (!user?.name) return 'U';
@@ -192,375 +181,301 @@ export default function DashboardPage() {
       .slice(0, 2);
   };
 
-  const getActiveList = () => {
-    switch (activeTab) {
-      case 'recommended':
-        return recommendations.recommended;
-      case 'recent':
-        return recommendations.recent;
-      case 'nearby':
-        return recommendations.nearby;
-      case 'high-budget':
-        return recommendations.highBudget;
-      case 'explore':
-        return recommendations.explore;
-      default:
-        return [];
-    }
-  };
-
   // -------------------------------------------------------------
-  // RENDERING RISHU'S DYNAMIC FEED FOR TUTORS
+  // STUDENT DASHBOARD LAYOUT (Task-Oriented)
   // -------------------------------------------------------------
-  if (user?.role === 'TUTOR') {
-    const list = getActiveList();
+  if (user?.role === 'STUDENT') {
+    const featuredAnnouncement = posts[activeArticleIndex] || posts[0];
 
     return (
-      <div className="max-w-[1250px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d]">
-        {/* LEFT COLUMN: TUTOR SUMMARY INFO */}
-        <div className="md:col-span-1 space-y-6">
-          {/* Summary Card */}
-          <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
+      <div className="max-w-[1300px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d]">
+        {/* LEFT COLUMN: ACTIVE CHECKS & TASKS */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center font-bold text-[#00A453] text-sm select-none">
+              <div className="w-10 h-10 rounded-full bg-[#f4f7f6] border border-[#dadee2] flex items-center justify-center font-bold text-[#00A453] text-sm select-none">
                 {getInitials()}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] text-[#647380] block leading-tight">Logged in as</span>
-                <span className="text-sm font-bold text-[#2d2d2d] truncate block">{user.name}</span>
-                <span className="text-[10px] text-[#00A453] font-semibold bg-[#e6f6ee] px-1.5 py-0.5 rounded mt-1 inline-block">
-                  Verified Tutor
+                <span className="text-[10px] text-[#647380] block leading-tight">
+                  Student Account
                 </span>
+                <span className="text-xs font-bold text-[#2d2d2d] truncate block">{user.name}</span>
               </div>
             </div>
+            <Link href="/dashboard/requirements/create" className="block">
+              <Button className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-bold rounded-2xl py-5 text-xs gap-1.5 shadow-sm">
+                Post Requirement <Plus className="w-4 h-4 stroke-[2.5]" />
+              </Button>
+            </Link>
+          </div>
 
-            {/* Profile info list */}
-            {profileLoading ? (
-              <div className="space-y-2 py-2">
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4"></div>
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2"></div>
+          {/* Left Sidebar Bookmarks */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+              Hiring Activity
+            </h3>
+            <div className="bg-white border border-[#dadee2] rounded-3xl p-4 shadow-sm space-y-3.5">
+              <div className="space-y-2">
+                <span className="text-[10px] text-[#b0b8c1] block font-extrabold uppercase">
+                  Your Active Requirements
+                </span>
+                {studentRequirements.length === 0 ? (
+                  <span className="text-xs text-[#647380] block italic">No active requests</span>
+                ) : (
+                  studentRequirements.map((req) => (
+                    <Link
+                      key={req._id}
+                      href={`/dashboard/requirements/${req._id}`}
+                      className="block p-2 hover:bg-gray-50 rounded-xl transition-all"
+                    >
+                      <span className="text-xs font-bold text-[#2d2d2d] block truncate">
+                        {req.curriculum?.subject || req.category}
+                      </span>
+                      <span className="text-[10px] text-[#00A453] font-bold block mt-0.5">
+                        {req.applicationsCount || 0} Tutors Applied
+                      </span>
+                    </Link>
+                  ))
+                )}
               </div>
-            ) : tutorProfile ? (
-              <div className="space-y-3.5 pt-3 border-t border-gray-100 text-xs">
-                <div className="space-y-1">
-                  <span className="text-[#647380] block font-semibold">City & Location</span>
-                  <span className="font-bold text-[#2d2d2d] flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    {tutorProfile.location?.area || 'Not Set'},{' '}
-                    {tutorProfile.location?.city || 'Not Set'}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[#647380] block font-semibold">Teaching Modes</span>
-                  <span className="font-bold text-[#2d2d2d]">
-                    {tutorProfile.teachingModes?.join(' · ') || 'None Selected'}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[#647380] block font-semibold">Pricing Rates</span>
-                  <span className="font-bold text-[#2d2d2d]">
-                    ₹{tutorProfile.pricing?.min} - ₹{tutorProfile.pricing?.max} / Hr
-                  </span>
-                </div>
+              <div className="border-t border-gray-100 pt-3">
+                <Link
+                  href="/dashboard/requirements"
+                  className="text-xs font-bold text-[#00A453] hover:underline flex items-center justify-between"
+                >
+                  <span>Manage Requirements</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
               </div>
-            ) : (
-              <div className="pt-3 border-t border-gray-100 text-center space-y-2">
-                <p className="text-xs text-[#647380]">
-                  Complete your onboarding to match with students.
-                </p>
-                <Link href="/profile">
+            </div>
+          </div>
+        </div>
+
+        {/* CENTER MAIN TASK AREA */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Welcome Action banner */}
+          <div className="bg-white border border-[#dadee2] rounded-3xl p-8 shadow-sm space-y-6">
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-extrabold text-[#2d2d2d]">
+                Good Evening, {user.name?.split(' ')[0]} 👋
+              </h2>
+              <p className="text-xs text-[#647380] leading-relaxed">
+                Welcome back to your control center. What would you like to achieve today?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link href="/dashboard/tutors" className="block">
+                <div className="p-5 border border-[#dadee2] hover:border-[#00A453]/40 bg-gray-50/50 hover:bg-white rounded-3xl transition-all space-y-2 cursor-pointer shadow-sm group">
+                  <div className="w-10 h-10 bg-[#e6f6ee] text-[#00A453] rounded-full flex items-center justify-center font-bold">
+                    🔍
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-[#2d2d2d] group-hover:text-[#00A453] flex items-center gap-1">
+                      Find Tutors <ArrowRight className="w-3 h-3" />
+                    </h4>
+                    <p className="text-[10px] text-[#647380] mt-1">
+                      Search profiles by subject, budget, rating & area.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link href="/dashboard/requirements/create" className="block">
+                <div className="p-5 border border-[#dadee2] hover:border-[#00A453]/40 bg-gray-50/50 hover:bg-white rounded-3xl transition-all space-y-2 cursor-pointer shadow-sm group">
+                  <div className="w-10 h-10 bg-[#e6f6ee] text-[#00A453] rounded-full flex items-center justify-center font-bold">
+                    📋
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-[#2d2d2d] group-hover:text-[#00A453] flex items-center gap-1">
+                      Post Requirement <ArrowRight className="w-3 h-3" />
+                    </h4>
+                    <p className="text-[10px] text-[#647380] mt-1">
+                      Receive custom proposals from verified local experts.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Active Requirements Grid */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+                Active Requirements
+              </h3>
+              <Link
+                href="/dashboard/requirements"
+                className="text-[10px] font-bold text-[#00A453] hover:underline"
+              >
+                View All
+              </Link>
+            </div>
+
+            {studentRequirements.length === 0 ? (
+              <div className="bg-white border border-[#dadee2] rounded-3xl p-10 text-center shadow-sm space-y-4">
+                <div className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-extrabold text-[#2d2d2d]">No posted requirements</h4>
+                  <p className="text-[11px] text-[#647380] max-w-xs mx-auto">
+                    Post a CBSE, ICSE, or computer programming requirement to get started.
+                  </p>
+                </div>
+                <Link href="/dashboard/requirements/create">
                   <Button
                     size="sm"
-                    className="bg-[#00060c] text-white hover:bg-slate-800 text-xs w-full py-2"
+                    className="bg-[#00060c] text-white hover:bg-slate-800 text-[10px] font-bold px-4 rounded-xl"
                   >
-                    Complete Profile
+                    Post Now
                   </Button>
                 </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {studentRequirements.map((req) => (
+                  <div
+                    key={req._id}
+                    className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm flex flex-col justify-between"
+                  >
+                    <div className="space-y-3.5">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-[#e6f6ee] border border-[#00A453]/25 flex items-center justify-center text-xs text-[#00A453] font-bold">
+                            📚
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-[#2d2d2d]">
+                              {req.curriculum?.subject || req.category}
+                            </h4>
+                            <span className="text-[9px] text-[#647380] font-bold mt-0.5 block capitalize">
+                              {req.location?.area}, {req.location?.city} ·{' '}
+                              {req.teachingMode.join('/')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {req.status === 'MATCHED' ? (
+                          <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-extrabold">
+                            MATCHED
+                          </span>
+                        ) : (
+                          <span className="text-[8px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-extrabold">
+                            {req.status}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
+                        {req.description}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between">
+                      <span className="text-[10px] text-[#00A453] font-extrabold">
+                        {req.applicationsCount || 0} applications received
+                      </span>
+
+                      <Link href={`/dashboard/requirements/${req._id}`}>
+                        <Button className="bg-[#00060c] text-white hover:bg-slate-800 text-[10px] font-bold px-3.5 h-8 rounded-xl">
+                          View Applications
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Subjects Taught List */}
-          {tutorProfile?.subjects && tutorProfile.subjects.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-extrabold text-[#2d2d2d] px-1">My Expertise</h3>
-              <div className="space-y-2">
-                {tutorProfile.subjects.map((sub: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-white border border-[#eef1f4] rounded-xl text-xs font-semibold text-[#384148]"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-sm shrink-0">🎓</span>
-                      <span className="truncate">{sub.subject}</span>
-                    </div>
-                    <span className="text-[10px] text-[#647380] bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 whitespace-nowrap">
-                      {sub.level}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Link href="/dashboard/requirements/browse" className="block">
-            <button className="w-full flex items-center justify-center gap-1.5 py-3 border border-[#dadee2] rounded-xl text-xs font-bold text-[#384148] bg-white hover:bg-gray-50 transition-colors">
-              <Compass className="w-4 h-4 text-[#00A453]" /> Search All Requirements
-            </button>
-          </Link>
-        </div>
-
-        {/* CENTER FEED: MODULAR RECOMMENDATIONS ENGINE (80% weight) */}
-        <div className="md:col-span-2 space-y-5">
-          <div className="relative">
-            <Search className="absolute left-4 top-3.5 w-5 h-5 text-[#647380]" />
-            <Link href="/dashboard/requirements/browse" className="block">
-              <input
-                type="text"
-                readOnly
-                placeholder="Search other subjects or open requirements..."
-                className="w-full pl-12 pr-4 py-3 bg-[#f3f4f6] hover:bg-[#e5e7eb] text-sm rounded-full border border-transparent cursor-pointer focus:outline-none transition-all placeholder-[#647380]"
-              />
-            </Link>
-          </div>
-
-          {/* Section Recommendation Selector Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none border-b border-gray-100">
-            {[
-              { id: 'recommended', label: '⭐ Recommended' },
-              { id: 'recent', label: '📅 Recently Posted' },
-              { id: 'nearby', label: '📍 Nearby Matches' },
-              { id: 'high-budget', label: '💰 High Budget' },
-              { id: 'explore', label: '🎨 Explore More' },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-3 py-2 text-xs font-bold rounded-full transition-all shrink-0 select-none ${
-                    isActive
-                      ? 'bg-[#00060c] text-white shadow-sm'
-                      : 'bg-white border border-[#dadee2] text-[#647380] hover:text-[#2d2d2d]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Matched Requirement listings */}
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2].map((i) => (
+          {/* Recommended Tutors Grid */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+              Recommended Tutors
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {FALLBACK_TUTORS.map((tutor) => (
                 <div
-                  key={i}
-                  className="bg-white border border-[#eef1f4] rounded-2xl p-6 space-y-4 shadow-sm animate-pulse"
+                  key={tutor._id}
+                  className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm flex flex-col justify-between items-center text-center space-y-4"
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-100"></div>
-                      <div className="space-y-1.5 py-1">
-                        <div className="h-3 bg-gray-100 rounded w-28"></div>
-                        <div className="h-2 bg-gray-100 rounded w-16"></div>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded w-8"></div>
-                  </div>
                   <div className="space-y-2">
-                    <div className="h-3 bg-gray-100 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-100 rounded w-full"></div>
-                    <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+                    <div className="h-10 w-10 rounded-xl bg-[#e6f6ee] flex items-center justify-center font-bold text-[#00A453] text-xs">
+                      {tutor.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .slice(0, 2)}
+                    </div>
+                    <div>
+                      <h4 className="text-[11px] font-extrabold text-[#2d2d2d] truncate max-w-[100px]">
+                        {tutor.name}
+                      </h4>
+                      <p className="text-[9px] text-[#647380] mt-0.5">
+                        {tutor.subjects.join(', ')}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 text-xs font-semibold">
-              ⚠️ {error}
-            </div>
-          ) : list.length === 0 ? (
-            <div className="bg-white border border-[#dadee2] rounded-2xl p-8 text-center space-y-4">
-              <div className="w-16 h-16 bg-[#f4f7f6] border border-[#00A453]/10 rounded-full flex items-center justify-center mx-auto text-2xl">
-                🔎
-              </div>
-              <div className="max-w-md mx-auto space-y-2">
-                <h3 className="text-base font-extrabold text-[#2d2d2d]">
-                  No Matches in this Section
-                </h3>
-                <p className="text-xs text-[#647380] leading-relaxed font-medium">
-                  {activeTab === 'recommended' &&
-                    'Complete your onboarding and select subjects to see targeted matches.'}
-                  {activeTab === 'nearby' &&
-                    "We couldn't find active local Home Tuition requirements matching your registered city."}
-                  {activeTab === 'high-budget' &&
-                    'No premium high budget tutoring contracts currently listed.'}
-                  {activeTab === 'explore' &&
-                    'All listed requirements match your profile subjects. Browse requirements for all topics.'}
-                  {activeTab === 'recent' &&
-                    'No active student learning requirements registered recently.'}
-                </p>
-                <div className="pt-4 flex flex-col sm:flex-row justify-center gap-2">
-                  <Link href="/profile">
-                    <Button
-                      variant="secondary"
-                      className="border-[#dadee2] hover:bg-gray-50 text-xs w-full sm:w-auto font-bold rounded-lg bg-white"
-                    >
-                      Update Profile Settings
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard/requirements/browse">
-                    <Button className="bg-[#00060c] text-white hover:bg-slate-800 text-xs w-full sm:w-auto font-bold rounded-lg">
-                      Explore Marketplace
+
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/50">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    {tutor.ratingAvg} ({tutor.experience})
+                  </div>
+
+                  <Link href="/dashboard/tutors" className="w-full">
+                    <Button className="w-full border border-[#dadee2] bg-white hover:bg-gray-50 text-[#2d2d2d] text-[9px] font-bold h-7.5 rounded-lg">
+                      View Profile
                     </Button>
                   </Link>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {list.map((req) => (
-                <div
-                  key={req._id}
-                  className="bg-white border border-[#eef1f4] rounded-2xl p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 bg-[#e6f6ee] border border-[#00A453]/20 rounded-full flex items-center justify-center text-sm font-bold text-[#00A453]">
-                          {req.curriculum?.subject?.[0] || '📚'}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-extrabold text-[#2d2d2d]">
-                            {req.curriculum?.subject || req.category}
-                          </h4>
-                          <div className="flex items-center gap-1.5 text-[10px] text-[#647380] font-semibold mt-0.5">
-                            {req.curriculum?.level && <span>{req.curriculum.level}</span>}
-                            {req.curriculum?.board && (
-                              <>
-                                <span>·</span>
-                                <span>{req.curriculum.board}</span>
-                              </>
-                            )}
-                            <span>·</span>
-                            <span>{req.category}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Show relevance score match percentage badge if activeTab === 'recommended' or if score exists */}
-                      {req.score !== undefined ? (
-                        <span className="text-[10px] font-extrabold bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/25 px-2.5 py-1 rounded-full whitespace-nowrap">
-                          🎯 {req.score}% Match
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#647380] flex items-center gap-1 mt-0.5 font-medium">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(req.createdAt).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 text-[10px] font-semibold text-[#647380]">
-                      <span className="bg-[#f3f4f6] text-[#2d2d2d] px-2 py-0.5 rounded">
-                        🏡 {req.teachingMode.join(', ')}
-                      </span>
-                      <span className="bg-[#e6f6ee] text-[#00A453] px-2 py-0.5 rounded">
-                        💰 ₹{req.budget.min} - ₹{req.budget.max} (
-                        {req.budget.feeType.toLowerCase().replace('_', ' ')})
-                      </span>
-                      <span className="bg-gray-100 text-[#2d2d2d] px-2 py-0.5 rounded">
-                        📍 {req.location.city}, {req.location.area}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-[#647380] leading-relaxed line-clamp-3 whitespace-pre-line">
-                      {req.description}
-                    </p>
-                  </div>
-
-                  <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#647380]">
-                      {req.applicationsCount || 0} applications
-                    </span>
-                    <Link href={`/dashboard/requirements/${req._id}`}>
-                      <button className="text-xs font-bold text-[#647380] hover:text-[#2d2d2d] transition-colors flex items-center gap-1">
-                        View Details <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: TIPS & ADVICE (20% weight) */}
-        <div className="md:col-span-1 space-y-6">
-          {/* Platform Announcements */}
-          {posts.length > 0 && (
-            <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+        {/* RIGHT COLUMN: SINGLE HIGHLIGHT & RESOURCES */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Platform Single Announcement card (Distraction-Free) */}
+          {featuredAnnouncement && (
+            <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
               <div className="space-y-1">
-                <h3 className="text-sm font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
-                  📢 Platform Announcements
-                </h3>
-                <span className="text-[10px] text-[#647380] font-medium block">
-                  Updates from Project Tutor Team
+                <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-2 py-0.5 rounded-full inline-block border border-emerald-100">
+                  {featuredAnnouncement.type || 'Platform Notice'}
                 </span>
+                <h3 className="text-xs font-extrabold text-[#2d2d2d] leading-snug">
+                  {featuredAnnouncement.title}
+                </h3>
               </div>
-              <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="space-y-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-1.5 py-0.5 rounded shrink-0">
-                        {post.type}
-                      </span>
-                      <span className="text-[9px] text-[#b0b8c1]">
-                        {new Date(post.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-[#2d2d2d] leading-snug">{post.title}</h4>
-                    <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
-                      {post.content}
-                    </p>
-                  </div>
-                ))}
+              <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-4">
+                {featuredAnnouncement.content}
+              </p>
+              <div className="text-[9px] text-[#b0b8c1]">
+                Posted {new Date(featuredAnnouncement.createdAt).toLocaleDateString()}
               </div>
             </div>
           )}
 
-          {/* Advice card */}
-          <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
-            <div className="space-y-1">
-              <h3 className="text-sm font-extrabold text-[#2d2d2d]">Success Tips</h3>
-              <span className="text-[10px] text-[#647380] font-medium block">
-                How to land student leads
-              </span>
-            </div>
-
+          {/* Educational Articles */}
+          <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+              Educational Guides
+            </h3>
             <div className="space-y-4">
-              {PLATFORM_TIPS.map((tip) => {
-                const IconComp = tip.icon;
-                return (
-                  <div
-                    key={tip.id}
-                    className="space-y-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
-                  >
-                    <h4 className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1">
-                      <IconComp className="w-3.5 h-3.5 text-[#00A453]" />
-                      {tip.title}
-                    </h4>
-                    <p className="text-[11px] text-[#647380] leading-relaxed">{tip.desc}</p>
-                  </div>
-                );
-              })}
+              {MOCK_ARTICLES.map((article) => (
+                <div
+                  key={article.id}
+                  className="space-y-1 border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                >
+                  <span className="text-[9px] font-bold text-[#00A453]">{article.category}</span>
+                  <h4 className="text-xs font-extrabold text-[#2d2d2d] leading-snug">
+                    {article.title}
+                  </h4>
+                  <span className="text-[9px] text-[#b0b8c1] block">{article.readTime}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -569,245 +484,265 @@ export default function DashboardPage() {
   }
 
   // -------------------------------------------------------------
-  // RENDERING RISHU'S DYNAMIC FEED FOR STUDENTS
+  // TUTOR DASHBOARD LAYOUT (Tutor Control Center)
   // -------------------------------------------------------------
+  const list = recommendations.recommended || [];
+  const featuredAnnouncement = posts[activeArticleIndex] || posts[0];
+
   return (
-    <div className="max-w-[1250px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d]">
-      {/* 1. LEFT SIDEBAR: PROFILE & CATEGORIES */}
-      <div className="md:col-span-1 space-y-6">
-        {/* User Card */}
-        <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
+    <div className="max-w-[1300px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d]">
+      {/* LEFT COLUMN: PROFILE COMPLEXITY */}
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#f4f7f6] border border-gray-200 flex items-center justify-center font-bold text-[#00A453] text-sm select-none">
+            <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#dadee2] flex items-center justify-center font-bold text-[#00A453] text-sm select-none">
               {getInitials()}
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-[11px] text-[#647380] block leading-tight">
-                Post requirement as
-              </span>
-              <button className="flex items-center gap-1 text-sm font-bold text-[#2d2d2d] truncate hover:text-[#00A453] transition-colors">
-                Student <ChevronDown className="w-4 h-4 text-[#647380]" />
-              </button>
+              <span className="text-[10px] text-[#647380] block leading-tight">Tutor Account</span>
+              <span className="text-xs font-bold text-[#2d2d2d] truncate block">{user?.name}</span>
             </div>
           </div>
 
-          <Link href="/dashboard/requirements/create" className="block">
-            <Button className="w-full bg-[#00060c] hover:bg-[#1a1a1a] text-white font-bold rounded-full py-5 text-sm gap-1.5 shadow-sm">
-              Create post <Plus className="w-4 h-4 stroke-[2.5]" />
-            </Button>
-          </Link>
-        </div>
-
-        {/* My Categories / Bowls */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-extrabold text-[#2d2d2d] px-1">My Subjects</h3>
-
-          <div className="space-y-2">
-            {MY_SUBJECTS.map((sub) => (
-              <div
-                key={sub.name}
-                className="flex items-center justify-between p-3 bg-white border border-[#eef1f4] rounded-xl hover:border-gray-200 cursor-pointer transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-[#e6f6ee] flex items-center justify-center text-xs">
-                    📚
-                  </div>
-                  <span className="text-xs font-semibold text-[#384148]">{sub.name}</span>
-                </div>
-                <span className="text-[10px] font-bold bg-[#00060c] text-white px-2 py-0.5 rounded-full">
-                  {sub.count}
+          {profileLoading ? (
+            <div className="space-y-2 py-2">
+              <div className="h-3.5 bg-gray-100 rounded animate-pulse w-3/4"></div>
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2"></div>
+            </div>
+          ) : tutorProfile ? (
+            <div className="space-y-3.5 pt-3 border-t border-[#dadee2] text-xs">
+              <div className="space-y-1">
+                <span className="text-[#647380] block font-bold text-[9px] uppercase tracking-wider text-gray-400">
+                  Location
+                </span>
+                <span className="font-bold text-[#2d2d2d] flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  {tutorProfile.location?.area || 'Not Set'},{' '}
+                  {tutorProfile.location?.city || 'Not Set'}
                 </span>
               </div>
-            ))}
-          </div>
-
-          <Link href="/dashboard/requirements" className="block">
-            <button className="w-full flex items-center justify-center gap-1.5 py-3 border border-[#dadee2] rounded-xl text-xs font-bold text-[#384148] bg-white hover:bg-gray-50 transition-colors">
-              <Compass className="w-4 h-4 text-[#00A453]" /> Manage My Requirements
-              <span className="w-2 h-2 rounded-full bg-[#00A453]" />
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. CENTER FEED */}
-      <div className="md:col-span-2 space-y-5">
-        {/* Top Search bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-3.5 w-5 h-5 text-[#647380]" />
-          <input
-            type="text"
-            placeholder="Search for subjects or tutoring needs"
-            className="w-full pl-12 pr-4 py-3 bg-[#f3f4f6] hover:bg-[#e5e7eb] focus:bg-white text-sm rounded-full border border-transparent focus:border-[#00A453] focus:outline-none transition-all placeholder-[#647380]"
-          />
-        </div>
-
-        {/* Quick Post Prompt */}
-        <div className="bg-white border border-[#eef1f4] rounded-2xl p-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#f4f7f6] flex items-center justify-center text-sm font-semibold select-none border border-gray-100">
-            💬
-          </div>
-          <Link href="/dashboard/requirements/create" className="flex-1">
-            <input
-              type="text"
-              readOnly
-              placeholder={`Post a new requirement as "Student"`}
-              className="w-full px-4 py-2.5 bg-[#f8fafc] border border-gray-100 hover:border-gray-200 rounded-lg text-sm text-[#647380] cursor-pointer focus:outline-none"
-            />
-          </Link>
-        </div>
-
-        {/* Startups Rocket Card */}
-        <div className="bg-white border border-[#eef1f4] rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-          {/* Blue rocket banner */}
-          <div className="h-44 bg-gradient-to-r from-[#2563eb] to-[#3b82f6] relative flex items-center justify-center overflow-hidden">
-            {/* Simple CSS vector rocket mock */}
-            <div className="w-20 h-28 bg-[#f8fafc] rounded-t-full rounded-b-2xl relative border-2 border-slate-300 flex flex-col items-center py-4 transform -rotate-12">
-              <div className="w-6 h-6 rounded-full bg-cyan-400 border border-slate-300 mb-2" />
-              <div className="w-full flex justify-between absolute bottom-4 px-2">
-                <div className="w-4 h-6 bg-red-500 rounded-l-full" />
-                <div className="w-4 h-6 bg-red-500 rounded-r-full" />
+              <div className="space-y-1">
+                <span className="text-[#647380] block font-bold text-[9px] uppercase tracking-wider text-gray-400">
+                  Teaching Modes
+                </span>
+                <span className="font-bold text-[#2d2d2d]">
+                  {tutorProfile.teachingModes?.join(' · ') || 'None Selected'}
+                </span>
               </div>
-              <div className="w-2 h-4 bg-orange-400 rounded-full animate-bounce mt-auto" />
-            </div>
-          </div>
-
-          {/* Banner bottom info */}
-          <div className="bg-[#6366f1] p-5 text-white space-y-2">
-            <h4 className="font-extrabold text-base flex items-center gap-1">
-              💡 Need Math or Physics Guidance?
-            </h4>
-            <p className="text-xs text-white/90 leading-relaxed">
-              We have featured tutors verified for you! Explore the tutoring network to clear your
-              doubts and learn with top educators.
-            </p>
-          </div>
-        </div>
-
-        {/* FEED ITEMS */}
-        <div className="space-y-4">
-          {STUDENT_FEED_POSTS.map((post) => (
-            <div
-              key={post.id}
-              className="bg-white border border-[#eef1f4] rounded-2xl p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-all"
-            >
-              {/* Feed Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#e6f6ee] border border-[#00A453]/20 rounded-full flex items-center justify-center text-sm font-bold text-[#00A453]">
-                    {post.subject[0]}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1.5">
-                      {post.subject}
-                    </h4>
-                    <span className="text-[10px] text-[#647380] font-medium leading-none block mt-1">
-                      {post.studentName} · {post.role}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#647380]">{post.time}</span>
-                  <button className="p-1 text-gray-400 hover:text-gray-700">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Feed Body */}
-              <div className="space-y-2">
-                <div className="text-sm font-extrabold text-[#00A453] bg-[#e6f6ee]/40 px-3 py-1.5 rounded-md inline-block">
-                  Budget: {post.budget}
-                </div>
-                <p className="text-sm text-[#384148] leading-relaxed whitespace-pre-line">
-                  {post.description}
-                </p>
-              </div>
-
-              {/* Feed Footer */}
-              <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#00A453]">{post.reactions}</span>
-
-                <Link href="/dashboard/requirements">
-                  <button className="text-xs font-bold text-[#647380] hover:text-[#2d2d2d] transition-colors flex items-center gap-1">
-                    View Requirement <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </Link>
+              <div className="space-y-1">
+                <span className="text-[#647380] block font-bold text-[9px] uppercase tracking-wider text-gray-400">
+                  Pricing Rates
+                </span>
+                <span className="font-bold text-[#2d2d2d]">
+                  ₹{tutorProfile.pricing?.min} - ₹{tutorProfile.pricing?.max} / Hr
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. RIGHT SIDEBAR: TUTORS FOR YOU */}
-      <div className="md:col-span-1 space-y-6">
-        {/* Platform Announcements */}
-        {posts.length > 0 && (
-          <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
-            <div className="space-y-1">
-              <h3 className="text-sm font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
-                📢 Platform Announcements
-              </h3>
-              <span className="text-[10px] text-[#647380] font-medium block">
-                Updates from Project Tutor Team
-              </span>
-            </div>
-            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="space-y-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
+          ) : (
+            <div className="pt-3 border-t border-[#dadee2] text-center space-y-2">
+              <p className="text-xs text-[#647380]">
+                Complete your onboarding to match with students.
+              </p>
+              <Link href="/profile">
+                <Button
+                  size="sm"
+                  className="bg-[#00060c] text-white hover:bg-slate-800 text-xs w-full py-2"
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-1.5 py-0.5 rounded shrink-0">
-                      {post.type}
-                    </span>
-                    <span className="text-[9px] text-[#b0b8c1]">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-[#2d2d2d] leading-snug">{post.title}</h4>
-                  <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
-                    {post.content}
-                  </p>
+                  Complete Profile
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Expertise lists */}
+        {tutorProfile?.subjects && tutorProfile.subjects.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+              My Expertise
+            </h3>
+            <div className="space-y-2">
+              {tutorProfile.subjects.map((sub: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-white border border-[#dadee2] rounded-2xl text-xs font-semibold text-[#384148]"
+                >
+                  <span className="truncate">{sub.subject}</span>
+                  <span className="text-[10px] text-[#647380] bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 whitespace-nowrap">
+                    {sub.level}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
+      </div>
 
-        <div className="bg-white border border-[#eef1f4] rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-5">
+      {/* CENTER MAIN TASK AREA */}
+      <div className="lg:col-span-2 space-y-8">
+        {/* Welcome Counters strip */}
+        <div className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm space-y-5">
           <div className="space-y-1">
-            <h3 className="text-sm font-extrabold text-[#2d2d2d]">Tutors for you</h3>
-            <button className="text-xs font-bold text-[#00A453] hover:underline flex items-center gap-0.5">
-              Explore all Tutors <ArrowRight className="w-3 h-3 stroke-[2.5]" />
-            </button>
+            <h2 className="text-sm font-extrabold text-[#2d2d2d]">Good Evening, Tutor</h2>
+            <p className="text-xs text-[#647380]">
+              Here is the status summary of your marketplace applications:
+            </p>
           </div>
 
-          <div className="space-y-4">
-            {SUGGESTED_TUTORS.map((tutor) => (
-              <div
-                key={tutor.id}
-                className="flex items-center justify-between gap-2 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#f4f7f6] border border-gray-200 flex items-center justify-center font-bold text-xs text-[#00A453] shrink-0">
-                    {tutor.initials}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-center">
+              <span className="text-[9px] text-[#647380] block font-extrabold uppercase">
+                Matched
+              </span>
+              <span className="text-base font-extrabold text-[#00A453] block mt-1">1 Accepted</span>
+            </div>
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-center">
+              <span className="text-[9px] text-[#647380] block font-extrabold uppercase">
+                Submitted
+              </span>
+              <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">3 Active</span>
+            </div>
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-center">
+              <span className="text-[9px] text-[#647380] block font-extrabold uppercase">
+                Unread Messages
+              </span>
+              <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">2 New</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recommended Requirements (Airbnb discovery cards list) */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+              Recommended Student Requirements
+            </h3>
+            <Link
+              href="/dashboard/requirements/browse"
+              className="text-[10px] font-bold text-[#00A453] hover:underline"
+            >
+              Search All
+            </Link>
+          </div>
+
+          {list.length === 0 ? (
+            <div className="bg-white border border-[#dadee2] rounded-3xl p-12 text-center shadow-sm space-y-4">
+              <div className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                <Compass className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-extrabold text-[#2d2d2d]">No matching requirements</h4>
+                <p className="text-xs text-[#647380] mt-1 max-w-xs mx-auto">
+                  Complete your profile subjects expertise to receive daily matching alerts.
+                </p>
+              </div>
+              <Link href="/dashboard/requirements/browse">
+                <Button
+                  size="sm"
+                  className="bg-[#00060c] text-white hover:bg-slate-800 text-[10px] font-bold px-4 rounded-xl"
+                >
+                  Browse All Posts
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {list.map((req) => (
+                <div
+                  key={req._id}
+                  className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#e6f6ee] flex items-center justify-center text-xs font-bold text-[#00A453]">
+                          📚
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-[#2d2d2d]">
+                            {req.curriculum?.subject || req.category}
+                          </h4>
+                          <span className="text-[9px] text-[#647380] font-bold mt-0.5 block">
+                            {req.location?.area}, {req.location?.city} ·{' '}
+                            {req.teachingMode.join('/')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[9px] font-extrabold bg-[#e6f6ee] text-[#00A453] px-2.5 py-0.5 rounded-full">
+                        🎯 {req.score || 95}% Match
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
+                      {req.description}
+                    </p>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-[#2d2d2d] truncate">{tutor.name}</h4>
-                    <span className="text-[10px] text-[#647380] block truncate">{tutor.tag}</span>
-                    <span className="text-[9px] text-[#b0b8c1] block mt-0.5">
-                      {tutor.students} learners
+
+                  <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-[#2d2d2d]">
+                      ₹{req.budget?.min} - ₹{req.budget?.max}
+                      <span className="text-[10px] text-[#647380] font-medium block mt-0.5">
+                        Budget ({req.budget?.feeType.toLowerCase().replace('_', ' ')})
+                      </span>
                     </span>
+
+                    <Link href={`/dashboard/requirements/${req._id}`}>
+                      <Button className="bg-[#00060c] text-white hover:bg-slate-800 text-[10px] font-bold px-4 h-9 rounded-xl">
+                        Apply Now
+                      </Button>
+                    </Link>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-                <button className="text-[10px] font-bold border border-[#dadee2] hover:bg-gray-50 text-[#2d2d2d] px-3 py-1.5 rounded-[4px] shrink-0 transition-colors">
-                  View
-                </button>
-              </div>
-            ))}
+      {/* RIGHT COLUMN: SINGLE ROTATING POSTS */}
+      <div className="lg:col-span-1 space-y-6">
+        {featuredAnnouncement && (
+          <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-2 py-0.5 rounded-full inline-block border border-emerald-100">
+                {featuredAnnouncement.type || 'Announcement'}
+              </span>
+              <h3 className="text-xs font-extrabold text-[#2d2d2d] leading-snug">
+                {featuredAnnouncement.title}
+              </h3>
+            </div>
+            <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-4">
+              {featuredAnnouncement.content}
+            </p>
+            <div className="text-[9px] text-[#b0b8c1]">
+              Posted {new Date(featuredAnnouncement.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+        )}
+
+        {/* Platform Advice card */}
+        <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
+          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+            Tutor Tips
+          </h3>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#00A453]" /> Profile Completion
+              </h4>
+              <p className="text-[10px] text-[#647380] leading-relaxed">
+                Tutors who complete their bio and experience blocks land 4x more parent inquiries.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1">
+                <Info className="w-3.5 h-3.5 text-[#00A453]" /> Demo Session Policy
+              </h4>
+              <p className="text-[10px] text-[#647380] leading-relaxed">
+                Always establish demo agenda items during the 30-min discovery call.
+              </p>
+            </div>
           </div>
         </div>
       </div>
