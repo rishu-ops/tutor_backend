@@ -8,7 +8,6 @@ import { requirementApi, applicationApi } from '@/lib/api';
 import ApplyModal from '@/components/sections/ApplyModal';
 import TutorPreviewDrawer from '@/components/sections/TutorPreviewDrawer';
 import ComparisonTable from '@/components/sections/ComparisonTable';
-import DashboardLayout from '../../layout';
 import { Button } from '@/components/ui/button';
 import {
   ArrowLeft,
@@ -275,21 +274,21 @@ export default function RequirementDetailPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="max-w-4xl mx-auto py-12 text-center text-xs text-[#647380] font-semibold animate-pulse">
           Loading requirement details...
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   if (error || !requirement) {
     return (
-      <DashboardLayout>
+      <>
         <div className="max-w-4xl mx-auto py-12 text-center text-xs text-red-500 font-semibold">
           ⚠️ {error || 'Requirement not found'}
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -297,7 +296,7 @@ export default function RequirementDetailPage() {
   const isSchoolEd = requirement.category === 'School Education';
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-5xl mx-auto space-y-6 text-[#2d2d2d]">
         {/* Back and Title Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
@@ -814,6 +813,6 @@ export default function RequirementDetailPage() {
           actionLoading={actionLoading}
         />
       </div>
-    </DashboardLayout>
+    </>
   );
 }

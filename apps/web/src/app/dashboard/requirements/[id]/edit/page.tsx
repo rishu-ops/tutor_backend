@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { requirementApi } from '@/lib/api';
-import DashboardLayout from '../../../layout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, X, AlertCircle, Loader2, Layers, BookOpen } from 'lucide-react';
 
@@ -192,18 +191,18 @@ export default function EditRequirementPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex flex-col items-center justify-center py-32 gap-3">
           <div className="w-8 h-8 border-4 border-[#00A453] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-[#647380]">Loading requirement for editing…</p>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout>
+      <>
         <div className="bg-red-50 border border-red-200 rounded-[8px] p-6 text-center max-w-md mx-auto mt-12 space-y-4">
           <div className="flex items-center justify-center gap-2 text-red-600 font-bold">
             <AlertCircle className="w-6 h-6" />
@@ -214,14 +213,14 @@ export default function EditRequirementPage() {
             Back to Details
           </Button>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   const isSchoolEd = category === 'School Education';
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-2xl mx-auto py-4 space-y-6">
         <button
           onClick={() => router.push(`/dashboard/requirements/${id}`)}
@@ -562,6 +561,6 @@ export default function EditRequirementPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

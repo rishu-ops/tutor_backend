@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { requirementApi } from '@/lib/api';
-import DashboardLayout from '../../layout';
 import { Confetti } from '@/components/ui/confetti';
 import { Button } from '@/components/ui/button';
 import {
@@ -248,7 +247,7 @@ export default function CreateRequirementPage() {
 
   if (success) {
     return (
-      <DashboardLayout>
+      <>
         <Confetti />
         <div className="max-w-md mx-auto text-center py-16 space-y-6">
           <div className="w-20 h-20 bg-[#e6f6ee] border border-[#00A453]/20 rounded-full flex items-center justify-center mx-auto text-4xl">
@@ -274,12 +273,12 @@ export default function CreateRequirementPage() {
             </Link>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-3xl mx-auto py-4 space-y-8">
         {/* Step Indicator */}
         <div className="relative">
@@ -760,6 +759,6 @@ export default function CreateRequirementPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

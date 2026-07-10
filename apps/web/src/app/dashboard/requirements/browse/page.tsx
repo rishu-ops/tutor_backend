@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { requirementApi } from '@/lib/api';
-import DashboardLayout from '../../layout';
 
 const CATEGORIES = [
   'School Education',
@@ -114,7 +113,7 @@ export default function BrowseRequirementsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-[1250px] mx-auto py-4 space-y-6 text-[#2d2d2d]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
@@ -416,6 +415,6 @@ export default function BrowseRequirementsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

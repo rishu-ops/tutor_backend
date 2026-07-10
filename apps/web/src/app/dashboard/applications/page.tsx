@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import DashboardLayout from '../layout';
 import { useAuthStore } from '@/stores/auth-store';
 import { applicationApi } from '@/lib/api';
 import Link from 'next/link';
@@ -113,7 +112,7 @@ export default function MyApplicationsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-4xl mx-auto space-y-6 text-[#2d2d2d]">
         <div className="flex items-center justify-between border-b border-[#dadee2] pb-4">
           <div>
@@ -250,6 +249,6 @@ export default function MyApplicationsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

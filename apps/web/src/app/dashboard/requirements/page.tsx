@@ -165,11 +165,10 @@ export default function MyRequirementsPage() {
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`pb-3 font-semibold text-sm transition-colors border-b-2 relative ${
-                      isActive
+                    className={`pb-3 font-semibold text-sm transition-colors border-b-2 relative ${isActive
                         ? 'border-[#2d2d2d] text-[#2d2d2d]'
                         : 'border-transparent text-[#647380] hover:text-[#2d2d2d]'
-                    }`}
+                      }`}
                   >
                     {filter === 'ALL'
                       ? 'All Requests'
@@ -254,30 +253,27 @@ export default function MyRequirementsPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-[#647380] flex items-center gap-1 mr-2">
-                            <Users className="w-3.5 h-3.5 text-gray-400" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#647380] mr-2">
                             {req.applicationsCount || 0} applications
                           </span>
-
                           <Link href={`/dashboard/requirements/${req._id}`}>
-                            <button className="p-2 border border-[#dadee2] rounded-[4px] hover:bg-gray-50 transition-colors text-gray-600 hover:text-black">
-                              <Eye className="w-4 h-4" />
+                            <button className="text-xs font-bold text-[#647380] hover:text-[#2d2d2d] transition-colors py-1.5 px-3 border border-gray-200 bg-white rounded">
+                              View Details
                             </button>
                           </Link>
-
                           {req.status === 'OPEN' && (
                             <>
                               <Link href={`/dashboard/requirements/${req._id}/edit`}>
-                                <button className="p-2 border border-[#dadee2] rounded-[4px] hover:bg-gray-50 transition-colors text-gray-600 hover:text-black">
-                                  <Pencil className="w-4 h-4" />
+                                <button className="text-xs font-bold text-[#647380] hover:text-[#2d2d2d] transition-colors py-1.5 px-3 border border-gray-200 bg-white rounded">
+                                  Edit
                                 </button>
                               </Link>
                               <button
                                 onClick={() => handleCloseRequirement(req._id)}
-                                className="p-2 border border-red-100 rounded-[4px] hover:bg-red-50 transition-colors text-red-500 hover:text-red-700"
+                                className="text-xs font-bold text-red-500 hover:bg-red-50 transition-colors py-1.5 px-3 rounded"
                               >
-                                <XCircle className="w-4 h-4" />
+                                Close
                               </button>
                             </>
                           )}

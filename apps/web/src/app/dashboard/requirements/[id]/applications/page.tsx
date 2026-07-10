@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import DashboardLayout from '../../../../layout';
 import { useAuthStore } from '@/stores/auth-store';
 import { useParams, useRouter } from 'next/navigation';
 import { applicationApi } from '@/lib/api';
@@ -146,7 +145,7 @@ export default function StudentApplicantDashboard() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-6xl mx-auto space-y-6 text-[#2d2d2d]">
         {/* Header Breadcrumbs */}
         <div className="flex items-center gap-2 border-b border-[#dadee2] pb-4">
@@ -388,6 +387,6 @@ export default function StudentApplicantDashboard() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
