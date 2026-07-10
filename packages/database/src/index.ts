@@ -52,3 +52,5 @@ export async function disconnectDatabases(): Promise<void> {
 export * from './models/student-profile.schema.js';
 export * from './models/tutor-profile.schema.js';
 export * from './models/requirement.schema.js';
+export * from './models/application.schema.js';
+export * from './models/notification.schema.js';

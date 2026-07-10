@@ -196,3 +196,64 @@ export const requirementApi = {
       token,
     }) as Promise<any>,
 };
+
+export const recommendationApi = {
+  getHomeRecommendations: (token: string) =>
+    api<any>('/api/v1/recommendations/home', {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  getSectionRecommendations: (section: string, page: number, limit: number, token: string) =>
+    api<any>(`/api/v1/recommendations?section=${section}&page=${page}&limit=${limit}`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+};
+
+export const applicationApi = {
+  applyToRequirement: (requirementId: string, proposal: Record<string, any>, token: string) =>
+    api<any>(`/api/v1/applications/requirements/${requirementId}/apply`, {
+      method: 'POST',
+      body: proposal,
+      token,
+    }),
+
+  getMyApplications: (token: string) =>
+    api<any>('/api/v1/applications/me', {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  getRequirementApplications: (requirementId: string, token: string) =>
+    api<any>(`/api/v1/applications/requirements/${requirementId}`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  acceptApplication: (applicationId: string, token: string) =>
+    api<any>(`/api/v1/applications/${applicationId}/accept`, {
+      method: 'PATCH',
+      token,
+    }),
+
+  rejectApplication: (applicationId: string, token: string) =>
+    api<any>(`/api/v1/applications/${applicationId}/reject`, {
+      method: 'PATCH',
+      token,
+    }),
+};
+
+export const notificationApi = {
+  getNotifications: (token: string) =>
+    api<any>('/api/v1/notifications', {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  markNotificationRead: (id: string, token: string) =>
+    api<any>(`/api/v1/notifications/${id}/read`, {
+      method: 'PATCH',
+      token,
+    }),
+};

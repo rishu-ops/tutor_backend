@@ -4,7 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
-import { requirementApi } from '@/lib/api';
+import { requirementApi, applicationApi } from '@/lib/api';
+import ApplyModal from '@/components/sections/ApplyModal';
 import DashboardLayout from '../../layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +35,24 @@ export default function RequirementDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const id = params.id as string;
+
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+
+  useEffect(() => {
+    async function checkApplication() {
+      if (!token || user?.role !== 'TUTOR' || !id) return;
+      try {
+        const res = await applicationApi.getMyApplications(token);
+        if (res.success && res.data) {
+          setHasApplied(res.data.some((app: any) => app.requirementId === id));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    checkApplication();
+  }, [token, user, id]);
 
   const fetchDetail = useCallback(async () => {
     if (!token || !id) return;
@@ -176,8 +195,15 @@ export default function RequirementDetailPage() {
             </div>
 
             {/* Action buttons (Only for owner when OPEN) */}
-            {isOwner && requirement.status === 'OPEN' && (
-              <div className="flex items-center gap-2 shrink-0">
+            {user?.role === 'STUDENT' && requirement.studentUserId === user.id && (
+              <div className="flex items-center gap-2">
+                {requirement.status !== 'CLOSED' && (
+                  <Link href={`/dashboard/requirements/${requirement._id}/applications`}>
+                    <Button className="bg-[#00060c] hover:bg-[#1a1a1a] text-white gap-1.5 font-bold rounded-[4px] text-xs py-2 px-3">
+                      View Applications ({requirement.applicationsCount || 0})
+                    </Button>
+                  </Link>
+                )}
                 <Link href={`/dashboard/requirements/${requirement._id}/edit`}>
                   <Button
                     variant="secondary"
@@ -199,14 +225,55 @@ export default function RequirementDetailPage() {
 
             {user?.role === 'TUTOR' && requirement.status === 'OPEN' && (
               <div className="shrink-0">
-                <Button
-                  disabled
-                  className="bg-gray-100 border border-gray-200 text-gray-400 font-bold px-5 py-2.5 rounded-[4px] text-xs cursor-not-allowed select-none"
-                >
-                  Apply (Coming in Phase 3)
-                </Button>
+                {hasApplied ? (
+                  <Button
+                    disabled
+                    className="bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/20 font-bold px-5 py-2.5 rounded-[4px] text-xs cursor-not-allowed select-none"
+                  >
+                    ✓ Applied
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setIsApplyOpen(true)}
+                    className="bg-[#00A453] hover:bg-[#009048] text-white font-bold px-5 py-2.5 rounded-[4px] text-xs shadow-sm transition-all"
+                  >
+                    Apply Now
+                  </Button>
+                )}
               </div>
             )}
+
+            {user?.role === 'TUTOR' && requirement.status === 'IN_REVIEW' && (
+              <div className="shrink-0">
+                {hasApplied ? (
+                  <Button
+                    disabled
+                    className="bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/20 font-bold px-5 py-2.5 rounded-[4px] text-xs cursor-not-allowed select-none"
+                  >
+                    ✓ Applied (In Review)
+                  </Button>
+                ) : (
+                  <Button
+                    disabled
+                    className="bg-amber-50 border border-amber-200 text-amber-600 font-bold px-5 py-2.5 rounded-[4px] text-xs cursor-not-allowed select-none"
+                  >
+                    In Review (Limit Reached)
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {user?.role === 'TUTOR' &&
+              (requirement.status === 'MATCHED' || requirement.status === 'CLOSED') && (
+                <div className="shrink-0">
+                  <Button
+                    disabled
+                    className="bg-gray-50 border border-gray-200 text-gray-400 font-bold px-5 py-2.5 rounded-[4px] text-xs cursor-not-allowed select-none"
+                  >
+                    Closed / Matched
+                  </Button>
+                </div>
+              )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-gray-100 pt-6">
@@ -350,6 +417,21 @@ export default function RequirementDetailPage() {
             </div>
           </div>
         </div>
+        {requirement && (
+          <ApplyModal
+            requirementId={requirement._id}
+            requirementSubject={requirement.curriculum?.subject || ''}
+            requirementCategory={requirement.category}
+            defaultBudgetMin={requirement.budget.min}
+            defaultBudgetMax={requirement.budget.max}
+            isOpen={isApplyOpen}
+            onClose={() => setIsApplyOpen(false)}
+            onSuccess={() => {
+              setHasApplied(true);
+              fetchDetail();
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

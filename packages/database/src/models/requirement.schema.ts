@@ -21,7 +21,7 @@ export interface IRequirement extends Document {
     feeType: 'PER_HOUR' | 'PER_MONTH' | 'PER_SESSION';
   };
   description: string;
-  status: 'OPEN' | 'MATCHED' | 'CLOSED';
+  status: 'OPEN' | 'IN_REVIEW' | 'MATCHED' | 'CLOSED';
   applicationsCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -55,7 +55,7 @@ const RequirementSchema = new Schema<IRequirement>(
     description: { type: String, required: true },
     status: {
       type: String,
-      enum: ['OPEN', 'MATCHED', 'CLOSED'],
+      enum: ['OPEN', 'IN_REVIEW', 'MATCHED', 'CLOSED'],
       default: 'OPEN',
       required: true,
     },

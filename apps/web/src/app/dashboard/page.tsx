@@ -22,7 +22,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { requirementApi, profileApi } from '@/lib/api';
+import { requirementApi, profileApi, recommendationApi } from '@/lib/api';
 
 // Mock list of "My Subjects" for Students (Grapevine's "My Bowls")
 const MY_SUBJECTS = [
@@ -108,7 +108,23 @@ export default function DashboardPage() {
 
   // Tutor states
   const [tutorProfile, setTutorProfile] = useState<any>(null);
-  const [matchedRequirements, setMatchedRequirements] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<{
+    recommended: any[];
+    recent: any[];
+    nearby: any[];
+    highBudget: any[];
+    explore: any[];
+  }>({
+    recommended: [],
+    recent: [],
+    nearby: [],
+    highBudget: [],
+    explore: [],
+  });
+
+  const [activeTab, setActiveTab] = useState<
+    'recommended' | 'recent' | 'nearby' | 'high-budget' | 'explore'
+  >('recommended');
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState('');
@@ -126,16 +142,22 @@ export default function DashboardPage() {
         setTutorProfile(profRes.data);
       }
 
-      // Get matched requirements
-      const feedRes = await requirementApi.getTutorFeed(1, 10, token);
-      if (feedRes.success && feedRes.items) {
-        setMatchedRequirements(feedRes.items);
+      // Get home recommendations sections mapping
+      const recRes = await recommendationApi.getHomeRecommendations(token);
+      if (recRes.success) {
+        setRecommendations({
+          recommended: recRes.recommended || [],
+          recent: recRes.recent || [],
+          nearby: recRes.nearby || [],
+          highBudget: recRes.highBudget || [],
+          explore: recRes.explore || [],
+        });
       } else {
-        setError(feedRes.error || feedRes.message || 'Failed to fetch matched requirements.');
+        setError(recRes.error || recRes.message || 'Failed to fetch recommendations.');
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'An error occurred while loading matched requirements.');
+      setError(err.message || 'An error occurred while loading recommendation data.');
     } finally {
       setLoading(false);
       setProfileLoading(false);
@@ -156,10 +178,29 @@ export default function DashboardPage() {
       .slice(0, 2);
   };
 
+  const getActiveList = () => {
+    switch (activeTab) {
+      case 'recommended':
+        return recommendations.recommended;
+      case 'recent':
+        return recommendations.recent;
+      case 'nearby':
+        return recommendations.nearby;
+      case 'high-budget':
+        return recommendations.highBudget;
+      case 'explore':
+        return recommendations.explore;
+      default:
+        return [];
+    }
+  };
+
   // -------------------------------------------------------------
   // RENDERING RISHU'S DYNAMIC FEED FOR TUTORS
   // -------------------------------------------------------------
   if (user?.role === 'TUTOR') {
+    const list = getActiveList();
+
     return (
       <div className="max-w-[1250px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d]">
         {/* LEFT COLUMN: TUTOR SUMMARY INFO */}
@@ -255,7 +296,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* CENTER FEED: OPPORTUNITIES FEED (80% weight) */}
+        {/* CENTER FEED: MODULAR RECOMMENDATIONS ENGINE (80% weight) */}
         <div className="md:col-span-2 space-y-5">
           <div className="relative">
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-[#647380]" />
@@ -269,11 +310,30 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="border-b border-[#dadee2] pb-3 flex items-center justify-between px-1">
-            <h2 className="text-base font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
-              <TrendingUp className="w-5 h-5 text-[#00A453]" /> Matching Requirements
-            </h2>
-            <span className="text-xs text-[#647380] font-medium">Based on your expertise</span>
+          {/* Section Recommendation Selector Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none border-b border-gray-100">
+            {[
+              { id: 'recommended', label: '⭐ Recommended' },
+              { id: 'recent', label: '📅 Recently Posted' },
+              { id: 'nearby', label: '📍 Nearby Matches' },
+              { id: 'high-budget', label: '💰 High Budget' },
+              { id: 'explore', label: '🎨 Explore More' },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-3 py-2 text-xs font-bold rounded-full transition-all shrink-0 select-none ${
+                    isActive
+                      ? 'bg-[#00060c] text-white shadow-sm'
+                      : 'bg-white border border-[#dadee2] text-[#647380] hover:text-[#2d2d2d]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Matched Requirement listings */}
@@ -306,31 +366,39 @@ export default function DashboardPage() {
             <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 text-xs font-semibold">
               ⚠️ {error}
             </div>
-          ) : matchedRequirements.length === 0 ? (
+          ) : list.length === 0 ? (
             <div className="bg-white border border-[#dadee2] rounded-2xl p-8 text-center space-y-4">
               <div className="w-16 h-16 bg-[#f4f7f6] border border-[#00A453]/10 rounded-full flex items-center justify-center mx-auto text-2xl">
                 🔎
               </div>
               <div className="max-w-md mx-auto space-y-2">
                 <h3 className="text-base font-extrabold text-[#2d2d2d]">
-                  No Matching Requirements Found
+                  No Matches in this Section
                 </h3>
-                <p className="text-xs text-[#647380] leading-relaxed">
-                  We couldn't find any open student requests in your city that match your registered
-                  subjects or teaching modes right now.
+                <p className="text-xs text-[#647380] leading-relaxed font-medium">
+                  {activeTab === 'recommended' &&
+                    'Complete your onboarding and select subjects to see targeted matches.'}
+                  {activeTab === 'nearby' &&
+                    "We couldn't find active local Home Tuition requirements matching your registered city."}
+                  {activeTab === 'high-budget' &&
+                    'No premium high budget tutoring contracts currently listed.'}
+                  {activeTab === 'explore' &&
+                    'All listed requirements match your profile subjects. Browse requirements for all topics.'}
+                  {activeTab === 'recent' &&
+                    'No active student learning requirements registered recently.'}
                 </p>
                 <div className="pt-4 flex flex-col sm:flex-row justify-center gap-2">
                   <Link href="/profile">
                     <Button
                       variant="secondary"
-                      className="border-[#dadee2] hover:bg-gray-50 text-xs w-full sm:w-auto font-bold rounded-lg"
+                      className="border-[#dadee2] hover:bg-gray-50 text-xs w-full sm:w-auto font-bold rounded-lg bg-white"
                     >
-                      Update Profile Subjects
+                      Update Profile Settings
                     </Button>
                   </Link>
                   <Link href="/dashboard/requirements/browse">
                     <Button className="bg-[#00060c] text-white hover:bg-slate-800 text-xs w-full sm:w-auto font-bold rounded-lg">
-                      Browse All Requirements
+                      Explore Marketplace
                     </Button>
                   </Link>
                 </div>
@@ -338,7 +406,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {matchedRequirements.map((req) => (
+              {list.map((req) => (
                 <div
                   key={req._id}
                   className="bg-white border border-[#eef1f4] rounded-2xl p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-all flex flex-col justify-between"
@@ -366,13 +434,21 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <span className="text-[10px] text-[#647380] flex items-center gap-1 mt-0.5 font-medium">
-                        <Calendar className="w-3 h-3 text-gray-400" />
-                        {new Date(req.createdAt).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
+
+                      {/* Show relevance score match percentage badge if activeTab === 'recommended' or if score exists */}
+                      {req.score !== undefined ? (
+                        <span className="text-[10px] font-extrabold bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/25 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          🎯 {req.score}% Match
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#647380] flex items-center gap-1 mt-0.5 font-medium">
+                          <Calendar className="w-3 h-3 text-gray-400" />
+                          {new Date(req.createdAt).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2 text-[10px] font-semibold text-[#647380]">
@@ -394,7 +470,9 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#00A453]">Active Openings</span>
+                    <span className="text-xs font-semibold text-[#647380]">
+                      {req.applicationsCount || 0} applications
+                    </span>
                     <Link href={`/dashboard/requirements/${req._id}`}>
                       <button className="text-xs font-bold text-[#647380] hover:text-[#2d2d2d] transition-colors flex items-center gap-1">
                         View Details <ArrowRight className="w-3.5 h-3.5" />

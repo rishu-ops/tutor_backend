@@ -10,6 +10,9 @@ import { onboardingRouter } from './modules/onboarding/index.js';
 import { studentRouter } from './modules/student/index.js';
 import { tutorRouter } from './modules/tutor/index.js';
 import { requirementRouter } from './modules/requirements/index.js';
+import recommendationRouter from './modules/recommendations/recommendation.routes.js';
+import applicationRouter from './modules/applications/application.routes.js';
+import notificationRouter from './modules/notifications/notification.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -72,6 +75,9 @@ app.use('/api/v1/onboarding', onboardingRouter);
 app.use('/api/v1/student', studentRouter);
 app.use('/api/v1/tutor', tutorRouter);
 app.use('/api/v1/requirements', requirementRouter);
+app.use('/api/v1/recommendations', recommendationRouter);
+app.use('/api/v1/applications', applicationRouter);
+app.use('/api/v1/notifications', notificationRouter);
 
 app.get('/health', (req, res) => {
   res.json({ success: true });
