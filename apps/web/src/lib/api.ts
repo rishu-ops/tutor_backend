@@ -350,6 +350,9 @@ export const adminApi = {
   getPosts: (token: string) =>
     api<any>('/api/admin/posts', { method: 'GET', token }) as Promise<any>,
 
+  getPublicPosts: (token: string) =>
+    api<any>('/api/admin/posts/public', { method: 'GET', token }) as Promise<any>,
+
   createPost: (body: any, token: string) =>
     api<any>('/api/admin/posts', { method: 'POST', body, token }) as Promise<any>,
 

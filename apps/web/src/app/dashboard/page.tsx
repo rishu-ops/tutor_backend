@@ -22,7 +22,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { requirementApi, profileApi, recommendationApi } from '@/lib/api';
+import { requirementApi, profileApi, recommendationApi, adminApi } from '@/lib/api';
 
 // Mock list of "My Subjects" for Students (Grapevine's "My Bowls")
 const MY_SUBJECTS = [
@@ -145,13 +145,11 @@ export default function DashboardPage() {
           setTutorProfile(profRes.data);
         }
         setProfileLoading(false);
-      }
 
-      // Get home recommendations & announcements posts
-      const recRes = await recommendationApi.getHomeRecommendations(token);
-      if (recRes.success) {
-        setPosts(recRes.posts || []);
-        if (user?.role === 'TUTOR') {
+        // Get home recommendations & announcements posts
+        const recRes = await recommendationApi.getHomeRecommendations(token);
+        if (recRes.success) {
+          setPosts(recRes.posts || []);
           setRecommendations({
             recommended: recRes.recommended || [],
             recent: recRes.recent || [],
@@ -159,9 +157,17 @@ export default function DashboardPage() {
             highBudget: recRes.highBudget || [],
             explore: recRes.explore || [],
           });
+        } else {
+          setError(recRes.error || recRes.message || 'Failed to fetch recommendations.');
         }
-      } else {
-        setError(recRes.error || recRes.message || 'Failed to fetch recommendations.');
+      } else if (user?.role === 'STUDENT') {
+        // Fetch only public posts/announcements
+        const postsRes = await adminApi.getPublicPosts(token);
+        if (postsRes.success) {
+          setPosts(postsRes.data || []);
+        } else {
+          setError(postsRes.error || postsRes.message || 'Failed to fetch announcements.');
+        }
       }
     } catch (err: any) {
       console.error(err);
