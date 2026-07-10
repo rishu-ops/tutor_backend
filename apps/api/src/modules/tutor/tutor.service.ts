@@ -38,6 +38,36 @@ export class TutorService {
     };
   }
 
+  async getPublicProfile(userId: string) {
+    const profile = await this.repository.findByUserId(userId);
+    if (!profile) {
+      const err = new Error('Tutor profile not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+
+    return {
+      userId,
+      name: user?.name || 'Anonymous Tutor',
+      bio: profile.bio || '',
+      subjects: profile.subjects || [],
+      qualifications: profile.qualifications || [],
+      experience: profile.experience || [],
+      availability: profile.availability || [],
+      languages: profile.languages || [],
+      teachingModes: profile.teachingModes || [],
+      pricing: profile.pricing || { min: 0, max: 0 },
+      location: profile.location || { city: '', area: '' },
+      ratingAvg: profile.ratingAvg || 5.0,
+      profileCompleteness: profile.profileCompleteness || 0,
+    };
+  }
+
   async updateProfile(userId: string, data: any) {
     const { name, ...profileFields } = data;
 

@@ -41,4 +41,23 @@ router.patch(
   controller.rejectApplication.bind(controller)
 );
 
+// Student compare multiple applications
+router.post(
+  '/compare',
+  requireAuth,
+  requireRole('STUDENT'),
+  controller.compareApplications.bind(controller)
+);
+
+// Student/Tutor get details for a single application
+router.get('/:id', requireAuth, controller.getApplicationDetails.bind(controller));
+
+// Student explicitly mark application as viewed
+router.patch(
+  '/:id/view',
+  requireAuth,
+  requireRole('STUDENT'),
+  controller.markAsViewed.bind(controller)
+);
+
 export default router;

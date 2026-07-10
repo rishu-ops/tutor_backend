@@ -276,4 +276,129 @@ export class ApplicationService {
 
     return application;
   }
+
+  /**
+   * Get single application details, validating ownership (either tutor or student)
+   */
+  async getApplicationDetails(userId: string, applicationId: string) {
+    const application = await ApplicationModel.findById(applicationId);
+    if (!application) {
+      const err = new Error('Application not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    if (application.tutorUserId !== userId && application.studentUserId !== userId) {
+      const err = new Error('Forbidden: You do not own or receive this application');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    // Load tutor details
+    const tutorUser = await prisma.user.findUnique({
+      where: { id: application.tutorUserId },
+      select: { name: true, phone: true, email: true },
+    });
+
+    const tutorProfile = await TutorProfileModel.findOne({ userId: application.tutorUserId });
+
+    return {
+      ...application.toObject(),
+      tutor: {
+        name: tutorUser?.name || 'Anonymous Tutor',
+        phone: tutorUser?.phone,
+        email: tutorUser?.email,
+        bio: tutorProfile?.bio || '',
+        qualifications: tutorProfile?.qualifications || [],
+        subjects: tutorProfile?.subjects || [],
+        availability: tutorProfile?.availability || [],
+        ratingAvg: tutorProfile?.ratingAvg || 5.0,
+      },
+    };
+  }
+
+  /**
+   * Explicitly mark application as VIEWED
+   */
+  async markApplicationAsViewed(studentUserId: string, applicationId: string) {
+    const application = await ApplicationModel.findById(applicationId);
+    if (!application) {
+      const err = new Error('Application not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    if (application.studentUserId !== studentUserId) {
+      const err = new Error('Forbidden: You do not own this requirement');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    if (application.status === 'SENT') {
+      application.status = 'VIEWED';
+      await application.save();
+
+      const requirement = await RequirementModel.findById(application.requirementId);
+      const subjectName =
+        requirement?.curriculum?.subject || requirement?.category || 'your tutoring post';
+      await NotificationModel.create({
+        userId: application.tutorUserId,
+        title: 'Application Viewed',
+        content: `The student viewed your proposal for ${subjectName}.`,
+      });
+    }
+
+    return application;
+  }
+
+  /**
+   * Compare multiple tutor applications side-by-side
+   */
+  async compareApplications(studentUserId: string, applicationIds: string[]) {
+    const enriched = [];
+
+    for (const appId of applicationIds) {
+      const app = await ApplicationModel.findById(appId);
+      if (!app) continue;
+
+      if (app.studentUserId !== studentUserId) {
+        const err = new Error('Forbidden: You do not own one of the selected requirements');
+        (err as any).statusCode = 403;
+        throw err;
+      }
+
+      // Load tutor info
+      const tutorUser = await prisma.user.findUnique({
+        where: { id: app.tutorUserId },
+        select: { name: true },
+      });
+
+      const tutorProfile = await TutorProfileModel.findOne({ userId: app.tutorUserId });
+
+      // Determine years of experience
+      // Let's sum years from experience blocks or default to a reasonable value
+      let experienceYrs = 1;
+      if (tutorProfile?.experience && Array.isArray(tutorProfile.experience)) {
+        experienceYrs =
+          tutorProfile.experience.reduce((acc: number, val: any) => {
+            const yrs = Number(val.yearsOfExperience) || 0;
+            return acc + yrs;
+          }, 0) || 1;
+      }
+
+      enriched.push({
+        applicationId: app._id,
+        tutorUserId: app.tutorUserId,
+        tutorName: tutorUser?.name || 'Anonymous Tutor',
+        rating: tutorProfile?.ratingAvg || 5.0,
+        proposedFee: app.proposedFee,
+        freeDemo: app.freeDemo,
+        verified: true, // Mock verification badge status
+        experience: `${experienceYrs} yrs`,
+        timings: app.availableTimings,
+      });
+    }
+
+    return enriched;
+  }
 }

@@ -23,6 +23,9 @@ export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'>(
+    'ALL'
+  );
 
   useEffect(() => {
     async function loadApplications() {
@@ -45,6 +48,14 @@ export default function MyApplicationsPage() {
     }
     loadApplications();
   }, [token]);
+
+  const filteredApps = applications.filter((app) => {
+    if (filter === 'ALL') return true;
+    if (filter === 'ACTIVE') {
+      return app.status === 'SENT' || app.status === 'VIEWED' || app.status === 'SHORTLISTED';
+    }
+    return app.status === filter;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -121,6 +132,32 @@ export default function MyApplicationsPage() {
           </Link>
         </div>
 
+        {/* Filter Pills categories */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-gray-100">
+          {[
+            { id: 'ALL', label: '📋 All Proposals' },
+            { id: 'ACTIVE', label: '⚡ Active' },
+            { id: 'ACCEPTED', label: '✓ Accepted' },
+            { id: 'REJECTED', label: '✗ Rejected' },
+            { id: 'EXPIRED', label: '⏳ Expired' },
+          ].map((pill) => {
+            const isActive = filter === pill.id;
+            return (
+              <button
+                key={pill.id}
+                onClick={() => setFilter(pill.id as any)}
+                className={`px-3.5 py-2 text-xs font-bold rounded-full transition-all shrink-0 select-none ${
+                  isActive
+                    ? 'bg-[#00060c] text-white shadow-sm'
+                    : 'bg-white border border-[#dadee2] text-[#647380] hover:text-[#2d2d2d]'
+                }`}
+              >
+                {pill.label}
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2].map((i) => (
@@ -138,29 +175,22 @@ export default function MyApplicationsPage() {
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-4 text-xs font-semibold">
             ⚠️ {error}
           </div>
-        ) : applications.length === 0 ? (
+        ) : filteredApps.length === 0 ? (
           <div className="bg-white border border-[#dadee2] rounded-2xl p-12 text-center space-y-4">
             <div className="w-16 h-16 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center mx-auto text-2xl">
               📝
             </div>
             <div className="space-y-2">
-              <h3 className="text-base font-extrabold">No submitted proposals found</h3>
-              <p className="text-xs text-[#647380] max-w-sm mx-auto leading-relaxed">
-                You haven't submitted any tutor proposals to student requirements yet. Check
-                recommendations to apply.
+              <h3 className="text-base font-extrabold">No proposals in this section</h3>
+              <p className="text-xs text-[#647380] max-w-sm mx-auto leading-relaxed font-medium">
+                We couldn't find any proposals matching the selected category. Check recommendations
+                to apply.
               </p>
-              <div className="pt-3">
-                <Link href="/dashboard/requirements/browse">
-                  <Button className="bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs">
-                    Browse Marketplace
-                  </Button>
-                </Link>
-              </div>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            {applications.map((app) => (
+            {filteredApps.map((app) => (
               <div
                 key={app._id}
                 className="bg-white border border-[#eef1f4] rounded-2xl p-6 space-y-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-all"

@@ -134,6 +134,12 @@ export const profileApi = {
       body: data,
       token,
     }),
+
+  getPublicTutorProfile: (tutorUserId: string, token: string) =>
+    api<any>(`/api/v1/tutor/${tutorUserId}/public`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
 };
 
 // Requirement-specific API calls
@@ -242,6 +248,25 @@ export const applicationApi = {
       method: 'PATCH',
       token,
     }),
+
+  viewApplication: (applicationId: string, token: string) =>
+    api<any>(`/api/v1/applications/${applicationId}/view`, {
+      method: 'PATCH',
+      token,
+    }),
+
+  getApplicationDetails: (applicationId: string, token: string) =>
+    api<any>(`/api/v1/applications/${applicationId}`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  compareApplications: (applicationIds: string[], token: string) =>
+    api<any>('/api/v1/applications/compare', {
+      method: 'POST',
+      body: { applicationIds },
+      token,
+    }) as Promise<any>,
 };
 
 export const notificationApi = {

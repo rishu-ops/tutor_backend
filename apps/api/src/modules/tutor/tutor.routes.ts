@@ -15,5 +15,8 @@ router.patch(
   controller.updateProfile.bind(controller)
 );
 
+// Get a tutor's public profile details
+router.get('/:id/public', requireAuth, controller.getPublicProfile.bind(controller));
+
 export default router;
 export { router as tutorRouter };

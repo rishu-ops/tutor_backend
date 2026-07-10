@@ -121,4 +121,63 @@ export class ApplicationController {
       res.status(status).json({ success: false, error: error.message || 'Internal server error' });
     }
   }
+
+  // GET /applications/:id
+  async getApplicationDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const applicationId = req.params.id as string;
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const details = await this.service.getApplicationDetails(userId, applicationId);
+      res.json({ success: true, data: details });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
+  // PATCH /applications/:id/view
+  async markAsViewed(req: Request, res: Response): Promise<void> {
+    try {
+      const applicationId = req.params.id as string;
+      const studentUserId = req.user?.id;
+      if (!studentUserId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const application = await this.service.markApplicationAsViewed(studentUserId, applicationId);
+      res.json({ success: true, data: application });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
+  // POST /applications/compare
+  async compareApplications(req: Request, res: Response): Promise<void> {
+    try {
+      const studentUserId = req.user?.id;
+      if (!studentUserId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const { applicationIds } = req.body;
+      if (!applicationIds || !Array.isArray(applicationIds)) {
+        res.status(422).json({ success: false, error: 'Invalid or missing applicationIds array' });
+        return;
+      }
+
+      const comparison = await this.service.compareApplications(studentUserId, applicationIds);
+      res.json({ success: true, data: comparison });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
 }
