@@ -112,13 +112,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Top navigation */}
           {user && (
-            <nav className="hidden md:flex items-center gap-8 flex-1 ml-10">
+            <nav className="hidden md:flex items-center gap-8  ml-10">
               <Link
                 href="/dashboard"
                 className={`text-sm font-semibold transition-colors ${
                   pathname === '/dashboard'
                     ? 'text-[#00A453]'
-                    : 'text-[#647380] hover:text-[#2d2d2d]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                 }`}
               >
                 Home
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className={`text-sm font-semibold transition-colors ${
                       pathname.startsWith('/dashboard/tutors')
                         ? 'text-[#00A453]'
-                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                     }`}
                   >
                     Find Tutors
@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className={`text-sm font-semibold transition-colors ${
                       pathname.startsWith('/dashboard/requirements')
                         ? 'text-[#00A453]'
-                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                     }`}
                   >
                     My Requirements
@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className={`text-sm font-semibold transition-colors ${
                       pathname.includes('/browse')
                         ? 'text-[#00A453]'
-                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                     }`}
                   >
                     Find Students
@@ -164,7 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className={`text-sm font-semibold transition-colors ${
                       pathname.startsWith('/dashboard/applications')
                         ? 'text-[#00A453]'
-                        : 'text-[#647380] hover:text-[#2d2d2d]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                     }`}
                   >
                     My Applications
@@ -176,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className={`text-sm font-semibold transition-colors ${
                   pathname.startsWith('/dashboard/messages')
                     ? 'text-[#00A453]'
-                    : 'text-[#647380] hover:text-[#2d2d2d]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
                 }`}
               >
                 Messages
