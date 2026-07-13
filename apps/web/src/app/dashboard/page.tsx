@@ -28,6 +28,11 @@ import {
   BookOpenCheck,
   ShieldCheck,
   Zap,
+  Phone,
+  IndianRupee,
+  Video,
+  MoreVertical,
+  MessageSquareText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { requirementApi, profileApi, recommendationApi, adminApi, applicationApi } from '@/lib/api';
@@ -47,6 +52,15 @@ const MOCK_ARTICLES = [
     category: 'Study Strategy',
   },
 ];
+
+const DEFAULT_ANNOUNCEMENT = {
+  _id: 'default-announce-1',
+  type: 'Platform Update',
+  title: 'Project Tutor RBAC Engine Live!',
+  content:
+    'We have initialized role-based access control policies across all administrative interfaces.',
+  createdAt: '2026-07-10T00:00:00.000Z',
+};
 
 // Fallback recommendations of Tutors
 const MOCK_RECOMMENDED_TUTORS = [
@@ -263,25 +277,26 @@ export default function DashboardPage() {
   };
 
   const activeState = getActiveState();
-  const currentAnnouncement = announcements[activeAnnounceIndex] || announcements[0];
+  const currentAnnouncement =
+    announcements[activeAnnounceIndex] || announcements[0] || DEFAULT_ANNOUNCEMENT;
 
   // Helper render for Right Sidebar Rotating Announcement Card
   const renderAnnouncementWidget = () => {
     if (!currentAnnouncement) return null;
     return (
-      <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-[#dadee2] rounded-[14px] p-5  space-y-4">
         <div className="space-y-1">
-          <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] px-2 py-0.5 rounded-full inline-block border border-emerald-100">
+          <h3 className="text-lg font-bold text-black tracking-tight">
             {currentAnnouncement.type || 'Announcement'}
-          </span>
-          <h3 className="text-xs font-extrabold text-[#2d2d2d] leading-snug">
+          </h3>
+          <h3 className="text-sm font-semibold text-[#2d2d2d] leading-snug">
             {currentAnnouncement.title}
           </h3>
         </div>
-        <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-4">
+        <p className="text-[12px] text-[#647380] leading-relaxed line-clamp-4">
           {currentAnnouncement.content}
         </p>
-        <div className="text-[9px] text-[#b0b8c1]">
+        <div className="text-[10px] text-[#b0b8c1]">
           Posted {new Date(currentAnnouncement.createdAt).toLocaleDateString()}
         </div>
       </div>
@@ -291,21 +306,36 @@ export default function DashboardPage() {
   // Helper render for Educational Guides list
   const renderEducationalGuides = () => {
     return (
-      <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-4">
-        <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
-          Learning Guides
-        </h3>
-        <div className="space-y-4">
+      <div className="bg-white border border-[#dadee2] rounded-[14px] p-6 space-y-4">
+        <div className="space-y-1 pb-1">
+          <h3 className="text-lg font-bold text-black tracking-tight">Learning Guides</h3>
+          <span className="text-xs text-[#00A453] font-bold flex items-center gap-1 hover:underline cursor-pointer">
+            Explore all Guides <ArrowRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+
+        <div className="divide-y divide-gray-100">
           {MOCK_ARTICLES.map((article) => (
             <div
               key={article.id}
-              className="space-y-1 border-b border-gray-50 pb-3 last:border-0 last:pb-0"
+              className="py-4 first:pt-0 last:pb-0 flex items-start gap-3.5 justify-between"
             >
-              <span className="text-[9px] font-bold text-[#00A453]">{article.category}</span>
-              <h4 className="text-xs font-extrabold text-[#2d2d2d] leading-snug">
-                {article.title}
-              </h4>
-              <span className="text-[9px] text-[#b0b8c1] block">{article.readTime}</span>
+              {/* Middle Column: Title & Category */}
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-semibold text-black leading-snug break-words">
+                  {article.title}
+                </h4>
+                <p className="text-[12px] text-[#647380] font-medium mt-1">
+                  Category: {article.category}
+                </p>
+              </div>
+
+              {/* Right Column: View / Read Buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button className="bg-[#F4F6F8] hover:bg-gray-200 text-xs font-bold text-black px-3 py-1.5 rounded-full transition-colors">
+                  Read
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -322,25 +352,31 @@ export default function DashboardPage() {
     return (
       <div className="space-y-8">
         {/* Hero Section */}
-        <div className="bg-white border border-[#dadee2] rounded-3xl p-8 shadow-sm space-y-6">
+        <div className="bg-white border border-[#dadee2] rounded-[14px] p-8 space-y-6">
           <div className="space-y-1.5">
             <h2 className="text-lg font-extrabold text-[#2d2d2d]">
               Good Evening, {user?.name?.split(' ')[0]} 👋
             </h2>
-            <p className="text-xs text-[#647380] leading-relaxed">
+            <p className="text-sm text-[#647380] leading-relaxed">
               Find and hire a verified tutor in Noida or post your curriculum request to start.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link href="/dashboard/tutors" className="block">
-              <button className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-extrabold rounded-2xl py-4 text-xs gap-1.5 shadow-sm flex items-center justify-center transition-colors">
+              <Button
+                variant="primary"
+                className="w-full py-4 rounded-2xl text-xs gap-1.5 shadow-sm flex items-center justify-center font-extrabold transition-colors"
+              >
                 Find Tutors <Search className="w-4 h-4" />
-              </button>
+              </Button>
             </Link>
             <Link href="/dashboard/requirements/create" className="block">
-              <button className="w-full border border-[#dadee2] hover:bg-gray-50 text-[#2d2d2d] font-extrabold rounded-2xl py-4 text-xs gap-1.5 shadow-sm flex items-center justify-center bg-white transition-colors">
+              <Button
+                variant="secondary"
+                className="w-full py-4 rounded-2xl text-xs gap-1.5 shadow-sm flex items-center justify-center font-extrabold transition-colors border border-[#dadee2] bg-white text-[#2d2d2d] hover:bg-gray-50"
+              >
                 Post Requirement <Plus className="w-4 h-4" />
-              </button>
+              </Button>
             </Link>
           </div>
         </div>
@@ -395,11 +431,11 @@ export default function DashboardPage() {
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-3">
             {MOCK_RECOMMENDED_TUTORS.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white border border-[#dadee2] p-5 rounded-3xl flex justify-between items-center shadow-sm"
+                className="bg-white border border-[#dadee2] p-4 rounded-2xl flex justify-between items-center hover:border-[#00A453] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#e6f6ee] flex items-center justify-center font-bold text-[#00A453] text-xs shrink-0">
@@ -435,70 +471,69 @@ export default function DashboardPage() {
     return (
       <div className="space-y-8">
         {/* Hero Banner */}
-        <div className="bg-white border border-[#dadee2] rounded-3xl p-8 shadow-sm space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+        <div className="bg-white border border-[#dadee2] rounded-[14px] p-8 space-y-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1.5">
+              <span className="text-xs font-extrabold tracking-wider text-[#2d2d2d]">
                 Active Requirement
               </span>
-              <h2 className="text-base font-extrabold text-[#2d2d2d]">
+              <h2 className="text-lg font-extrabold text-[#2d2d2d]">
                 Your {primaryReq.curriculum?.subject || primaryReq.category || 'Class'} Requirement
                 is Live
               </h2>
             </div>
             <Link href={`/dashboard/requirements/${primaryReq._id}`}>
-              <Button className="bg-[#00060c] hover:bg-slate-800 text-white text-[10px] font-bold h-9 rounded-xl">
+              <Button className="bg-[#00060c] hover:bg-slate-800 text-white text-xs font-extrabold px-5 py-4 rounded-2xl shadow-sm">
                 View Applications
               </Button>
             </Link>
           </div>
 
           {/* Stepper progress */}
-          <div className="border-t border-[#dadee2] pt-4 mt-2">
-            <span className="text-[9px] text-[#b0b8c1] block font-extrabold uppercase tracking-wider mb-2">
+          <div className="border-t border-[#dadee2] pt-5">
+            <span className="text-xs text-[#b0b8c1] block font-extrabold uppercase tracking-wider mb-3">
               Hiring Progress
             </span>
-            <div className="flex items-center justify-between text-[9px] text-[#647380] font-bold">
-              <span className="text-[#00A453] flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Post Live
+            <div className="flex items-center justify-between text-xs font-extrabold">
+              <span className="text-[#00A453] flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" /> Post Live
               </span>
-              <span className="text-[#00A453] flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Applications Received
+              <span className="text-[#00A453] flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" /> Applications Received
               </span>
-              <span className="text-[#2d2d2d] flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-500 animate-spin" /> Review Tutors
+              <span className="text-[#d97706] flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Review Tutors
               </span>
-              <span className="text-gray-300">Hire Tutor</span>
+              <span className="text-[#dadee2]">Hire Tutor</span>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Recommended Tutors (AI match based on requirement parameters) */}
         <div className="space-y-4">
           <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
             AI Recommended Matches
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-3">
             {MOCK_RECOMMENDED_TUTORS.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-3"
+                className="bg-white border border-[#dadee2] rounded-[14px] p-5 space-y-4"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center font-bold text-[#2d2d2d] text-[10px]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-bold text-[#2d2d2d] text-xs">
                       {getInitials(tutor.name)}
                     </div>
                     <div>
-                      <h4 className="text-[11px] font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
-                      <p className="text-[9px] text-[#647380]">{tutor.experience} Experience</p>
+                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
+                      <p className="text-xs text-[#647380]">{tutor.experience} Experience</p>
                     </div>
                   </div>
-                  <span className="text-[9px] bg-emerald-50 text-emerald-600 font-extrabold px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs bg-[#e6f6ee] text-[#00A453] font-extrabold px-2.5 py-1 rounded-full">
                     98% Match
                   </span>
                 </div>
-                <div className="text-[10px] text-[#647380]">
+                <div className="text-xs text-[#647380]">
                   Proposed budget:{' '}
                   <span className="font-extrabold text-[#2d2d2d]">₹{tutor.hourlyRate}/hr</span>
                 </div>
@@ -507,24 +542,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Section 3: Recently Active Tutors */}
         <div className="space-y-4">
           <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
             Recently Active Tutors
           </h3>
-          <div className="bg-white border border-[#dadee2] rounded-3xl divide-y divide-gray-100 overflow-hidden shadow-sm">
+          <div className="bg-white border border-[#dadee2] rounded-[14px] divide-y divide-gray-100 overflow-hidden ">
             {MOCK_ACTIVE_TUTORS.map((tutor) => (
               <div key={tutor._id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#f4f7f6] flex items-center justify-center font-bold text-xs text-[#00A453]">
+                  <div className="w-10 h-10 rounded-full bg-[#e6f6ee] flex items-center justify-center font-bold text-xs text-[#00A453]">
                     {getInitials(tutor.name)}
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
-                    <span className="text-[9px] text-[#647380]">{tutor.subjects.join(', ')}</span>
+                    <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
+                    <span className="text-xs text-[#647380]">{tutor.subjects.join(', ')}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-[#b28b00]">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#b28b00]">
                   <Star className="w-3.5 h-3.5 fill-[#b28b00]" /> {tutor.ratingAvg}
                 </div>
               </div>
@@ -550,117 +584,137 @@ export default function DashboardPage() {
               subjectName: 'Physics (Class 12)',
               hourlyRate: 800,
               teachingMode: ['Home', 'Online'],
+              verified: true,
             },
           ];
 
     return (
       <div className="space-y-6">
         {/* Congratulations Hero */}
-        <div className="bg-emerald-600/90 text-white rounded-3xl p-8 shadow-sm space-y-5">
-          <div className="space-y-1">
-            <span className="text-[9px] uppercase tracking-wider font-extrabold bg-emerald-500 text-white px-2 py-0.5 rounded-full inline-block">
-              Hiring Completed
-            </span>
-            <h2 className="text-lg font-extrabold">Congratulations!</h2>
-            <p className="text-xs text-emerald-50/95 leading-relaxed max-w-sm">
-              You accepted a tutor's proposal. The locked conversation is now active.
-            </p>
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#022C22] via-[#00A453] to-[#052E16] text-white rounded-3xl p-8 shadow-md border border-emerald-500/20">
+          {/* Abstract background shapes */}
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute left-1/3 bottom-0 -mb-16 w-48 h-48 bg-emerald-300/10 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Subtle grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
+
+          <div className="relative z-10 space-y-5">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold  text-emerald-200 border border-emerald-500/30 px-3 py-1 rounded-full inline-block">
+                Hiring Completed
+              </span>
+              <h2 className="text-xl font-extrabold tracking-tight mt-2">Congratulations!</h2>
+              <p className="text-sm text-emerald-100/90 leading-relaxed max-w-sm">
+                You accepted a tutor's proposal. The locked conversation is now active.
+              </p>
+            </div>
+            <Link href="/dashboard/messages" className="inline-block">
+              <Button className="bg-white hover:bg-emerald-50 text-[#00A453] font-bold text-[12px] px-6 h-10 rounded-2xl shadow-md flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
+                Start Chatting <MessageSquareText className="w-4 h-4 shrink-0 " />
+              </Button>
+            </Link>
           </div>
-          <Link href="/dashboard/messages" className="inline-block">
-            <Button className="bg-white hover:bg-emerald-50 text-emerald-700 font-extrabold text-[10px] px-6 py-3 rounded-2xl h-10 flex items-center gap-1 shadow-sm">
-              Start Chatting <MessageSquare className="w-3.5 h-3.5" />
-            </Button>
-          </Link>
         </div>
 
         {/* Accepted Tutors Section */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <UserCheck className="w-4 h-4 text-emerald-600 animate-pulse" />
-            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
-              My Accepted Tutors
-            </h3>
-          </div>
+          <h3 className="text-lg font-extrabold text-[#2d2d2d] tracking-tight px-1">
+            My Accepted Tutors
+          </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {displayTutors.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                className="bg-white border border-[#dadee2] rounded-[14px] flex overflow-hidden hover:shadow-md transition-shadow"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#e6f6ee] flex items-center justify-center font-bold text-emerald-700 text-sm border border-emerald-100 shrink-0">
-                    {getInitials(tutor.name)}
+                {/* Right content side */}
+                <div className="flex-1 p-5 space-y-4">
+                  <div className="flex justify-between w-full items-start">
+                    <div className="flex items-center gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 bg-black text-white font-extrabold rounded-full flex items-center justify-center text-xs uppercase shrink-0">
+                        {tutor.name
+                          ? tutor.name
+                              .split(' ')
+                              .map((n: string) => n[0])
+                              .join('')
+                              .slice(0, 2)
+                          : 'T'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
+                          {tutor.verified !== false && (
+                            <ShieldCheck className="w-4 h-4 text-white fill-black shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-[#647380] font-semibold mt-0.5">
+                          {tutor.qualifications?.join(', ') || tutor.qualifications?.[0] || 'PhD'} ·{' '}
+                          {tutor.experience || '8 Years'} Experience
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-[10px] text-emerald-600 font-extrabold bg-[#e6f6ee] px-2.5 py-1 rounded-md border border-[#b2e2cb] uppercase tracking-wider">
+                        Active Match
+                      </div>
+                      <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                        <MoreVertical className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-xs font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
-                      <span className="flex items-center gap-0.5 text-[8px] bg-emerald-50 text-emerald-600 font-extrabold px-1.5 py-0.5 rounded-full border border-emerald-200/50">
-                        <CheckCircle className="w-2.5 h-2.5 shrink-0 text-emerald-600" /> VERIFIED
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[#647380] font-semibold">
-                      <span>
-                        🎓 {tutor.qualifications?.join(', ') || tutor.qualifications?.[0] || 'PhD'}
-                      </span>
-                      <span>·</span>
-                      <span>💼 {tutor.experience || '8 Years'} Experience</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      {(tutor.subjects || ['Mathematics', 'Physics']).map((sub: string | any) => (
-                        <span
-                          key={typeof sub === 'string' ? sub : sub.subject}
-                          className="text-[9px] bg-gray-50 border border-gray-100 text-[#2d2d2d] font-bold px-2 py-0.5 rounded-lg"
-                        >
-                          {typeof sub === 'string' ? sub : sub.subject}
-                        </span>
-                      ))}
-                      {tutor.subjectName && (
-                        <span className="text-[9px] bg-emerald-50 text-[#00A453] font-bold px-2 py-0.5 rounded-lg">
-                          Matched for {tutor.subjectName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="text-left sm:text-right shrink-0">
-                  <span className="text-[9px] text-[#b0b8c1] block uppercase tracking-wider font-extrabold">
-                    Proposed rate
-                  </span>
-                  <span className="text-xs font-extrabold text-[#2d2d2d]">
-                    ₹{tutor.hourlyRate || tutor.pricing?.min || 800}
-                    <span className="text-[10px] font-bold text-[#647380]">/hr</span>
-                  </span>
-                  <div className="text-[9px] text-[#647380] mt-1 font-bold">
-                    Format: {tutor.teachingMode?.join('/') || 'Online/Home'}
+                  <div className="border-b border-[#dadee2]/60" />
+
+                  {/* Highlighted match detail lists */}
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs font-semibold text-[#647380]">
+                    <div className="flex items-center gap-1.5">
+                      <BookOpenCheck className="h-4 text-[#00A453] shrink-0" />
+                      <span>Matched for:</span>
+                      <span className="font-extrabold text-[#2d2d2d]">
+                        {tutor.subjectName || 'Physics (Class 12)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <IndianRupee className="w-4 h-4 text-[#00A453] shrink-0" />
+                      <span>Proposed rate:</span>
+                      <span className="font-extrabold text-[#2d2d2d]">
+                        ₹{tutor.hourlyRate || tutor.pricing?.min || 800}/hr
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Video className="w-4 text-[#00A453] shrink-0" />
+                      <span>Format:</span>
+                      <span className="font-extrabold text-[#2d2d2d]">
+                        {tutor.teachingMode?.join('/') || 'Online/Home'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="border-b border-[#dadee2]/60" />
+
+                  {/* Bottom Actions button bar */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Link href="/dashboard/messages">
+                        <Button
+                          variant="secondary"
+                          className="h-8 px-3 text-xs font-extrabold  bg-white text-[#2d2d2d] hover:bg-gray-50 rounded-xl flex items-center gap-1.5 "
+                        >
+                          <MessageSquareText className="w-4 h-4  shrink-0" />
+                          Message
+                        </Button>
+                      </Link>
+                      <Button className="bg-[#00060c] hover:bg-slate-800 text-white font-extrabold text-xs h-8 px-3 rounded-xl flex items-center gap-1 ">
+                        Rate Tutor <ArrowUpRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Dashboard Panels */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white border border-[#dadee2] p-5 rounded-3xl space-y-2">
-            <span className="text-[9px] text-[#647380] uppercase tracking-wider font-extrabold block">
-              Upcoming Classes
-            </span>
-            <div className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-emerald-600" /> Monday 5:00 PM
-            </div>
-            <span className="text-[10px] text-[#647380] block">Algebra Foundations demo class</span>
-          </div>
-
-          <div className="bg-white border border-[#dadee2] p-5 rounded-3xl space-y-2">
-            <span className="text-[9px] text-[#647380] uppercase tracking-wider font-extrabold block">
-              Active Homework
-            </span>
-            <div className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-emerald-600" /> Quadratic Equations
-            </div>
-            <span className="text-[10px] text-[#647380] block">Prepare exercises 3 & 4</span>
           </div>
         </div>
       </div>
@@ -950,16 +1004,36 @@ export default function DashboardPage() {
     <div className="max-w-[1300px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d] relative">
       {/* LEFT COLUMN: ACTIVE ROLE IDENTITY SUMMARY */}
       <div className="lg:col-span-1 space-y-6">
-        <div className="bg-white border border-[#dadee2] rounded-3xl p-5 shadow-sm space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#dadee2] flex items-center justify-center font-bold text-[#00A453] text-sm select-none">
+        <div className="bg-white border border-[#dadee2] rounded-[18px] p-6 space-y-5">
+          <div className="flex items-start gap-4">
+            {/* Avatar circle (RR) on the left */}
+            <div className="w-14 h-14 rounded-full bg-[#e6f6ee] border border-[#b2e2cb] flex items-center justify-center font-extrabold text-[#00A453] text-lg select-none shrink-0 shadow-sm">
               {getInitials()}
             </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] text-[#647380] block leading-tight capitalize">
-                {user?.role?.toLowerCase()} Profile
-              </span>
-              <span className="text-xs font-bold text-[#2d2d2d] truncate block">{user?.name}</span>
+
+            {/* Details stacked on the right */}
+            <div className="min-w-0 flex-1 space-y-2">
+              <div>
+                <span className="text-[12px] py-2 text-[#647380] block font-medium leading-tight">
+                  Post requirements as
+                </span>
+                <span className="text-sm font-extrabold text-[#2d2d2d] leading-snug block truncate capitalize">
+                  {user?.name}
+                </span>
+              </div>
+
+              {user?.phone && (
+                <div className="flex items-center gap-1  flex-wrap">
+                  <span className="text-xs text-[#2d2d2d] font-semibold">{user.phone}</span>
+                  {user.isPhoneVerified && (
+                    <ShieldCheck className="w-4 h-4 text-white fill-black shrink-0" />
+                  )}
+                </div>
+              )}
+
+              <div className="text-xs  text-[#647380] font-medium capitalize">
+                {user?.city || 'noida'}
+              </div>
             </div>
           </div>
 
@@ -969,7 +1043,7 @@ export default function DashboardPage() {
               href="/dashboard/requirements/create"
               className="block border-t border-[#dadee2] pt-4"
             >
-              <Button className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-bold rounded-2xl py-4 text-xs gap-1.5">
+              <Button className="w-full bg-black hover:bg-neutral-900 text-white font-bold rounded-2xl py-4 text-xs gap-1.5">
                 Post Requirement <Plus className="w-3.5 h-3.5" />
               </Button>
             </Link>
@@ -977,9 +1051,9 @@ export default function DashboardPage() {
 
           {/* Onboarding checklist if Tutor */}
           {user?.role === 'TUTOR' && tutorProfile && (
-            <div className="border-t border-[#dadee2] pt-4 text-[10px] text-[#647380] space-y-2">
-              <span className="font-extrabold text-[#2d2d2d] uppercase">Verification Status</span>
-              <div className="flex items-center gap-1.5">
+            <div className="border-t border-[#dadee2] pt-4 text-[14px] text-[#647380] space-y-2">
+              <span className="font-bold text-[#2d2d2d] ">Verification Status</span>
+              <div className="flex items-center gap-1.5 pt-2">
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Phone verified
               </div>
               <div className="flex items-center gap-1.5">
@@ -996,25 +1070,35 @@ export default function DashboardPage() {
 
         {/* Platform stats for Students or list of active applications */}
         {user?.role === 'STUDENT' && studentRequirements.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
-              Recent Requests
-            </h3>
-            <div className="bg-white border border-[#dadee2] rounded-3xl p-4 shadow-sm space-y-2">
+          <div className="space-y-4 pt-2">
+            <h3 className="text-lg font-bold text-[#2d2d2d] tracking-tight">My Requests</h3>
+            <div className="space-y-3">
               {studentRequirements.slice(0, 3).map((req) => (
                 <Link
                   key={req._id}
                   href={`/dashboard/requirements/${req._id}`}
-                  className="block p-2 hover:bg-gray-50 rounded-xl transition-all"
+                  className="flex items-center gap-2  p-3  rounded-2xl border-transparent"
                 >
-                  <span className="text-xs font-bold text-[#2d2d2d] block truncate">
-                    {req.curriculum?.subject || req.category}
-                  </span>
-                  <span className="text-[9px] text-[#00A453] font-bold block mt-0.5">
-                    {req.applicationsCount || 0} applications received
+                  <div className="flex items-center min-w-0">
+                    <span className="text-xs font-bold text-[#2d2d2d] truncate">
+                      {req.curriculum?.subject || req.category}
+                    </span>
+                  </div>
+                  <span className="bg-black text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shrink-0">
+                    {req.applicationsCount || 0}
                   </span>
                 </Link>
               ))}
+
+              <div className="pt-2">
+                <Link href="/dashboard/requirements" className="inline-block">
+                  <button className="flex items-center gap-2 bg-white hover:bg-gray-50 text-[11px] font-extrabold text-black border border-black rounded-full px-5 py-2 transition-all active:scale-95 shadow-sm relative">
+                    <Compass className="w-4 h-4 text-black" />
+                    Explore Requirements
+                    <span className="w-4 h-4 rounded-full bg-[#00A453] absolute -right-1.5 top-2 animate-pulse" />
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         )}

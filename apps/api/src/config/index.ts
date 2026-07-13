@@ -33,7 +33,7 @@ export const config = {
   jwt: {
     secret: parseResult.data.JWT_SECRET,
     refreshSecret: parseResult.data.JWT_REFRESH_SECRET,
-    accessTokenExpiry: '15m', // 15 minutes
+    accessTokenExpiry: '6d', // 6 days
     refreshTokenExpiry: '7d', // 7 days
   },
   auth: {
