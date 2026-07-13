@@ -56,4 +56,5 @@ export * from './models/application.schema.js';
 export * from './models/notification.schema.js';
 export * from './models/report.schema.js';
 export * from './models/conversation.schema.js';
+export * from './models/booking.schema.js';
 export * from './utils/hash.js';

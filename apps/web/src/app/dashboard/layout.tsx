@@ -181,6 +181,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 Messages
               </Link>
+              <Link
+                href="/dashboard/bookings"
+                className={`text-sm font-semibold transition-colors ${
+                  pathname.startsWith('/dashboard/bookings')
+                    ? 'text-[#00A453]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                }`}
+              >
+                Bookings
+              </Link>
             </nav>
           )}
 

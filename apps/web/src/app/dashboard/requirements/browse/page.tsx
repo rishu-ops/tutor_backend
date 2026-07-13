@@ -26,6 +26,8 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { requirementApi, applicationApi } from '@/lib/api';
 import ApplyModal from '@/components/sections/ApplyModal';
 
@@ -33,13 +35,29 @@ const CATEGORIES = [
   'School Education',
   'College Education',
   'Competitive Exams',
-  'Programming',
+  'Programming & Tech',
   'Languages',
-  'Music',
+  'Music & Arts',
   'Arts & Design',
   'Professional Skills',
   'Sports & Fitness',
 ];
+
+const CardSkeleton = () => (
+  <div className="p-4 flex items-start gap-3 bg-white animate-pulse border-b border-gray-100">
+    <div className="w-10 h-10 rounded-lg bg-gray-200 shrink-0" />
+    <div className="flex-1 space-y-2.5">
+      <div className="flex justify-between items-center">
+        <div className="h-3 bg-gray-200 rounded w-20" />
+        <div className="h-3 bg-gray-200 rounded w-10" />
+      </div>
+      <div className="h-4 bg-gray-200 rounded w-44" />
+      <div className="h-3.5 bg-gray-200 rounded w-32" />
+      <div className="h-3 bg-gray-200 rounded w-28" />
+      <div className="h-4 bg-gray-200 rounded w-24" />
+    </div>
+  </div>
+);
 
 const TEACHING_MODES = ['Online', 'Home Tuition', 'Group Classes'];
 
@@ -50,11 +68,17 @@ export default function BrowseRequirementsPage() {
 
   // States for search and filter values
   const [search, setSearch] = useState('');
-  const [location, setLocation] = useState('Noida');
+  const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
   const [teachingMode, setTeachingMode] = useState('');
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
+  const [datePosted, setDatePosted] = useState('any'); // 'any' | 'day' | '3days' | 'week'
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(true);
+  const [modeOpen, setModeOpen] = useState(true);
+  const [datePostedOpen, setDatePostedOpen] = useState(true);
+  const [showMobileDetail, setShowMobileDetail] = useState(false);
 
   // Selected requirement for detail pane
   const [selectedReqId, setSelectedReqId] = useState<string | null>(null);
@@ -102,7 +126,7 @@ export default function BrowseRequirementsPage() {
       search,
       category,
       teachingMode,
-      city: location,
+      city: location || undefined,
       minBudget: minBudget ? Number(minBudget) : undefined,
       maxBudget: maxBudget ? Number(maxBudget) : undefined,
     };
@@ -137,9 +161,10 @@ export default function BrowseRequirementsPage() {
     setSearch('');
     setCategory('');
     setTeachingMode('');
-    setLocation('Noida');
+    setLocation('');
     setMinBudget('');
     setMaxBudget('');
+    setDatePosted('any');
     setPage(1);
   };
 
@@ -149,17 +174,28 @@ export default function BrowseRequirementsPage() {
     fetchRequirements();
   };
 
+  const filteredRequirements = requirements.filter((req) => {
+    if (datePosted === 'any') return true;
+    const reqDate = new Date(req.createdAt).getTime();
+    const now = Date.now();
+    const diffHours = (now - reqDate) / (1000 * 60 * 60);
+    if (datePosted === 'day') return diffHours <= 24;
+    if (datePosted === '3days') return diffHours <= 72;
+    if (datePosted === 'week') return diffHours <= 168;
+    return true;
+  });
+
   // Keep first item selected when requirements list updates
   useEffect(() => {
-    if (requirements.length > 0) {
-      const exists = requirements.some((r) => r._id === selectedReqId);
+    if (filteredRequirements.length > 0) {
+      const exists = filteredRequirements.some((r) => r._id === selectedReqId);
       if (!exists) {
-        setSelectedReqId(requirements[0]._id);
+        setSelectedReqId(filteredRequirements[0]._id);
       }
     } else {
       setSelectedReqId(null);
     }
-  }, [requirements]);
+  }, [filteredRequirements]);
 
   const toggleSaveReq = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -168,7 +204,7 @@ export default function BrowseRequirementsPage() {
     );
   };
 
-  const selectedReq = requirements.find((r) => r._id === selectedReqId);
+  const selectedReq = filteredRequirements.find((r) => r._id === selectedReqId);
   const hasApplied =
     selectedReq &&
     tutorApplications.some((app: any) => {
@@ -183,7 +219,10 @@ export default function BrowseRequirementsPage() {
 
   // Active filters count
   const activeFiltersCount =
-    (category ? 1 : 0) + (teachingMode ? 1 : 0) + (minBudget || maxBudget ? 1 : 0);
+    (category ? 1 : 0) +
+    (teachingMode ? 1 : 0) +
+    (minBudget || maxBudget ? 1 : 0) +
+    (datePosted !== 'any' ? 1 : 0);
 
   return (
     <div className="max-w-[1300px] mx-auto flex flex-col h-[calc(100vh-100px)] bg-white text-[#2d2d2d] font-sans">
@@ -214,26 +253,21 @@ export default function BrowseRequirementsPage() {
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Noida, India"
+                placeholder="Delhi, Noida, Bangalore, etc."
                 className="w-full bg-transparent text-sm focus:outline-none placeholder-gray-500 font-medium"
               />
             </div>
           </div>
 
           {/* Adjust Filters Button */}
-          <div className="flex items-center gap-2 relative">
+          <div className="relative">
             <button
-              onClick={() => {
-                if (activeFiltersCount > 0) {
-                  setCategory('');
-                  setTeachingMode('');
-                  setMinBudget('');
-                  setMaxBudget('');
-                } else {
-                  setTeachingMode('Online');
-                }
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-full text-sm font-semibold hover:bg-gray-50 transition-colors"
+              onClick={() => setFiltersOpen((o) => !o)}
+              className={`flex items-center gap-1.5 px-4 py-2 border rounded-full text-sm font-semibold transition-colors ${
+                filtersOpen || activeFiltersCount > 0
+                  ? 'border-green-600 bg-green-50/35 text-green-700 font-extrabold'
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span>Filters</span>
@@ -243,76 +277,282 @@ export default function BrowseRequirementsPage() {
                 </span>
               )}
             </button>
+
+            {/* Filter Popover Dropdown Card (Indeed/LinkedIn style) */}
+            {filtersOpen && (
+              <div className="absolute right-0 top-12 md:w-100 w-auto bg-white border border-gray-250 rounded-2xl shadow-xl z-50 flex flex-col md:max-h-[500px] max-h-auto overflow-hidden">
+                {/* Sticky Header */}
+                <div className="flex items-center justify-between border-b border-gray-100 p-4 shrink-0 bg-white z-10">
+                  <span className="font-extrabold text-gray-950 text-sm">Filter requirements</span>
+                  <button
+                    onClick={() => setFiltersOpen(false)}
+                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-6 h-6 border rounded-full p-1" />
+                  </button>
+                </div>
+
+                {/* Scrollable Content Body */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {/* Category Selection */}
+                  <div className="space-y-1.5">
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setCategoryOpen(!categoryOpen)}
+                    >
+                      <label className="text-xs font-extrabold text-gray-705  tracking-wider select-none cursor-pointer">
+                        Category
+                      </label>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-gray-450 transition-transform ${categoryOpen ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+
+                    {categoryOpen && (
+                      <Select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="py-2 rounded-xl h-10 text-xs font-semibold"
+                      >
+                        <option value="">All Categories</option>
+                        {CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="border-b border-gray-100" />
+
+                  {/* Teaching Mode Selection */}
+                  <div className="space-y-1.5">
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setModeOpen(!modeOpen)}
+                    >
+                      <label className="text-xs font-extrabold text-gray-705  tracking-wider select-none cursor-pointer">
+                        Tuition Mode
+                      </label>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-gray-450 transition-transform ${modeOpen ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+
+                    {modeOpen && (
+                      <Select
+                        value={teachingMode}
+                        onChange={(e) => setTeachingMode(e.target.value)}
+                        className="py-2 rounded-xl h-10 text-xs font-semibold"
+                      >
+                        <option value="">Any Mode</option>
+                        {TEACHING_MODES.map((mode) => (
+                          <option key={mode} value={mode}>
+                            {mode}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="border-b border-gray-100" />
+
+                  {/* Budget Range (Salary Range style) */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-extrabold text-[#384148]  tracking-wider block">
+                      Budget Range
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="Min (₹)"
+                          value={minBudget}
+                          onChange={(e) => setMinBudget(e.target.value)}
+                          className="h-10 py-2 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+                      <span className="text-gray-450 text-xs">-</span>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="Max (₹)"
+                          value={maxBudget}
+                          onChange={(e) => setMaxBudget(e.target.value)}
+                          className="h-10 py-2 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-b border-gray-100" />
+
+                  {/* Date Posted (Indeed style checkable accordion) */}
+                  <div className="space-y-1.5">
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setDatePostedOpen(!datePostedOpen)}
+                    >
+                      <label className="text-xs font-extrabold text-gray-708  tracking-wider select-none cursor-pointer">
+                        Date posted
+                      </label>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-gray-450 transition-transform ${datePostedOpen ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+
+                    {datePostedOpen && (
+                      <div className="space-y-1 pt-1">
+                        {[
+                          { label: 'Any time', value: 'any' },
+                          { label: 'Last day', value: 'day' },
+                          { label: 'Last 3 days', value: '3days' },
+                          { label: 'Last week', value: 'week' },
+                        ].map((opt) => (
+                          <div
+                            key={opt.value}
+                            onClick={() => setDatePosted(opt.value)}
+                            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            <span>{opt.label}</span>
+                            {datePosted === opt.value && (
+                              <Check className="w-3.5 h-3.5 text-green-600 stroke-[3]" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sticky Footer for Apply / Reset Actions */}
+                <div className="flex items-center gap-2 p-4 border-t border-gray-100 shrink-0 bg-white z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+                  <Button
+                    onClick={() => setFiltersOpen(false)}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs py-2 h-10 rounded-xl"
+                  >
+                    Apply
+                  </Button>
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        handleReset();
+                        setFiltersOpen(false);
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-xl h-10 text-xs font-extrabold hover:bg-gray-50 text-red-650 hover:text-red-750"
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Filter Pills list */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          {/* Category Dropdown Pill */}
-          <div className="relative">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="px-4 py-1.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-600 bg-white focus:outline-none appearance-none pr-8 hover:bg-gray-50 cursor-pointer"
-            >
-              <option value="">Category (All)</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
+        {/* Active Filter Pills List */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 border-t border-gray-100/60 mt-1">
+            <span className="text-[10px] text-gray-400 font-bold uppercase mr-1">
+              Active Filters:
+            </span>
 
-          {/* Mode Dropdown Pill */}
-          <div className="relative">
-            <select
-              value={teachingMode}
-              onChange={(e) => setTeachingMode(e.target.value)}
-              className="px-4 py-1.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-600 bg-white focus:outline-none appearance-none pr-8 hover:bg-gray-50 cursor-pointer"
-            >
-              <option value="">Tuition mode (Any)</option>
-              {TEACHING_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
+            {/* Category Pill */}
+            {category && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+                <span>Category: {category}</span>
+                <button
+                  onClick={() => setCategory('')}
+                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                >
+                  <X className="w-3 h-3 stroke-[3]" />
+                </button>
+              </span>
+            )}
 
-          {/* Budget Range Inputs */}
-          <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-full px-4 py-1">
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Budget</span>
-            <input
-              type="number"
-              placeholder="Min"
-              value={minBudget}
-              onChange={(e) => setMinBudget(e.target.value)}
-              className="w-10 bg-transparent text-xs text-gray-700 focus:outline-none"
-            />
-            <span className="text-gray-350 text-xs">-</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={maxBudget}
-              onChange={(e) => setMaxBudget(e.target.value)}
-              className="w-10 bg-transparent text-xs text-gray-700 focus:outline-none"
-            />
+            {/* Teaching Mode Pill */}
+            {teachingMode && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+                <span>Mode: {teachingMode}</span>
+                <button
+                  onClick={() => setTeachingMode('')}
+                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                >
+                  <X className="w-3 h-3 stroke-[3]" />
+                </button>
+              </span>
+            )}
+
+            {/* Budget Pill */}
+            {(minBudget || maxBudget) && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+                <span>
+                  Budget:{' '}
+                  {minBudget && maxBudget
+                    ? `₹${minBudget}-₹${maxBudget}`
+                    : minBudget
+                      ? `≥ ₹${minBudget}`
+                      : `≤ ₹${maxBudget}`}
+                </span>
+                <button
+                  onClick={() => {
+                    setMinBudget('');
+                    setMaxBudget('');
+                  }}
+                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                >
+                  <X className="w-3 h-3 stroke-[3]" />
+                </button>
+              </span>
+            )}
+
+            {/* Date Posted Pill */}
+            {datePosted !== 'any' && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+                <span>
+                  Posted:{' '}
+                  {datePosted === 'day'
+                    ? 'Last 24h'
+                    : datePosted === '3days'
+                      ? 'Last 3 days'
+                      : 'Last week'}
+                </span>
+                <button
+                  onClick={() => setDatePosted('any')}
+                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                >
+                  <X className="w-3 h-3 stroke-[3]" />
+                </button>
+              </span>
+            )}
+
+            {/* Reset All Filters Button */}
+            <button
+              onClick={handleReset}
+              className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors ml-2 hover:underline"
+            >
+              Reset all filters
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Split Pane Container */}
       <div className="flex-1 flex overflow-hidden bg-gray-50">
         {/* Left Pane: Requirements list */}
-        <div className="w-[400px] border-r border-gray-200 bg-white overflow-y-auto shrink-0 flex flex-col justify-between">
+        <div
+          className={`w-full md:w-[400px] border-r border-gray-200 bg-white overflow-y-auto shrink-0 flex flex-col justify-between ${
+            showMobileDetail ? 'hidden md:flex' : 'flex'
+          }`}
+        >
           <div className="flex-1 overflow-y-auto">
             {/* Header Row */}
             <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 shrink-0">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                {requirements.length} Active requirements in {location || 'India'}
+                {filteredRequirements.length} Active requirements{' '}
+                {location ? `in ${location}` : 'globally'}
               </span>
 
               {/* Sort Dropdown */}
@@ -359,20 +599,19 @@ export default function BrowseRequirementsPage() {
             {/* Cards List */}
             <div className="divide-y divide-gray-150">
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-2">
-                  <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs text-gray-500 font-semibold">
-                    Loading requirements...
-                  </span>
+                <div className="divide-y divide-gray-100">
+                  {[1, 2, 3, 4, 5].map((idx) => (
+                    <CardSkeleton key={idx} />
+                  ))}
                 </div>
-              ) : requirements.length === 0 ? (
+              ) : filteredRequirements.length === 0 ? (
                 <div className="p-8 text-center text-gray-400 space-y-2 mt-8">
                   <FileText className="w-8 h-8 text-gray-300 mx-auto" />
                   <p className="text-xs font-bold text-gray-800">No student requirements found</p>
                   <p className="text-[11px] text-gray-500">Try broad filters or search terms.</p>
                 </div>
               ) : (
-                requirements.map((req) => {
+                filteredRequirements.map((req) => {
                   const reqHasApplied = tutorApplications.some((app: any) => {
                     const appId = app.requirementId?._id || app.requirementId;
                     return appId === req._id;
@@ -381,7 +620,10 @@ export default function BrowseRequirementsPage() {
                   return (
                     <div
                       key={req._id}
-                      onClick={() => setSelectedReqId(req._id)}
+                      onClick={() => {
+                        setSelectedReqId(req._id);
+                        setShowMobileDetail(true);
+                      }}
                       className={`p-4 flex items-start gap-3 cursor-pointer hover:bg-gray-50/70 transition-all relative ${
                         selectedReqId === req._id
                           ? 'bg-green-50/20 border-l-[3px] border-green-600'
@@ -486,9 +728,22 @@ export default function BrowseRequirementsPage() {
         </div>
 
         {/* Right Pane: Detailed Requirement View */}
-        <div className="flex-1 bg-white overflow-y-auto">
+        <div
+          className={`flex-1 bg-white overflow-y-auto ${
+            showMobileDetail ? 'block' : 'hidden md:block'
+          }`}
+        >
           {selectedReq ? (
             <div className="p-8 space-y-6 max-w-3xl">
+              {/* Back button on mobile */}
+              <div className="md:hidden pb-4 border-b border-gray-150 mb-4">
+                <button
+                  onClick={() => setShowMobileDetail(false)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-green-600 hover:text-green-700 transition-colors"
+                >
+                  ← Back to list
+                </button>
+              </div>
               {/* Header card container */}
               <div className="border border-gray-200 rounded-lg p-6 bg-white space-y-4">
                 <div className="flex items-start justify-between gap-4">
