@@ -591,27 +591,29 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         {/* Congratulations Hero */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#022C22] via-[#00A453] to-[#052E16] text-white rounded-3xl p-8 shadow-md border border-emerald-500/20">
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#F0FBF6] via-[#E6F6EE] to-[#F0FBF6] text-black rounded-3xl p-8 border border-[#b2e2cb]">
           {/* Abstract background shapes */}
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute left-1/3 bottom-0 -mb-16 w-48 h-48 bg-emerald-300/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-[#b2e2cb]/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute left-1/3 bottom-0 -mb-16 w-48 h-48 bg-[#d1f2e1]/30 rounded-full blur-2xl pointer-events-none" />
 
           {/* Subtle grid pattern overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#00A45318_1px,transparent_1px),linear-gradient(to_bottom,#00A45318_1px,transparent_1px)] bg-[size:36px_36px] pointer-events-none" />
 
           <div className="relative z-10 space-y-5">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold  text-emerald-200 border border-emerald-500/30 px-3 py-1 rounded-full inline-block">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#00A453] border border-[#b2e2cb] bg-[#e6f6ee] px-3 py-1 rounded-full inline-block">
                 Hiring Completed
               </span>
-              <h2 className="text-xl font-extrabold tracking-tight mt-2">Congratulations!</h2>
-              <p className="text-sm text-emerald-100/90 leading-relaxed max-w-sm">
+              <h2 className="text-xl font-extrabold tracking-tight text-[#1b4332] mt-2">
+                Congratulations!
+              </h2>
+              <p className="text-sm text-[#2d2d2d] leading-relaxed max-w-sm">
                 You accepted a tutor's proposal. The locked conversation is now active.
               </p>
             </div>
             <Link href="/dashboard/messages" className="inline-block">
-              <Button className="bg-white hover:bg-emerald-50 text-[#00A453] font-bold text-[12px] px-6 h-10 rounded-2xl shadow-md flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
-                Start Chatting <MessageSquareText className="w-4 h-4 shrink-0 " />
+              <Button className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-[12px] px-6 h-10 rounded-2xl flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
+                Start Chatting <MessageSquareText className="w-4 h-4 shrink-0" />
               </Button>
             </Link>
           </div>
@@ -954,22 +956,33 @@ export default function DashboardPage() {
     return (
       <div className="space-y-8">
         {/* Congratulations Banner */}
-        <div className="bg-[#00A453] text-white rounded-3xl p-8 shadow-sm space-y-5">
-          <div className="space-y-1">
-            <span className="text-[9px] uppercase tracking-wider font-extrabold bg-[#008A45] text-white px-2 py-0.5 rounded-full inline-block">
-              Hired Match
-            </span>
-            <h2 className="text-lg font-extrabold">Congratulations!</h2>
-            <p className="text-xs text-emerald-50/95 leading-relaxed">
-              A student accepted your proposal! Click below to open chat and schedule the first
-              class.
-            </p>
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#F0FBF6] via-[#E6F6EE] to-[#F0FBF6] text-black rounded-3xl p-8 border border-[#b2e2cb]">
+          {/* Abstract background shapes */}
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-[#b2e2cb]/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute left-1/3 bottom-0 -mb-16 w-48 h-48 bg-[#d1f2e1]/30 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Subtle grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#00A45318_1px,transparent_1px),linear-gradient(to_bottom,#00A45318_1px,transparent_1px)] bg-[size:36px_36px] pointer-events-none" />
+
+          <div className="relative z-10 space-y-5">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#00A453] border border-[#b2e2cb] bg-[#e6f6ee] px-3 py-1 rounded-full inline-block">
+                Hired Match
+              </span>
+              <h2 className="text-xl font-extrabold tracking-tight text-[#1b4332] mt-2">
+                Congratulations!
+              </h2>
+              <p className="text-sm text-[#2d2d2d] leading-relaxed max-w-sm">
+                A student accepted your proposal! Click below to open chat and schedule the first
+                class.
+              </p>
+            </div>
+            <Link href="/dashboard/messages" className="inline-block">
+              <Button className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-[12px] px-6 h-10 rounded-2xl flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
+                Open Chat <MessageSquareText className="w-4 h-4 shrink-0" />
+              </Button>
+            </Link>
           </div>
-          <Link href="/dashboard/messages" className="inline-block">
-            <Button className="bg-white hover:bg-emerald-50 text-[#00A453] font-bold text-[10px] px-6 h-10 rounded-2xl shadow-sm flex items-center gap-1.5">
-              Open Chat <MessageSquare className="w-3.5 h-3.5" />
-            </Button>
-          </Link>
         </div>
 
         {/* Teaching Schedule strip */}
