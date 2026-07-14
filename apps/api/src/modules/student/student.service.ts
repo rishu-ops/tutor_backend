@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { StudentRepository } from './student.repository.js';
-import { prisma } from 'database';
+import { prisma, StudentProfileModel, RequirementModel } from 'database';
 
 export class StudentService {
   private repository = new StudentRepository();
@@ -23,6 +23,33 @@ export class StudentService {
       ...profile.toObject(),
       name: user?.name || null,
       email: user?.email || null,
+    };
+  }
+
+  async getPublicProfile(userId: string) {
+    const profile = await StudentProfileModel.findOne({ userId });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, phone: true, city: true },
+    });
+
+    const activeRequirements = await RequirementModel.find({
+      studentUserId: userId,
+      status: 'OPEN',
+      isDeleted: { $ne: true },
+    }).sort({ createdAt: -1 });
+
+    return {
+      userId,
+      name: user?.name || 'Anonymous Student',
+      email: user?.email || null,
+      phone: user?.phone || null,
+      city: user?.city || profile?.city || null,
+      school: profile?.school || null,
+      class: profile?.class || null,
+      preferredLanguage: profile?.preferredLanguage || null,
+      learningMode: profile?.learningMode || null,
+      activeRequirements,
     };
   }
 

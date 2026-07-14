@@ -23,6 +23,23 @@ export class StudentController {
     }
   }
 
+  // GET /profile/:id
+  async getPublicProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const studentId = req.params.id as string;
+      if (!studentId) {
+        res.status(400).json({ success: false, error: 'Student User ID is required' });
+        return;
+      }
+
+      const profile = await this.service.getPublicProfile(studentId);
+      res.json({ success: true, data: profile });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
   // PATCH /profile
   async updateProfile(req: Request, res: Response): Promise<void> {
     try {

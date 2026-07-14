@@ -8,6 +8,10 @@ const controller = new StudentController();
 
 // Mount Student profile endpoints (Protected by auth and role validation)
 router.get('/profile', requireAuth, requireRole('STUDENT'), controller.getProfile.bind(controller));
+
+// Public/Shared Profile GET (Accessible by other roles like Tutors)
+router.get('/profile/:id', requireAuth, controller.getPublicProfile.bind(controller));
+
 router.patch(
   '/profile',
   requireAuth,

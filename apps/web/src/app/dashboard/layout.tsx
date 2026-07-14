@@ -254,6 +254,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       ))
                     )}
                   </div>
+                  <div className="p-2 border-t border-gray-100 flex items-center justify-center shrink-0 bg-gray-50/50">
+                    <Link
+                      href="/dashboard/notifications"
+                      onClick={() => setNotifDropdownOpen(false)}
+                      className="text-[10px] text-[#00A453] font-bold hover:underline"
+                    >
+                      View All Notifications
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

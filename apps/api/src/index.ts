@@ -15,6 +15,7 @@ import applicationRouter from './modules/applications/application.routes.js';
 import notificationRouter from './modules/notifications/notification.routes.js';
 import conversationRouter from './modules/conversations/conversation.routes.js';
 import bookingRouter from './modules/bookings/booking.routes.js';
+import matchingRouter from './modules/matching/matching.routes.js';
 import {
   adminAuthRouter,
   adminsRouter,
@@ -94,6 +95,7 @@ app.use('/api/v1/applications', applicationRouter);
 app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/conversations', conversationRouter);
 app.use('/api/v1/bookings', bookingRouter);
+app.use('/api/v1/matching', matchingRouter);
 
 // Admin Module Routes
 app.use('/api/admin', adminAuthRouter);

@@ -39,4 +39,54 @@ export class NotificationController {
       res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
   }
+
+  // PATCH /read-all
+  async markAllAsRead(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      await NotificationModel.updateMany({ userId, read: false }, { $set: { read: true } });
+
+      res.json({ success: true, message: 'All notifications marked as read' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
+  // DELETE /
+  async clearAllNotifications(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      await NotificationModel.deleteMany({ userId });
+      res.json({ success: true, message: 'All notifications cleared successfully' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
+  // DELETE /:id
+  async deleteNotification(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const notifId = req.params.id as string;
+      await NotificationModel.findOneAndDelete({ _id: notifId, userId });
+      res.json({ success: true, message: 'Notification deleted successfully' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
 }

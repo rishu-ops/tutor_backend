@@ -5,6 +5,8 @@ export interface INotification extends Document {
   title: string;
   content: string;
   read: boolean;
+  type?: string;
+  data?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,6 +17,8 @@ const NotificationSchema = new Schema<INotification>(
     title: { type: String, required: true },
     content: { type: String, required: true },
     read: { type: Boolean, default: false, required: true },
+    type: { type: String, required: false },
+    data: { type: Schema.Types.Mixed, required: false },
   },
   {
     timestamps: true,

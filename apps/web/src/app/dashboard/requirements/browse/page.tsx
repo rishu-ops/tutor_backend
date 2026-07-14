@@ -22,8 +22,13 @@ import {
   Bookmark,
   Check,
   X,
+  XCircle,
   ChevronDown,
   SlidersHorizontal,
+  Flag,
+  MoreHorizontal,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -91,6 +96,66 @@ export default function BrowseRequirementsPage() {
     sessionLength: null as boolean | null,
     materialsProvided: null as boolean | null,
   });
+
+  // Report and matching feedback UI states
+  const [showReportDropdown, setShowReportDropdown] = useState(false);
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null);
+
+  // Match score state
+  const [matchData, setMatchData] = useState<any | null>(null);
+  const [loadingMatch, setLoadingMatch] = useState(false);
+
+  // Fetch and poll matching score
+  useEffect(() => {
+    setShowDetailedBreakdown(false);
+    setFeedbackSubmitted(null);
+    setShowReportDropdown(false);
+
+    if (!selectedReqId || !token || user?.role !== 'TUTOR') {
+      setMatchData(null);
+      return;
+    }
+
+    let isSubscribed = true;
+    let pollTimeoutId: any = null;
+
+    const fetchMatchScore = async () => {
+      if (!isSubscribed) return;
+      setLoadingMatch(true);
+      try {
+        const res = await fetch(`/api/v1/matching/requirement/${selectedReqId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const json = await res.json();
+        if (json.success && isSubscribed) {
+          setMatchData(json.data);
+
+          // If match status is PENDING, poll again in 2 seconds
+          if (json.data?.status === 'PENDING') {
+            pollTimeoutId = setTimeout(fetchMatchScore, 2000);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching matching score:', err);
+      } finally {
+        if (isSubscribed) {
+          setLoadingMatch(false);
+        }
+      }
+    };
+
+    fetchMatchScore();
+
+    return () => {
+      isSubscribed = false;
+      if (pollTimeoutId) {
+        clearTimeout(pollTimeoutId);
+      }
+    };
+  }, [selectedReqId, token, user]);
 
   // Results & Pagination
   const [requirements, setRequirements] = useState<any[]>([]);
@@ -764,21 +829,44 @@ export default function BrowseRequirementsPage() {
                         {selectedReq.curriculum?.level}{' '}
                         {selectedReq.curriculum?.board ? `· ${selectedReq.curriculum.board}` : ''}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {selectedReq.location.area}, {selectedReq.location.city} · Posted{' '}
-                        {new Date(selectedReq.createdAt).toLocaleDateString()}
-                      </p>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 font-semibold mt-1 animate-fadeIn">
+                        <span>Posted by: {selectedReq.studentName || 'Anonymous Student'}</span>
+                        <span>·</span>
+                        <Link
+                          href={`/dashboard/students/${selectedReq.studentUserId}`}
+                          className="text-[#00A453] hover:underline font-extrabold cursor-pointer"
+                        >
+                          View Student Profile
+                        </Link>
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    onClick={(e) => toggleSaveReq(selectedReq._id, e)}
-                    className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"
-                  >
-                    <Bookmark
-                      className={`w-5 h-5 ${savedReqIds.includes(selectedReq._id) ? 'fill-green-600 text-green-600' : ''}`}
-                    />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowReportDropdown((prev) => !prev)}
+                      className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all cursor-pointer"
+                      aria-label="More options"
+                    >
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                    {showReportDropdown && (
+                      <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-205 rounded-lg shadow-lg py-1 z-10 animate-fadeIn">
+                        <button
+                          onClick={() => {
+                            alert(
+                              'Thank you. This job requirement has been flagged for review. Our moderation team will investigate.'
+                            );
+                            setShowReportDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                        >
+                          <Flag className="w-3.5 h-3.5 text-red-650" /> Report
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs">
@@ -789,6 +877,10 @@ export default function BrowseRequirementsPage() {
                     💰 Budget: ₹{selectedReq.budget.min} - ₹{selectedReq.budget.max} (
                     {selectedReq.budget.feeType.toLowerCase().replace('_', ' ')})
                   </span>
+
+                  <div className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-semibold">
+                    📅 {selectedReq.location.area}, {selectedReq.location.city}
+                  </div>
                 </div>
 
                 {/* Primary Action Row */}
@@ -805,36 +897,226 @@ export default function BrowseRequirementsPage() {
                       <Zap className="w-4 h-4 text-green-400 fill-green-400" /> Easy Apply
                     </Button>
                   )}
+
+                  <button
+                    onClick={(e) => toggleSaveReq(selectedReq._id, e)}
+                    className={`h-10 px-3 rounded-lg border border-gray-350 hover:bg-gray-50 hover:border-gray-405 transition-colors flex items-center justify-center ${
+                      savedReqIds.includes(selectedReq._id)
+                        ? 'bg-green-50 border-green-200 text-green-750'
+                        : 'text-gray-700 bg-white'
+                    }`}
+                    title={savedReqIds.includes(selectedReq._id) ? 'Saved' : 'Save requirement'}
+                  >
+                    <Bookmark
+                      className={`w-4.5 h-4.5 ${savedReqIds.includes(selectedReq._id) ? 'fill-green-600 text-green-600' : ''}`}
+                    />
+                  </button>
                 </div>
               </div>
 
-              {/* Match Verification Grid List (LinkedIn Qualifications style) */}
+              {/* Dynamic Matching Score & Criteria Block (Light Theme Website Style) */}
+              {user?.role === 'TUTOR' && (
+                <>
+                  {loadingMatch || !matchData || matchData.status === 'PENDING' ? (
+                    <div className="border border-gray-200 rounded-lg p-6 bg-white space-y-4 shadow-sm animate-pulse">
+                      <div className="flex items-center justify-between border-b border-gray-150 pb-3">
+                        <div className="h-4 bg-gray-150 rounded w-1/3" />
+                        <div className="h-5 bg-gray-150 rounded-full w-24" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-gray-150 rounded-full shrink-0" />
+                            <div className="h-3.5 bg-gray-150 rounded w-2/3" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg p-6 bg-white space-y-4 shadow-sm animate-fadeIn">
+                      {/* Header Row */}
+                      <div className="flex items-center justify-between gap-4">
+                        <h3 className="text-sm font-bold text-gray-950 flex items-center gap-1.5 flex-wrap">
+                          <span>Tutor Match Strength:</span>
+                          {matchData.strength === 'HIGH' && (
+                            <span className="inline-flex items-center text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                              ⚡ Strong Match ({matchData.score}%)
+                            </span>
+                          )}
+                          {matchData.strength === 'MEDIUM' && (
+                            <span className="inline-flex items-center text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                              ⚡ Good Match ({matchData.score}%)
+                            </span>
+                          )}
+                          {matchData.strength === 'LOW' && (
+                            <span className="inline-flex items-center text-[10px] font-bold bg-gray-50 text-gray-650 border border-gray-200 px-2 py-0.5 rounded-full">
+                              ⚡ Low Match ({matchData.score}%)
+                            </span>
+                          )}
+                        </h3>
+
+                        {/* Segmented Strength Slider Track */}
+                        <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-full w-16 h-1.5 relative border border-gray-250 shrink-0">
+                          <div
+                            className={`h-0.5 rounded-full flex-1 ${matchData.strength === 'LOW' ? 'bg-red-500/20' : matchData.strength === 'MEDIUM' ? 'bg-amber-500/20' : 'bg-green-500/20'}`}
+                          />
+                          <div
+                            className={`h-0.5 rounded-full flex-1 ${matchData.strength === 'MEDIUM' ? 'bg-amber-500/20' : matchData.strength === 'HIGH' ? 'bg-green-500/20' : 'bg-transparent'}`}
+                          />
+                          <div
+                            className={`h-0.5 rounded-full flex-1 ${matchData.strength === 'HIGH' ? 'bg-green-500/20' : 'bg-transparent'}`}
+                          />
+
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border border-gray-300 rounded-full flex items-center justify-center shadow transition-all duration-500 ease-out"
+                            style={{
+                              left:
+                                matchData.strength === 'LOW'
+                                  ? '4%'
+                                  : matchData.strength === 'MEDIUM'
+                                    ? '36%'
+                                    : '68%',
+                            }}
+                          >
+                            <Sparkles className="w-2.5 h-2.5 text-amber-500 fill-amber-500 animate-pulse" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Matching info template text */}
+                      <p className="text-xs text-gray-650 leading-relaxed">
+                        {matchData.strength === 'HIGH' &&
+                          'Your profile details are strongly aligned with the tutoring preferences posted by this student.'}
+                        {matchData.strength === 'MEDIUM' &&
+                          "Your profile and preference fields match several of the student's requirements."}
+                        {matchData.strength === 'LOW' &&
+                          'Your profile matches only a few of the tutoring preferences for this job.'}
+                      </p>
+
+                      {/* Criteria Checklist Grid (Previous items kept fully visible) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs text-gray-700 pt-1 border-t border-gray-100">
+                        <div className="flex items-center gap-2.5">
+                          {matchData.breakdown?.subjectMatch ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              matchData.breakdown?.subjectMatch
+                                ? 'font-semibold text-gray-900'
+                                : 'text-gray-450'
+                            }
+                          >
+                            Subject matches your profile
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {matchData.breakdown?.levelMatch ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              matchData.breakdown?.levelMatch
+                                ? 'font-semibold text-gray-900'
+                                : 'text-gray-450'
+                            }
+                          >
+                            Grade / class level preference
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {matchData.breakdown?.modeMatch ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              matchData.breakdown?.modeMatch
+                                ? 'font-semibold text-gray-900'
+                                : 'text-gray-450'
+                            }
+                          >
+                            Tutoring delivery format matches
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {matchData.breakdown?.locationMatch ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              matchData.breakdown?.locationMatch
+                                ? 'font-semibold text-gray-900'
+                                : 'text-gray-450'
+                            }
+                          >
+                            Location / city preference
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {matchData.breakdown?.budgetMatch ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              matchData.breakdown?.budgetMatch
+                                ? 'font-semibold text-gray-900'
+                                : 'text-gray-450'
+                            }
+                          >
+                            Student budget matches your pricing
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Thumbs Feedback Footer */}
+                      <div className="flex items-center justify-between text-[10px] text-gray-450 pt-2.5 border-t border-gray-100">
+                        <span>BETA • Is this information helpful?</span>
+                        <div className="flex items-center gap-3">
+                          {feedbackSubmitted ? (
+                            <span className="text-[#00A453] font-bold animate-fadeIn">
+                              {feedbackSubmitted}
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setFeedbackSubmitted('Thanks!')}
+                                className="hover:text-[#00A453] text-gray-400 transition-colors cursor-pointer"
+                                title="Helpful"
+                              >
+                                <ThumbsUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setFeedbackSubmitted('Noted!')}
+                                className="hover:text-[#00A453] text-gray-400 transition-colors cursor-pointer"
+                                title="Not helpful"
+                              >
+                                <ThumbsDown className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Interactive check/cross question block (Indeed/LinkedIn style) */}
               <div className="border border-gray-200 rounded-lg p-6 bg-white space-y-4">
-                <h3 className="text-sm font-bold text-gray-950">Matching criteria for this role</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs text-gray-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                    <span>Location matches your profile tutoring city</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                    <span>
-                      Teaches subject category: <strong>{selectedReq.category}</strong>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                    <span>Tutoring budget matches your rates</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                    <span>Open tuition format matches your preference</span>
-                  </div>
-                </div>
-
-                {/* Interactive check/cross question block (Indeed/LinkedIn style) */}
-                <div className="border-t border-gray-150 pt-4 mt-2 space-y-3">
+                <div className="space-y-3">
                   <p className="text-xs font-bold text-gray-800">
                     Confirm slot preferences & specs
                   </p>

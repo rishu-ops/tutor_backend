@@ -1,4 +1,4 @@
-import { BookingModel, prisma } from 'database';
+import { BookingModel, prisma, NotificationModel } from 'database';
 
 export class BookingService {
   /**
@@ -25,6 +25,23 @@ export class BookingService {
       status: 'PENDING',
       notes: data.notes || '',
     });
+
+    try {
+      const studentUser = await prisma.user.findUnique({
+        where: { id: data.studentUserId },
+        select: { name: true },
+      });
+      await NotificationModel.create({
+        userId: data.tutorUserId,
+        title: 'New Class Booking Request',
+        content: `${studentUser?.name || 'A student'} has requested a ${data.type || 'DEMO'} class session on ${new Date(data.scheduledAt).toLocaleDateString()}.`,
+        type: 'BOOKING_REQUESTED',
+        data: { bookingId: booking._id, requirementId: data.requirementId },
+      });
+    } catch (err) {
+      console.error('Failed to create booking request notification:', err);
+    }
+
     return booking;
   }
 
@@ -125,6 +142,52 @@ export class BookingService {
 
     booking.status = status as any;
     await booking.save();
+
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      const otherUserId =
+        booking.studentUserId === userId ? booking.tutorUserId : booking.studentUserId;
+
+      if (status === 'ACCEPTED') {
+        await NotificationModel.create({
+          userId: otherUserId,
+          title: 'Class Booking Accepted',
+          content: `Your class session on ${new Date(booking.scheduledAt).toLocaleDateString()} has been accepted by ${actor?.name || 'the tutor'}.`,
+          type: 'BOOKING_ACCEPTED',
+          data: { bookingId: booking._id },
+        });
+      } else if (status === 'REJECTED') {
+        await NotificationModel.create({
+          userId: otherUserId,
+          title: 'Class Booking Declined',
+          content: `Your class session request for ${new Date(booking.scheduledAt).toLocaleDateString()} has been declined.`,
+          type: 'BOOKING_DECLINED',
+          data: { bookingId: booking._id },
+        });
+      } else if (status === 'CANCELLED') {
+        await NotificationModel.create({
+          userId: otherUserId,
+          title: 'Class Booking Cancelled',
+          content: `The class session scheduled for ${new Date(booking.scheduledAt).toLocaleDateString()} was cancelled by ${actor?.name || 'the other party'}.`,
+          type: 'BOOKING_CANCELLED',
+          data: { bookingId: booking._id },
+        });
+      } else if (status === 'COMPLETED') {
+        await NotificationModel.create({
+          userId: booking.studentUserId,
+          title: 'Class Completed - Leave a Review',
+          content: `Your class session is complete. Please take a moment to rate and review your tutor.`,
+          type: 'BOOKING_COMPLETED',
+          data: { bookingId: booking._id, tutorUserId: booking.tutorUserId },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to create booking status update notification:', err);
+    }
+
     return booking;
   }
 
@@ -150,6 +213,25 @@ export class BookingService {
     // When rescheduled, it transitions back to PENDING so the other party can accept the new time
     booking.status = 'PENDING';
     await booking.save();
+
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      const otherUserId =
+        booking.studentUserId === userId ? booking.tutorUserId : booking.studentUserId;
+      await NotificationModel.create({
+        userId: otherUserId,
+        title: 'Class Booking Rescheduled',
+        content: `${actor?.name || 'The other party'} has proposed a new time for your class: ${new Date(scheduledAt).toLocaleDateString()} at ${new Date(scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        type: 'BOOKING_RESCHEDULED',
+        data: { bookingId: booking._id },
+      });
+    } catch (err) {
+      console.error('Failed to create reschedule request notification:', err);
+    }
+
     return booking;
   }
 }
