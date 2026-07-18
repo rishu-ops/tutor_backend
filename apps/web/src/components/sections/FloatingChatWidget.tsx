@@ -58,6 +58,40 @@ function formatTime(dateStr: string): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
+function playMessageSound(type: 'sent' | 'received') {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    if (type === 'sent') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    }
+  } catch {}
+}
+
 export default function FloatingChatWidget() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
@@ -137,6 +171,9 @@ export default function FloatingChatWidget() {
     socketRef.current = sock;
 
     sock.on('new_message', (msg: Message) => {
+      if (msg.senderUserId !== user?.id) {
+        playMessageSound('received');
+      }
       setMessages((prev) => {
         // Only add if for open conversation
         if (msg.conversationId === openConvoId) {
@@ -163,6 +200,7 @@ export default function FloatingChatWidget() {
         senderName?: string;
       }) => {
         if (notif.senderUserId === user?.id) return;
+        playMessageSound('received');
         // Increment unread
         setUnreadCounts((prev) => ({
           ...prev,
@@ -255,6 +293,8 @@ export default function FloatingChatWidget() {
     if (!inputValue.trim() || !openConvoId) return;
     const sock = socketRef.current;
     if (!sock) return;
+
+    playMessageSound('sent');
 
     // Optimistic update
     const optimistic: Message = {

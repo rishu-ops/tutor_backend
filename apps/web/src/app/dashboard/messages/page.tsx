@@ -80,6 +80,40 @@ function groupMessagesByDate(messages: Message[]) {
   return groups;
 }
 
+function playMessageSound(type: 'sent' | 'received') {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    if (type === 'sent') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    }
+  } catch {}
+}
+
 export default function MessagesPage() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
@@ -181,6 +215,9 @@ export default function MessagesPage() {
     socketRef.current = sock;
 
     sock.on('new_message', (msg: Message) => {
+      if (msg.senderUserId !== user?.id) {
+        playMessageSound('received');
+      }
       if (msg.conversationId === selectedConvo?._id) {
         setMessages((prev) => {
           // Remove optimistic duplicate
@@ -245,6 +282,7 @@ export default function MessagesPage() {
 
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    playMessageSound('sent');
     const optimistic: Message = {
       _id: `opt-${Date.now()}`,
       conversationId: selectedConvo._id,
@@ -293,7 +331,7 @@ export default function MessagesPage() {
       >
         <div className="p-4 border-b border-[#dadee2] space-y-3 bg-[#FAFAFA]">
           <div>
-            <h2 className="text-md font-extrabold text-[#2d2d2d] flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-[#2d2d2d] flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-[#00A453]" /> Conversations
             </h2>
             <p className="text-xs text-[#647380] mt-0.5 font-medium">
@@ -380,7 +418,7 @@ export default function MessagesPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs text-[#2d2d2d] truncate">
+                      <span className="font-extrabold text-sm text-[#2d2d2d] truncate">
                         {convo.otherParty.name}
                       </span>
                       {convo.status === 'LOCKED' ? (
@@ -393,7 +431,7 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-[#647380] truncate mt-0.5 font-medium">
+                    <p className="text-xs text-[#647380] truncate mt-0.5 font-medium">
                       {convo.lastMessage ||
                         (convo.status === 'ACTIVE'
                           ? 'Start a conversation...'
@@ -433,13 +471,15 @@ export default function MessagesPage() {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#2d2d2d]">
+                  <h3 className="text-base font-extrabold text-[#2d2d2d] leading-none">
                     {selectedConvo.otherParty.name}
                   </h3>
                   {typingUsers.size > 0 ? (
-                    <span className="text-[10px] text-[#00A453] font-semibold">typing...</span>
+                    <span className="text-xs text-[#00A453] font-semibold block mt-1">
+                      typing...
+                    </span>
                   ) : (
-                    <span className="text-[10px] text-[#647380] capitalize">
+                    <span className="text-xs text-[#647380] capitalize block mt-1">
                       {selectedConvo.otherParty.role.toLowerCase()}
                     </span>
                   )}
