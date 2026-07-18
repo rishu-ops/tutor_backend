@@ -18,6 +18,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface Booking {
   _id: string;
@@ -237,192 +238,228 @@ export default function BookingsPage() {
             const sessionLabel = b.isFirstSession ? 'Trial Class' : 'Regular Session';
             const ModeIcon =
               b.sessionMode === 'ONLINE' ? Wifi : b.sessionMode === 'ONSITE' ? Home : LayoutGrid;
-
             return (
               <div
                 key={b._id}
-                className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-6 space-y-4 flex flex-col justify-between transition-all duration-200 animate-fadeIn"
               >
                 {/* Top row */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {/* Session type badge */}
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase ${
+                        b.isFirstSession
+                          ? 'bg-purple-50 text-purple-700 border-purple-200/50'
+                          : 'bg-blue-50 text-blue-700 border-blue-200/50'
+                      }`}
+                    >
+                      {b.isFirstSession ? '✦ Trial Class' : 'Regular Session'}
+                    </span>
+                    {/* Status badge */}
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border uppercase ${STATUS_STYLES[b.status]}`}
+                    >
+                      {STATUS_LABELS[b.status]}
+                    </span>
+                  </div>
+
+                  <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    {date}
+                  </span>
+                </div>
+
+                {/* Profile metadata */}
+                <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/15 flex items-center justify-center shrink-0 shadow-xs">
                       <span className="text-xs font-bold text-[#00A453]">
                         {getInitials(b.otherParty.name)}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-extrabold text-gray-900">{b.otherParty.name}</p>
-                      <p className="text-[10px] text-gray-400 capitalize">
-                        {b.otherParty.role.toLowerCase()}
+                      <h3 className="text-base font-extrabold text-gray-950 leading-none">
+                        {b.otherParty.name}
+                      </h3>
+                      <p className="text-[10px] text-[#647380] font-bold uppercase mt-1">
+                        {b.otherParty.role}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Session type badge */}
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        b.isFirstSession
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}
-                    >
-                      {b.isFirstSession ? '✦ Trial' : 'Regular'}
+
+                  {/* Time & Mode pills */}
+                  <div className="flex items-center gap-2 text-[11px] text-[#647380] flex-wrap">
+                    <span className="font-bold bg-gray-50 border border-gray-150 rounded-full px-3 py-1 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      {time} · {b.duration} mins
                     </span>
-                    {/* Status badge */}
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLES[b.status]}`}
-                    >
-                      {STATUS_LABELS[b.status]}
+                    <span className="text-gray-300 font-normal">·</span>
+                    <span className="font-bold bg-gray-50 border border-gray-150 rounded-full px-3 py-1 flex items-center gap-1.5">
+                      <ModeIcon className="w-3.5 h-3.5 text-gray-400" />
+                      {b.sessionMode}
                     </span>
+                    {b.location && b.sessionMode !== 'ONLINE' && (
+                      <>
+                        <span className="text-gray-300 font-normal">·</span>
+                        <span className="font-bold bg-gray-50 border border-gray-150 rounded-full px-3 py-1 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          {b.location}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Date / time / mode */}
-                <div className="flex flex-wrap gap-4 text-xs text-gray-600">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    {date}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-gray-400" />
-                    {time} · {b.duration} min
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <ModeIcon className="w-3.5 h-3.5 text-gray-400" />
-                    {b.sessionMode}
-                  </span>
-                </div>
-
-                {/* Meeting link (ONLINE, ACCEPTED) */}
-                {b.status === 'ACCEPTED' && b.sessionMode !== 'ONSITE' && b.meetingLink && (
-                  <a
-                    href={b.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-xs font-semibold text-[#00A453] hover:underline"
-                  >
-                    <Video className="w-3.5 h-3.5" /> Join Meeting →
-                  </a>
-                )}
-                {b.status === 'ACCEPTED' && b.sessionMode !== 'ONSITE' && !b.meetingLink && (
-                  <p className="text-[11px] text-amber-600 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> Meeting link not yet added by tutor.
-                  </p>
-                )}
-
-                {/* Location (ONSITE) */}
-                {b.sessionMode !== 'ONLINE' && b.location && (
-                  <span className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400" /> {b.location}
-                  </span>
-                )}
-
                 {/* Decline reason */}
                 {b.status === 'DECLINED' && b.declineReason && (
-                  <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-xs text-red-600">
-                    <span className="font-bold">Reason: </span>
-                    {b.declineReason}
+                  <div className="p-4 bg-red-50 border border-red-150 rounded-xl space-y-1">
+                    <span className="text-[10px] text-red-700 font-bold uppercase tracking-wider block">
+                      Decline Reason
+                    </span>
+                    <p className="text-xs text-red-600 leading-relaxed font-semibold">
+                      {b.declineReason}
+                    </p>
                   </div>
                 )}
 
                 {/* Notes */}
                 {b.notes && (
-                  <p className="text-[11px] text-gray-400 italic border-t border-gray-100 pt-2">
-                    Note: {b.notes}
-                  </p>
+                  <div className="p-4 bg-gray-50 border border-gray-150 rounded-xl space-y-1">
+                    <span className="text-[10px] text-[#647380] font-bold uppercase tracking-wider block">
+                      Notes & Specifications
+                    </span>
+                    <p className="text-xs text-[#4c5a67] leading-relaxed font-semibold whitespace-pre-line">
+                      {b.notes}
+                    </p>
+                  </div>
                 )}
 
                 {/* Rescheduled from banner */}
                 {b.rescheduledFrom && b.status === 'PENDING' && (
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-[11px] text-amber-700 flex items-center gap-2">
-                    <RefreshCw className="w-3 h-3" />
+                  <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl text-[11px] font-bold text-amber-700 flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5" />
                     Rescheduled from {formatDT(b.rescheduledFrom).date} ·{' '}
                     {formatDT(b.rescheduledFrom).time}
                   </div>
                 )}
 
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
-                  {/* TUTOR actions on PENDING */}
-                  {isTutor && b.status === 'PENDING' && (
-                    <>
-                      <button
-                        onClick={() => {
-                          if (b.sessionMode === 'ONSITE') {
-                            action(b._id, 'ACCEPTED');
-                          } else {
-                            setShowAcceptModal(b._id);
-                          }
-                        }}
-                        disabled={isActing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00A453] text-white text-xs font-bold rounded-lg hover:bg-[#008A45] transition-colors disabled:opacity-50"
+                {/* Action buttons strip */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-dashed border-gray-150">
+                  <div className="flex items-center gap-2">
+                    {/* Meeting link (ONLINE, ACCEPTED) */}
+                    {b.status === 'ACCEPTED' && b.sessionMode !== 'ONSITE' && b.meetingLink && (
+                      <a
+                        href={b.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 rounded-full px-3.5 py-1.5 hover:bg-[#d8f1e5] transition-all shadow-xs"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {isActing ? 'Accepting...' : 'Accept'}
-                      </button>
-                      <button
-                        onClick={() => setShowDeclineModal(b._id)}
-                        disabled={isActing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        Decline
-                      </button>
-                    </>
-                  )}
+                        <Video className="w-3.5 h-3.5" /> Join meeting room
+                      </a>
+                    )}
+                    {b.status === 'ACCEPTED' && b.sessionMode !== 'ONSITE' && !b.meetingLink && (
+                      <span className="text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200/40 rounded-full px-3 py-1.5 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" /> Link pending from tutor
+                      </span>
+                    )}
+                  </div>
 
-                  {/* TUTOR actions on ACCEPTED */}
-                  {isTutor && b.status === 'ACCEPTED' && (
-                    <>
-                      <button
-                        onClick={() => action(b._id, 'COMPLETED')}
-                        disabled={isActing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {isActing ? '...' : 'Mark Complete'}
-                      </button>
-                      <button
-                        onClick={() => setShowRescheduleModal(b._id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" /> Reschedule
-                      </button>
-                    </>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* TUTOR actions on PENDING */}
+                    {isTutor && b.status === 'PENDING' && (
+                      <>
+                        <Button
+                          onClick={() => {
+                            if (b.sessionMode === 'ONSITE') {
+                              action(b._id, 'ACCEPTED');
+                            } else {
+                              setShowAcceptModal(b._id);
+                            }
+                          }}
+                          disabled={isActing}
+                          variant="primary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {isActing ? 'Accepting...' : 'Accept'}
+                        </Button>
+                        <Button
+                          onClick={() => setShowDeclineModal(b._id)}
+                          disabled={isActing}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          Decline
+                        </Button>
+                      </>
+                    )}
 
-                  {/* STUDENT actions on PENDING */}
-                  {!isTutor && b.status === 'PENDING' && (
-                    <button
-                      onClick={() => action(b._id, 'CANCELLED')}
-                      disabled={isActing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      {isActing ? 'Cancelling...' : 'Cancel Request'}
-                    </button>
-                  )}
+                    {/* TUTOR actions on ACCEPTED */}
+                    {isTutor && b.status === 'ACCEPTED' && (
+                      <>
+                        <Button
+                          onClick={() => action(b._id, 'COMPLETED')}
+                          disabled={isActing}
+                          variant="primary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {isActing ? '...' : 'Mark Complete'}
+                        </Button>
+                        <Button
+                          onClick={() => setShowRescheduleModal(b._id)}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Reschedule
+                        </Button>
+                      </>
+                    )}
 
-                  {/* STUDENT actions on ACCEPTED */}
-                  {!isTutor && b.status === 'ACCEPTED' && (
-                    <>
-                      <button
+                    {/* STUDENT actions on PENDING */}
+                    {!isTutor && b.status === 'PENDING' && (
+                      <Button
                         onClick={() => action(b._id, 'CANCELLED')}
                         disabled={isActing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        variant="secondary"
+                        size="sm"
+                        className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
                       >
                         <XCircle className="w-3.5 h-3.5" />
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => setShowRescheduleModal(b._id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" /> Propose New Time
-                      </button>
-                    </>
-                  )}
+                        {isActing ? 'Cancelling...' : 'Cancel Request'}
+                      </Button>
+                    )}
+
+                    {/* STUDENT actions on ACCEPTED */}
+                    {!isTutor && b.status === 'ACCEPTED' && (
+                      <>
+                        <Button
+                          onClick={() => action(b._id, 'CANCELLED')}
+                          disabled={isActing}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => setShowRescheduleModal(b._id)}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Propose New Time
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
