@@ -26,15 +26,20 @@ export function initSocketGateway(io: Server): void {
       socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
     if (!token) {
+      console.log('[Socket Gateway] Authentication failed: token missing');
       return next(new Error('Authentication required'));
     }
 
     try {
       const secret = process.env.JWT_SECRET || 'secret';
-      const payload = jwt.verify(token, secret) as { sub?: string; userId?: string };
+      const payload = jwt.verify(token, secret) as any;
+      console.log('[Socket Gateway] Token verified successfully.');
+      console.log('[Socket Gateway] Decoded payload:', payload);
       socket.userId = payload.sub || payload.userId;
+      console.log('[Socket Gateway] Set socket.userId to:', socket.userId);
       next();
-    } catch {
+    } catch (err: any) {
+      console.error('[Socket Gateway] Verification error:', err.message);
       return next(new Error('Invalid token'));
     }
   });
