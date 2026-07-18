@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Check,
   CheckCheck,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -91,6 +92,7 @@ export default function MessagesPage() {
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Booking states
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -277,6 +279,10 @@ export default function MessagesPage() {
     }
   };
 
+  const filteredConversations = conversations.filter((convo) =>
+    convo.otherParty.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const messageGroups = groupMessagesByDate(messages);
 
   return (
@@ -285,13 +291,37 @@ export default function MessagesPage() {
       <div
         className={`w-full md:w-80 border-r border-[#dadee2] flex flex-col bg-[#FAFAFA] shrink-0 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}
       >
-        <div className="p-4 border-b border-[#dadee2]">
-          <h2 className="text-md font-extrabold text-[#2d2d2d] flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-[#00A453]" /> Conversations
-          </h2>
-          <p className="text-xs text-[#647380] mt-0.5">
-            Conversations open after you accept a tutor's proposal.
-          </p>
+        <div className="p-4 border-b border-[#dadee2] space-y-3 bg-[#FAFAFA]">
+          <div>
+            <h2 className="text-md font-extrabold text-[#2d2d2d] flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#00A453]" /> Conversations
+            </h2>
+            <p className="text-xs text-[#647380] mt-0.5 font-medium">
+              Conversations open after you accept a tutor's proposal.
+            </p>
+          </div>
+
+          {conversations.length > 0 && (
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-[#dadee2] rounded-xl pl-9 pr-8 py-1.5 text-xs focus:outline-none focus:border-[#00A453] transition-all font-semibold"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 text-gray-400 hover:text-[#2d2d2d] transition-colors"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -313,10 +343,17 @@ export default function MessagesPage() {
           ) : conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#647380] mt-12 gap-3">
               <Compass className="w-8 h-8 text-gray-300" />
-              <span>No chats yet — accept a tutor proposal to start talking.</span>
+              <span className="font-semibold leading-normal">
+                No chats yet — accept a tutor proposal to start talking.
+              </span>
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#647380] mt-12 gap-2">
+              <Search className="w-6 h-6 text-gray-300" />
+              <span className="font-semibold">No matches found for &quot;{searchQuery}&quot;</span>
             </div>
           ) : (
-            conversations.map((convo) => {
+            filteredConversations.map((convo) => {
               const isSelected = selectedConvo?._id === convo._id;
               return (
                 <button
@@ -356,7 +393,7 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-[#647380] truncate mt-0.5">
+                    <p className="text-[10px] text-[#647380] truncate mt-0.5 font-medium">
                       {convo.lastMessage ||
                         (convo.status === 'ACTIVE'
                           ? 'Start a conversation...'
@@ -426,33 +463,31 @@ export default function MessagesPage() {
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto bg-[#f0f2f5] px-4 py-4 flex flex-col gap-1">
+            <div
+              className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1"
+              style={{
+                backgroundColor: '#f6f8f9',
+                backgroundImage: 'radial-gradient(rgba(0, 164, 83, 0.06) 1.5px, transparent 1.5px)',
+                backgroundSize: '20px 20px',
+              }}
+            >
               {selectedConvo.status === 'LOCKED' ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="max-w-md w-full bg-white border border-[#dadee2] rounded-3xl p-8 text-center shadow-sm space-y-4">
-                    <div className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mx-auto text-amber-500">
-                      <Lock className="w-6 h-6" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">
-                        Chat Unlocks After Acceptance
-                      </h4>
-                      <p className="text-xs text-[#647380] leading-relaxed">
-                        Once you accept the tutor&apos;s proposal, you&apos;ll be able to chat
-                        directly.
-                      </p>
-                    </div>
-                    <div className="bg-[#FAFAFA] border border-[#dadee2] rounded-2xl p-4 flex gap-3 text-left">
-                      <Shield className="w-5 h-5 text-[#00A453] shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-xs font-extrabold text-[#2d2d2d] block">
-                          Safety & Booking Checks
-                        </span>
-                        <span className="text-[10px] text-[#647380] block mt-0.5 leading-normal">
-                          We lock conversations during evaluation to keep students protected.
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex flex-col items-center justify-center h-full max-w-sm mx-auto text-center space-y-4">
+                  <div className="w-12 h-12 bg-amber-50 border border-amber-200/50 rounded-full flex items-center justify-center text-amber-500 shadow-sm animate-pulse">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-base font-extrabold text-[#2d2d2d]">
+                      Chat Unlocks After Acceptance
+                    </h4>
+                    <p className="text-xs text-[#647380] leading-relaxed font-semibold">
+                      Once the tutor&apos;s proposal is accepted, you will be able to chat and
+                      coordinate details directly.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-150 px-3 py-2 rounded-xl text-[10px] text-[#647380] font-bold">
+                    <Shield className="w-3.5 h-3.5 text-[#00A453]" />
+                    Conversations are secured for student safety
                   </div>
                 </div>
               ) : loadingMsgs ? (

@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { getSocket } from '@/lib/socket';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
+  MessageSquareText,
   MessageSquare,
   X,
   Send,
@@ -61,6 +62,7 @@ export default function FloatingChatWidget() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const pathname = usePathname();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -76,6 +78,21 @@ export default function FloatingChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    }
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
 
   const openConvo = conversations.find((c) => c._id === openConvoId);
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
@@ -273,7 +290,7 @@ export default function FloatingChatWidget() {
     }
   };
 
-  if (!token || !user) return null;
+  if (!token || !user || pathname === '/dashboard/messages') return null;
 
   return (
     <>
@@ -313,7 +330,7 @@ export default function FloatingChatWidget() {
       </div>
 
       {/* Floating Widget */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+      <div ref={widgetRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
         {/* Expanded Panel */}
         {isExpanded && (
           <div
@@ -353,7 +370,7 @@ export default function FloatingChatWidget() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-white" />
+                  <MessageSquareText className="w-4 h-4 text-white" />
                   <span className="text-sm font-bold text-white">Messages</span>
                   {totalUnread > 0 && (
                     <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
@@ -571,7 +588,7 @@ export default function FloatingChatWidget() {
             <ChevronDown className="w-6 h-6 text-white" />
           ) : (
             <>
-              <MessageSquare className="w-6 h-6 text-white" />
+              <MessageSquareText className="w-6 h-6 text-white" />
               {totalUnread > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border-2 border-white">
                   {totalUnread > 9 ? '9+' : totalUnread}
