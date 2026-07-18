@@ -8,6 +8,9 @@ const controller = new ConversationController();
 // List all conversations for active user
 router.get('/', requireAuth, controller.getConversations.bind(controller));
 
+// Get message history for a conversation
+router.get('/:id/messages', requireAuth, controller.getMessages.bind(controller));
+
 // Retrieve conversation details by ID
 router.get('/:id', requireAuth, controller.getConversation.bind(controller));
 

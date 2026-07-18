@@ -211,31 +211,31 @@ export default function RequirementDetailPage() {
     switch (status) {
       case 'OPEN':
         return (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full">
-            ● Open for Applications
+          <span className="inline-flex items-center text-xs font-bold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full">
+            Open for Applications
           </span>
         );
       case 'IN_REVIEW':
         return (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-600 rounded-full">
-            ● Under Review
+          <span className="inline-flex items-center text-xs font-bold px-3 py-1 bg-amber-50 text-amber-600 rounded-full">
+            Under Review
           </span>
         );
       case 'MATCHED':
         return (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">
-            ● Matched with Tutor
+          <span className="inline-flex items-center text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">
+            Matched with Tutor
           </span>
         );
       case 'CLOSED':
         return (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 bg-red-50 text-red-600 rounded-full">
-            ● Closed
+          <span className="inline-flex items-center text-xs font-bold px-3 py-1 bg-red-50 text-red-600 rounded-full">
+            Closed
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 bg-gray-50 text-[#647380] rounded-full">
+          <span className="inline-flex items-center text-xs font-bold px-3 py-1 bg-gray-50 text-[#647380] rounded-full">
             {status}
           </span>
         );
@@ -302,12 +302,12 @@ export default function RequirementDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
             <Link href={isOwner ? '/dashboard' : '/dashboard/requirements/browse'}>
-              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+              <button className=" hover:bg-gray-100 rounded-full transition-colors text-gray-500">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             </Link>
             <div>
-              <span className="text-[10px] text-[#647380] font-bold uppercase tracking-wider block">
+              <span className="text-[14px] text-[#647380] font-semibold  tracking-wider block">
                 Requirement Details
               </span>
               <h1 className="text-xl font-extrabold text-[#2d2d2d] tracking-tight mt-0.5">
@@ -368,16 +368,16 @@ export default function RequirementDetailPage() {
 
         {/* Tab switcher headers (Only show tab layout if Student is the owner) */}
         {isOwner ? (
-          <div className="flex items-center gap-1 border-b border-gray-100 pb-1 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 border-b  border-gray-150 pb-4 overflow-x-auto scrollbar-none">
             {[
-              { id: 'overview', label: '📊 Overview', icon: Layers },
+              { id: 'overview', label: 'Overview', icon: Layers },
               {
                 id: 'applications',
-                label: `👥 Applications (${applications.length})`,
+                label: `Applications (${applications.length})`,
                 icon: Users,
               },
-              { id: 'details', label: '📝 Details', icon: FileText },
-              { id: 'timeline', label: '📈 Timeline Activity', icon: Activity },
+              { id: 'details', label: 'Details', icon: FileText },
+              { id: 'timeline', label: 'Timeline Activity', icon: Activity },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               const IconComp = tab.icon;
@@ -385,11 +385,13 @@ export default function RequirementDetailPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg transition-all shrink-0 select-none ${
-                    isActive ? 'bg-gray-100 text-[#2d2d2d]' : 'text-[#647380] hover:text-[#2d2d2d]'
+                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all shrink-0 select-none ${
+                    isActive
+                      ? 'bg-[#00A453] text-white shadow-sm'
+                      : 'text-[#647380] hover:text-[#2d2d2d] hover:bg-gray-50'
                   }`}
                 >
-                  <IconComp className="w-4 h-4" />
+                  <IconComp className="w-3.5 h-3.5" />
                   {tab.label}
                 </button>
               );
@@ -402,25 +404,26 @@ export default function RequirementDetailPage() {
           {/* Main workspace (tabs render on the left span 2, metadata panel on the right span 1) */}
           <div className="md:col-span-2 space-y-6">
             {/* TAB CONTENT: OVERVIEW (Default for owner, full render for non-owners) */}
+            {/* TAB CONTENT: OVERVIEW (Default for owner, full render for non-owners) */}
             {(!isOwner || activeTab === 'overview') && (
               <div className="space-y-6">
-                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-sm space-y-5">
-                  <h3 className="text-sm font-extrabold text-[#2d2d2d] border-b border-gray-100 pb-2.5">
+                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-5">
+                  <h3 className="text-sm font-extrabold text-[#2d2d2d] border-b border-gray-150 pb-2.5">
                     Description & Learning Target
                   </h3>
-                  <p className="text-xs text-[#647380] leading-relaxed whitespace-pre-line">
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line font-medium">
                     {requirement.description}
                   </p>
                 </div>
 
                 {/* Timeline display on Overview */}
-                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-sm space-y-5">
-                  <h3 className="text-sm font-extrabold text-[#2d2d2d] border-b border-gray-100 pb-2.5">
+                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-5">
+                  <h3 className="text-sm font-extrabold text-[#2d2d2d] border-b border-gray-150 pb-2.5">
                     Tutoring Path Activity
                   </h3>
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 select-none text-[10px] font-extrabold uppercase text-center">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 select-none text-[11px] font-bold text-center">
                     <div className="space-y-1">
-                      <span className="text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/20 px-2.5 py-1.5 rounded-full block">
+                      <span className="text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block">
                         ✓ Post Created
                       </span>
                     </div>
@@ -429,11 +432,11 @@ export default function RequirementDetailPage() {
                       <span
                         className={
                           requirement.applicationsCount > 0
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/20 px-2.5 py-1.5 rounded-full block'
-                            : 'text-gray-300 border border-gray-100 px-2.5 py-1.5 rounded-full block'
+                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
+                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
                         }
                       >
-                        {requirement.applicationsCount > 0 ? '✓ Tutors Applied' : 'Tutor Applied'}
+                        {requirement.applicationsCount > 0 ? '✓ Tutors Applied' : 'Tutors Applied'}
                       </span>
                     </div>
                     <span className="text-gray-300 hidden sm:inline">➔</span>
@@ -441,13 +444,13 @@ export default function RequirementDetailPage() {
                       <span
                         className={
                           applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/20 px-2.5 py-1.5 rounded-full block'
-                            : 'text-gray-300 border border-gray-100 px-2.5 py-1.5 rounded-full block'
+                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
+                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
                         }
                       >
                         {applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
                           ? '✓ Proposals Viewed'
-                          : 'Viewed'}
+                          : 'Proposals Viewed'}
                       </span>
                     </div>
                     <span className="text-gray-300 hidden sm:inline">➔</span>
@@ -455,11 +458,11 @@ export default function RequirementDetailPage() {
                       <span
                         className={
                           requirement.status === 'MATCHED'
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/20 px-2.5 py-1.5 rounded-full block'
-                            : 'text-gray-300 border border-gray-100 px-2.5 py-1.5 rounded-full block'
+                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
+                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
                         }
                       >
-                        {requirement.status === 'MATCHED' ? '✓ Tutor Accepted' : 'Accepted'}
+                        {requirement.status === 'MATCHED' ? '✓ Tutor Accepted' : 'Tutor Accepted'}
                       </span>
                     </div>
                   </div>
@@ -672,22 +675,22 @@ export default function RequirementDetailPage() {
           {/* Right Details Panel */}
           <div className="space-y-6 md:col-span-1">
             {/* Learning Format */}
-            <div className="bg-white border border-[#dadee2] rounded-xl p-6 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-[#2d2d2d] border-b border-gray-100 pb-2 uppercase tracking-wider text-gray-400">
+            <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-4">
+              <h4 className="text-[14px] font-bold text-[#647380] border-b border-gray-150 pb-2  tracking-wider">
                 Preferences
               </h4>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <Briefcase className="w-4 h-4 text-[#00A453] shrink-0 mt-0.5" />
+                  <Briefcase className="w-4.5 h-4.5 text-[#00A453] shrink-0 mt-0.5" />
                   <div>
                     <span className="text-[10px] text-[#647380] block font-bold uppercase">
                       Teaching Mode
                     </span>
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="flex flex-wrap gap-1.5 mt-1">
                       {requirement.teachingMode.map((mode: string) => (
                         <span
                           key={mode}
-                          className="text-[9px] font-bold px-1.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded"
+                          className="text-[10px] font-bold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/10"
                         >
                           {mode}
                         </span>
@@ -696,17 +699,17 @@ export default function RequirementDetailPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 border-t border-gray-50 pt-4">
-                  <Clock className="w-4 h-4 text-[#00A453] shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 border-t border-gray-150 pt-4">
+                  <Clock className="w-4.5 h-4.5 text-[#00A453] shrink-0 mt-0.5" />
                   <div>
                     <span className="text-[10px] text-[#647380] block font-bold uppercase">
                       Preferred Schedule
                     </span>
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="flex flex-wrap gap-1.5 mt-1">
                       {requirement.schedule.map((sched: string) => (
                         <span
                           key={sched}
-                          className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-[#2d2d2d] rounded"
+                          className="text-[10px] font-bold px-3 py-1 bg-gray-50 border border-gray-150 text-[#647380] rounded-full"
                         >
                           {sched}
                         </span>
@@ -718,12 +721,12 @@ export default function RequirementDetailPage() {
             </div>
 
             {/* Location details */}
-            <div className="bg-white border border-[#dadee2] rounded-xl p-6 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-[#2d2d2d] border-b border-gray-100 pb-2 uppercase tracking-wider text-gray-400">
+            <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-4">
+              <h4 className="text-[14px] font-bold text-[#647380] border-b border-gray-150 pb-2  tracking-wider">
                 Location Details
               </h4>
               <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-[#00A453] shrink-0 mt-0.5" />
+                <MapPin className="w-4.5 h-4.5 text-[#00A453] shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <div>
                     <span className="text-[10px] text-[#647380] block font-bold uppercase">
@@ -738,7 +741,7 @@ export default function RequirementDetailPage() {
                       <span className="text-[10px] text-[#647380] block font-bold uppercase">
                         Address
                       </span>
-                      <span className="text-xs text-[#2d2d2d] block mt-0.5 leading-relaxed font-medium">
+                      <span className="text-xs text-[#647380] block mt-0.5 leading-relaxed font-semibold">
                         {requirement.location.address}
                       </span>
                     </div>
@@ -748,8 +751,8 @@ export default function RequirementDetailPage() {
             </div>
 
             {/* Pricing Budget */}
-            <div className="bg-white border border-[#dadee2] rounded-xl p-6 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-[#2d2d2d] border-b border-gray-100 pb-2 uppercase tracking-wider text-gray-400">
+            <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-4">
+              <h4 className="text-[14px] font-bold text-[#647380] border-b border-gray-150 pb-2  tracking-wider">
                 Budget Rates
               </h4>
               <div className="flex items-start gap-3">
@@ -758,7 +761,7 @@ export default function RequirementDetailPage() {
                   <span className="text-[10px] text-[#647380] block font-bold uppercase">
                     Range
                   </span>
-                  <span className="text-sm font-extrabold text-[#00A453] block mt-0.5">
+                  <span className="text-sm font-black text-[#00A453] block mt-0.5">
                     ₹{requirement.budget.min} - ₹{requirement.budget.max} / Hr
                   </span>
                   <span className="text-[9px] text-[#b0b8c1] block mt-0.5 uppercase font-bold">

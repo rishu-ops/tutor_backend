@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -81,6 +81,22 @@ export default function BrowseRequirementsPage() {
   const [datePosted, setDatePosted] = useState('any'); // 'any' | 'day' | '3days' | 'week'
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(true);
+
+  // Click outside handling for filters dropdown
+  const popoverRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setFiltersOpen(false);
+      }
+    };
+    if (filtersOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [filtersOpen]);
   const [modeOpen, setModeOpen] = useState(true);
   const [datePostedOpen, setDatePostedOpen] = useState(true);
   const [showMobileDetail, setShowMobileDetail] = useState(false);
@@ -325,19 +341,19 @@ export default function BrowseRequirementsPage() {
           </div>
 
           {/* Adjust Filters Button */}
-          <div className="relative">
+          <div className="relative" ref={popoverRef}>
             <button
               onClick={() => setFiltersOpen((o) => !o)}
-              className={`flex items-center gap-1.5 px-4 py-2 border rounded-full text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-bold transition-all shadow-xs ${
                 filtersOpen || activeFiltersCount > 0
-                  ? 'border-green-600 bg-green-50/35 text-green-700 font-extrabold'
-                  : 'border-gray-300 hover:bg-gray-50'
+                  ? 'border-[#00A453] bg-[#e6f6ee]/30 text-[#00A453]'
+                  : 'border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50'
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span>Filters</span>
               {activeFiltersCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-green-600 text-white font-bold text-xs flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-[#00A453] text-white font-extrabold text-[10px] flex items-center justify-center">
                   {activeFiltersCount}
                 </span>
               )}
@@ -345,15 +361,15 @@ export default function BrowseRequirementsPage() {
 
             {/* Filter Popover Dropdown Card (Indeed/LinkedIn style) */}
             {filtersOpen && (
-              <div className="absolute right-0 top-12 md:w-100 w-auto bg-white border border-gray-250 rounded-2xl shadow-xl z-50 flex flex-col md:max-h-[500px] max-h-auto overflow-hidden">
+              <div className="absolute right-0 top-12 md:w-100 w-auto bg-white border border-[#dadee2] rounded-2xl shadow-lg z-50 flex flex-col md:max-h-[500px] max-h-auto overflow-hidden">
                 {/* Sticky Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 p-4 shrink-0 bg-white z-10">
+                <div className="flex items-center justify-between border-b border-gray-150 p-4 shrink-0 bg-white z-10">
                   <span className="font-extrabold text-gray-950 text-sm">Filter requirements</span>
                   <button
                     onClick={() => setFiltersOpen(false)}
                     className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    <X className="w-6 h-6 border rounded-full p-1" />
+                    <X className="w-6 h-6 border border-gray-300 rounded-full p-1" />
                   </button>
                 </div>
 
@@ -492,10 +508,10 @@ export default function BrowseRequirementsPage() {
                 </div>
 
                 {/* Sticky Footer for Apply / Reset Actions */}
-                <div className="flex items-center gap-2 p-4 border-t border-gray-100 shrink-0 bg-white z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center gap-2 p-4 border-t border-gray-150 shrink-0 bg-white z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
                   <Button
                     onClick={() => setFiltersOpen(false)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs py-2 h-10 rounded-xl"
+                    className="flex-1 bg-[#00A453] hover:bg-[#009048] text-white font-extrabold text-xs py-2 h-10 rounded-xl"
                   >
                     Apply
                   </Button>
@@ -506,7 +522,7 @@ export default function BrowseRequirementsPage() {
                         handleReset();
                         setFiltersOpen(false);
                       }}
-                      className="px-3 py-2 border border-gray-300 rounded-xl h-10 text-xs font-extrabold hover:bg-gray-50 text-red-650 hover:text-red-750"
+                      className="px-3 py-2 border border-gray-300 rounded-xl h-10 text-xs font-extrabold hover:bg-gray-50 text-red-600 hover:text-red-700"
                     >
                       Reset
                     </Button>
@@ -519,18 +535,18 @@ export default function BrowseRequirementsPage() {
 
         {/* Active Filter Pills List */}
         {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 border-t border-gray-100/60 mt-1">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1.5 border-t border-gray-150 mt-1.5">
             <span className="text-[10px] text-gray-400 font-bold uppercase mr-1">
               Active Filters:
             </span>
 
             {/* Category Pill */}
             {category && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#e6f6ee] text-[#00A453] font-bold text-xs rounded-full border border-[#00A453]/10 animate-fadeIn">
                 <span>Category: {category}</span>
                 <button
                   onClick={() => setCategory('')}
-                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                  className="hover:bg-green-100/60 text-[#00A453] p-0.5 rounded-full transition-colors ml-0.5"
                 >
                   <X className="w-3 h-3 stroke-[3]" />
                 </button>
@@ -539,11 +555,11 @@ export default function BrowseRequirementsPage() {
 
             {/* Teaching Mode Pill */}
             {teachingMode && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#e6f6ee] text-[#00A453] font-bold text-xs rounded-full border border-[#00A453]/10 animate-fadeIn">
                 <span>Mode: {teachingMode}</span>
                 <button
                   onClick={() => setTeachingMode('')}
-                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                  className="hover:bg-green-100/60 text-[#00A453] p-0.5 rounded-full transition-colors ml-0.5"
                 >
                   <X className="w-3 h-3 stroke-[3]" />
                 </button>
@@ -552,7 +568,7 @@ export default function BrowseRequirementsPage() {
 
             {/* Budget Pill */}
             {(minBudget || maxBudget) && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#e6f6ee] text-[#00A453] font-bold text-xs rounded-full border border-[#00A453]/10 animate-fadeIn">
                 <span>
                   Budget:{' '}
                   {minBudget && maxBudget
@@ -566,7 +582,7 @@ export default function BrowseRequirementsPage() {
                     setMinBudget('');
                     setMaxBudget('');
                   }}
-                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                  className="hover:bg-green-100/60 text-[#00A453] p-0.5 rounded-full transition-colors ml-0.5"
                 >
                   <X className="w-3 h-3 stroke-[3]" />
                 </button>
@@ -575,7 +591,7 @@ export default function BrowseRequirementsPage() {
 
             {/* Date Posted Pill */}
             {datePosted !== 'any' && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200 animate-fadeIn">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#e6f6ee] text-[#00A453] font-bold text-xs rounded-full border border-[#00A453]/10 animate-fadeIn">
                 <span>
                   Posted:{' '}
                   {datePosted === 'day'
@@ -586,7 +602,7 @@ export default function BrowseRequirementsPage() {
                 </span>
                 <button
                   onClick={() => setDatePosted('any')}
-                  className="hover:bg-green-100 text-green-700 p-0.5 rounded-full transition-colors ml-0.5"
+                  className="hover:bg-green-100/60 text-[#00A453] p-0.5 rounded-full transition-colors ml-0.5"
                 >
                   <X className="w-3 h-3 stroke-[3]" />
                 </button>
@@ -596,7 +612,7 @@ export default function BrowseRequirementsPage() {
             {/* Reset All Filters Button */}
             <button
               onClick={handleReset}
-              className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors ml-2 hover:underline"
+              className="text-xs font-bold text-red-650 hover:text-red-750 transition-colors ml-2 hover:underline"
             >
               Reset all filters
             </button>
@@ -689,73 +705,48 @@ export default function BrowseRequirementsPage() {
                         setSelectedReqId(req._id);
                         setShowMobileDetail(true);
                       }}
-                      className={`p-4 flex items-start gap-3 cursor-pointer hover:bg-gray-50/70 transition-all relative ${
+                      className={`p-4 flex items-start gap-3.5 cursor-pointer transition-all border-b border-gray-150 ${
                         selectedReqId === req._id
-                          ? 'bg-green-50/20 border-l-[3px] border-green-600'
-                          : 'border-l-[3px] border-transparent'
+                          ? 'bg-[#e6f6ee]/30 border-l-4 border-l-[#00A453]'
+                          : 'border-l-4 border-l-transparent hover:bg-gray-50/50'
                       }`}
                     >
-                      {/* Left icon */}
-                      <div className="w-10 h-10 rounded bg-[#e6f6ee] flex items-center justify-center font-bold text-green-700 text-sm shrink-0 border border-green-100">
+                      {/* Profile Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-[#e6f6ee] flex items-center justify-center font-bold text-[#00A453] text-sm shrink-0 border border-[#00A453]/10 shadow-xs mt-0.5">
                         {getInitials(req.curriculum?.subject || req.category)}
                       </div>
 
-                      {/* Info body */}
+                      {/* Info Column */}
                       <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-semibold text-gray-500 hover:underline">
-                            {req.category}
-                          </span>
-                        </div>
-
-                        <h3 className="text-sm font-extrabold text-gray-950 leading-tight">
-                          {req.curriculum?.subject || req.category}
-                        </h3>
-
-                        <p className="text-xs text-gray-600 font-medium">
-                          {req.curriculum?.level}{' '}
-                          {req.curriculum?.board ? `· ${req.curriculum.board}` : ''}
-                        </p>
-
-                        <p className="text-xs text-gray-400">
-                          {req.location.area}, {req.location.city}
-                        </p>
-
-                        <p className="text-xs font-bold text-gray-950 pt-0.5">
-                          ₹{req.budget.min}–{req.budget.max}{' '}
-                          <span className="text-[10px] text-gray-450 font-normal">
-                            /{req.budget.feeType.toLowerCase().replace('_', ' ')}
-                          </span>
-                        </p>
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <span className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-medium">
-                            🏡 {req.teachingMode.join(', ')}
-                          </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-sm font-extrabold text-gray-950 truncate leading-none">
+                            {req.curriculum?.subject || req.category}
+                          </h3>
                           {reqHasApplied && (
-                            <span className="text-[9px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] font-extrabold text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/15 px-2 py-0.5 rounded-full shrink-0">
                               Applied
                             </span>
                           )}
                         </div>
-                      </div>
 
-                      {/* Save & Posted date Column */}
-                      <div className="flex flex-col items-end justify-between self-stretch shrink-0">
-                        <button
-                          onClick={(e) => toggleSaveReq(req._id, e)}
-                          className="p-1 text-gray-400 hover:text-green-600 transition-colors"
-                        >
-                          <Bookmark
-                            className={`w-4 h-4 ${savedReqIds.includes(req._id) ? 'fill-green-600 text-green-600' : ''}`}
-                          />
-                        </button>
-                        <span className="text-[10px] text-gray-400 font-medium">
-                          {new Date(req.createdAt).toLocaleDateString([], {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
+                        <p className="text-[11px] text-[#647380] font-bold truncate">
+                          {req.curriculum?.level || 'Secondary'}
+                          {req.curriculum?.board ? ` · ${req.curriculum.board}` : ''}
+                        </p>
+
+                        <p className="text-xs text-gray-500 font-semibold truncate">
+                          {req.category}
+                        </p>
+
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold pt-0.5">
+                          <div className="flex items-center gap-1.5 text-[#647380] truncate">
+                            <span>{req.location.area || req.location.city}</span>
+                            <span className="text-gray-300">·</span>
+                            <span className="text-[#00A453]">
+                              ₹{req.budget.min}–{req.budget.max}/hr
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -835,6 +826,8 @@ export default function BrowseRequirementsPage() {
                         <span>·</span>
                         <Link
                           href={`/dashboard/students/${selectedReq.studentUserId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-[#00A453] hover:underline font-extrabold cursor-pointer"
                         >
                           View Student Profile
@@ -949,7 +942,7 @@ export default function BrowseRequirementsPage() {
                             </span>
                           )}
                           {matchData.strength === 'LOW' && (
-                            <span className="inline-flex items-center text-[10px] font-bold bg-gray-50 text-gray-650 border border-gray-200 px-2 py-0.5 rounded-full">
+                            <span className="inline-flex items-center text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
                               ⚡ Low Match ({matchData.score}%)
                             </span>
                           )}
@@ -984,7 +977,7 @@ export default function BrowseRequirementsPage() {
                       </div>
 
                       {/* Matching info template text */}
-                      <p className="text-xs text-gray-650 leading-relaxed">
+                      <p className="text-xs text-gray-655 leading-relaxed">
                         {matchData.strength === 'HIGH' &&
                           'Your profile details are strongly aligned with the tutoring preferences posted by this student.'}
                         {matchData.strength === 'MEDIUM' &&
@@ -994,7 +987,7 @@ export default function BrowseRequirementsPage() {
                       </p>
 
                       {/* Criteria Checklist Grid (Previous items kept fully visible) */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs text-gray-700 pt-1 border-t border-gray-100">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs text-gray-700 pt-1 border-t border-gray-105">
                         <div className="flex items-center gap-2.5">
                           {matchData.breakdown?.subjectMatch ? (
                             <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
@@ -1082,7 +1075,7 @@ export default function BrowseRequirementsPage() {
                       </div>
 
                       {/* Thumbs Feedback Footer */}
-                      <div className="flex items-center justify-between text-[10px] text-gray-450 pt-2.5 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-[10px] text-gray-450 pt-2.5 border-t border-gray-105">
                         <span>BETA • Is this information helpful?</span>
                         <div className="flex items-center gap-3">
                           {feedbackSubmitted ? (

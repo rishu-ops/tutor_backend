@@ -34,6 +34,7 @@ export interface ITutorProfile extends Document {
   pricing: ITutorPricing;
   location: ITutorLocation;
   availability: string[];
+  offersDemo: boolean;
   profileCompleteness: number;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   visibilityTier: 'FREE' | 'BRONZE' | 'SILVER' | 'GOLD';
@@ -90,6 +91,7 @@ const TutorProfileSchema = new Schema<ITutorProfile>(
     pricing: { type: TutorPricingSchema, required: true },
     location: { type: TutorLocationSchema, required: true },
     availability: { type: [String], default: [] },
+    offersDemo: { type: Boolean, default: true },
     profileCompleteness: { type: Number, default: 0 },
     verificationStatus: {
       type: String,

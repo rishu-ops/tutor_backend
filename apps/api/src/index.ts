@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import { logger } from 'logger';
@@ -16,6 +18,7 @@ import notificationRouter from './modules/notifications/notification.routes.js';
 import conversationRouter from './modules/conversations/conversation.routes.js';
 import bookingRouter from './modules/bookings/booking.routes.js';
 import matchingRouter from './modules/matching/matching.routes.js';
+import { initSocketGateway } from './socket/socket.gateway.js';
 import {
   adminAuthRouter,
   adminsRouter,
@@ -33,15 +36,28 @@ import {
 dotenv.config();
 
 const app = express();
+const httpServer = http.createServer(app);
 const port = process.env.PORT || 3000;
 
 // CORS - allow frontend to access API
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: corsOrigin,
     credentials: true,
   })
 );
+
+// Initialize Socket.IO with CORS
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: corsOrigin,
+    credentials: true,
+  },
+});
+
+// Register socket event handlers
+initSocketGateway(io);
 
 app.use(express.json());
 
@@ -141,10 +157,11 @@ async function startServer() {
       logger.warn('REDIS_URL is not defined in environment variables.');
     }
 
-    // Start Express application
-    app.listen(port, () => {
+    // Start server (http + Socket.IO)
+    httpServer.listen(port, () => {
       logger.info(`Server is running at http://localhost:${port}`);
       logger.info(`API documentation available at http://localhost:${port}/api/docs`);
+      logger.info(`Socket.IO is ready for real-time connections`);
     });
   } catch (error) {
     logger.error({ err: error }, 'Failed to start server');

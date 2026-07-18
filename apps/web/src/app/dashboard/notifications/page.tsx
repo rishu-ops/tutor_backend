@@ -181,10 +181,10 @@ export default function NotificationsCenterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4 gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-950 flex items-center gap-2">
-            <Bell className="w-7 h-7 text-[#00A453]" /> Notification Center
+            <Bell className="w-7 h-7 text-[#00A453]" /> Notifications
           </h1>
-          <p className="text-xs text-gray-500 font-medium mt-1">
-            Keep track of application views, lesson updates, and system approvals.
+          <p className="text-sm text-gray-500 mt-1">
+            Stay updated on proposals, session requests, and important activity.
           </p>
         </div>
 
@@ -242,9 +242,9 @@ export default function NotificationsCenterPage() {
       ) : notifications.length === 0 ? (
         <div className="bg-white border border-[#dadee2] rounded-3xl p-12 text-center text-gray-400 font-semibold space-y-2 mt-8 max-w-lg mx-auto">
           <Bell className="w-10 h-10 mx-auto text-gray-300 animate-bounce" />
-          <p className="text-gray-800 font-bold text-sm">All caught up!</p>
-          <p className="text-xs text-gray-500 font-normal">
-            No new activity logs on your dashboard notifications center for now.
+          <p className="text-gray-800 font-bold text-sm">You&apos;re all caught up!</p>
+          <p className="text-sm text-gray-500 font-normal">
+            No new notifications right now. Check back after applying or posting a requirement.
           </p>
         </div>
       ) : (
@@ -286,9 +286,16 @@ export default function NotificationsCenterPage() {
                     {hasLink && (
                       <Link
                         href={hasLink}
-                        className="text-[10px] text-[#00A453] font-extrabold hover:underline flex items-center gap-0.5"
+                        className="text-xs text-[#00A453] font-extrabold hover:underline flex items-center gap-0.5"
                       >
-                        Action <ExternalLink className="w-2.5 h-2.5" />
+                        {notif.type?.startsWith('BOOKING')
+                          ? 'View Session'
+                          : notif.type === 'APPLICATION_ACCEPTED'
+                            ? 'Open Chat'
+                            : notif.type === 'TUTOR_APPLIED'
+                              ? 'See Proposals'
+                              : 'View'}
+                        <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
                       </Link>
                     )}
                   </div>

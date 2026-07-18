@@ -1,8 +1,10 @@
-import { BookingModel, prisma, NotificationModel } from 'database';
+import { BookingModel, TutorProfileModel, prisma, NotificationModel } from 'database';
 
 export class BookingService {
   /**
-   * Request a new class booking (starts in PENDING status)
+   * Request a new session.
+   * - Detects sessionMode from tutor profile teachingModes
+   * - Guards regular sessions behind a completed trial
    */
   async createBooking(data: {
     requirementId: string;
@@ -10,43 +12,91 @@ export class BookingService {
     tutorUserId: string;
     scheduledAt: string | Date;
     duration?: number;
-    fee?: number;
-    type?: 'DEMO' | 'REGULAR';
+    isFirstSession: boolean;
     notes?: string;
+    studentNeedsDemo?: boolean; // from requirement preference
   }) {
+    // --- Resolve session mode from tutor profile ---
+    const tutorProfile = await TutorProfileModel.findOne({ userId: data.tutorUserId });
+    const modes: string[] = tutorProfile?.teachingModes || [];
+
+    const sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID' =
+      modes.includes('Online') && modes.includes('Onsite')
+        ? 'HYBRID'
+        : modes.includes('Onsite')
+          ? 'ONSITE'
+          : 'ONLINE';
+
+    // --- Guard: cannot request regular session without completed trial ---
+    if (!data.isFirstSession) {
+      const completedTrial = await BookingModel.findOne({
+        studentUserId: data.studentUserId,
+        tutorUserId: data.tutorUserId,
+        isFirstSession: true,
+        status: 'COMPLETED',
+      });
+      const requirementSkipsDemo = data.studentNeedsDemo === false;
+
+      if (!completedTrial && !requirementSkipsDemo) {
+        const err = new Error(
+          'A trial/demo session must be completed before booking regular sessions.'
+        );
+        (err as any).statusCode = 400;
+        throw err;
+      }
+    }
+
+    // --- Guard: tutor must offer demos if requesting trial ---
+    if (data.isFirstSession && tutorProfile && !tutorProfile.offersDemo) {
+      const err = new Error(
+        'This tutor does not offer trial/demo classes. You can still message them to discuss directly.'
+      );
+      (err as any).statusCode = 400;
+      throw err;
+    }
+
+    // Pre-fill location for onsite sessions from tutor profile
+    const locationNote =
+      sessionMode !== 'ONLINE' && tutorProfile?.location
+        ? `${tutorProfile.location.area}, ${tutorProfile.location.city}`
+        : '';
+
     const booking = await BookingModel.create({
       requirementId: data.requirementId,
       studentUserId: data.studentUserId,
       tutorUserId: data.tutorUserId,
       scheduledAt: new Date(data.scheduledAt),
       duration: data.duration || 60,
-      fee: data.fee || 0,
-      type: data.type || 'DEMO',
+      sessionMode,
+      isFirstSession: data.isFirstSession,
       status: 'PENDING',
       notes: data.notes || '',
+      location: locationNote,
     });
 
+    // Notify tutor
     try {
       const studentUser = await prisma.user.findUnique({
         where: { id: data.studentUserId },
         select: { name: true },
       });
+      const sessionLabel = data.isFirstSession ? 'Trial Class' : 'Regular Session';
       await NotificationModel.create({
         userId: data.tutorUserId,
-        title: 'New Class Booking Request',
-        content: `${studentUser?.name || 'A student'} has requested a ${data.type || 'DEMO'} class session on ${new Date(data.scheduledAt).toLocaleDateString()}.`,
+        title: `New ${sessionLabel} Request`,
+        content: `${studentUser?.name || 'A student'} has requested a ${sessionLabel} on ${new Date(data.scheduledAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at ${new Date(data.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.`,
         type: 'BOOKING_REQUESTED',
         data: { bookingId: booking._id, requirementId: data.requirementId },
       });
     } catch (err) {
-      console.error('Failed to create booking request notification:', err);
+      console.error('Failed to create booking notification:', err);
     }
 
     return booking;
   }
 
   /**
-   * Retrieve single booking detail
+   * Get single booking with enriched other-party details
    */
   async getBooking(id: string, userId: string) {
     const booking = await BookingModel.findById(id);
@@ -55,14 +105,12 @@ export class BookingService {
       (err as any).statusCode = 404;
       throw err;
     }
-
     if (booking.studentUserId !== userId && booking.tutorUserId !== userId) {
       const err = new Error('Forbidden: Access denied');
       (err as any).statusCode = 403;
       throw err;
     }
 
-    // Enrich with other party details
     const otherUserId =
       booking.studentUserId === userId ? booking.tutorUserId : booking.studentUserId;
     const otherUser = await prisma.user.findUnique({
@@ -83,7 +131,7 @@ export class BookingService {
   }
 
   /**
-   * List all bookings for a user (student or tutor)
+   * List all bookings for a user
    */
   async getBookings(userId: string) {
     const bookings = await BookingModel.find({
@@ -98,7 +146,6 @@ export class BookingService {
         where: { id: otherUserId },
         select: { name: true, role: true, email: true, phone: true },
       });
-
       enriched.push({
         ...booking.toObject(),
         otherParty: {
@@ -110,39 +157,82 @@ export class BookingService {
         },
       });
     }
-
     return enriched;
   }
 
   /**
-   * Update booking status (ACCEPT, REJECT, CANCEL, COMPLETE)
+   * Update booking status — enforces the state machine:
+   * - Only TUTOR can ACCEPT or DECLINE
+   * - Either party can CANCEL (if PENDING or ACCEPTED, and not yet started)
+   * - Only TUTOR can COMPLETE
    */
-  async updateBookingStatus(id: string, status: string, userId: string) {
+  async updateBookingStatus(
+    id: string,
+    status: string,
+    userId: string,
+    options?: { meetingLink?: string; declineReason?: string }
+  ) {
     const booking = await BookingModel.findById(id);
     if (!booking) {
       const err = new Error('Booking not found');
       (err as any).statusCode = 404;
       throw err;
     }
-
-    // Validate ownership
     if (booking.studentUserId !== userId && booking.tutorUserId !== userId) {
       const err = new Error('Forbidden: Access denied');
       (err as any).statusCode = 403;
       throw err;
     }
 
-    // Validate valid status transitions
-    const validStatuses = ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'COMPLETED'];
+    const isTutor = booking.tutorUserId === userId;
+    const isStudent = booking.studentUserId === userId;
+
+    // State machine enforcement
+    if ((status === 'ACCEPTED' || status === 'DECLINED') && !isTutor) {
+      const err = new Error('Only the tutor can accept or decline a booking.');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+    if (status === 'COMPLETED' && !isTutor) {
+      const err = new Error('Only the tutor can mark a session as completed.');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+    if (status === 'CANCELLED') {
+      if (!['PENDING', 'ACCEPTED'].includes(booking.status)) {
+        const err = new Error(`Cannot cancel a booking with status: ${booking.status}`);
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      const now = new Date();
+      if (booking.scheduledAt < now && booking.status === 'ACCEPTED') {
+        const err = new Error('Cannot cancel a session that has already started.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
+    }
+
+    const validStatuses = ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED'];
     if (!validStatuses.includes(status)) {
-      const err = new Error('Bad Request: Invalid status');
+      const err = new Error('Invalid status');
       (err as any).statusCode = 400;
       throw err;
     }
 
     booking.status = status as any;
+
+    // Attach meeting link when accepting an online session
+    if (status === 'ACCEPTED' && options?.meetingLink && booking.sessionMode !== 'ONSITE') {
+      booking.meetingLink = options.meetingLink;
+    }
+    // Attach decline reason
+    if (status === 'DECLINED' && options?.declineReason) {
+      booking.declineReason = options.declineReason;
+    }
+
     await booking.save();
 
+    // Notifications
     try {
       const actor = await prisma.user.findUnique({
         where: { id: userId },
@@ -150,68 +240,76 @@ export class BookingService {
       });
       const otherUserId =
         booking.studentUserId === userId ? booking.tutorUserId : booking.studentUserId;
+      const sessionLabel = booking.isFirstSession ? 'Trial Class' : 'Regular Session';
+      const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
 
-      if (status === 'ACCEPTED') {
-        await NotificationModel.create({
-          userId: otherUserId,
-          title: 'Class Booking Accepted',
-          content: `Your class session on ${new Date(booking.scheduledAt).toLocaleDateString()} has been accepted by ${actor?.name || 'the tutor'}.`,
+      const notifMap: Record<string, { title: string; content: string; type: string }> = {
+        ACCEPTED: {
+          title: `${sessionLabel} Accepted ✓`,
+          content: `Your ${sessionLabel} on ${dateStr} has been accepted by ${actor?.name || 'the tutor'}.${booking.meetingLink ? ` Meeting link added.` : booking.sessionMode === 'ONSITE' ? ` It will be held at: ${booking.location}.` : ''}`,
           type: 'BOOKING_ACCEPTED',
-          data: { bookingId: booking._id },
-        });
-      } else if (status === 'REJECTED') {
-        await NotificationModel.create({
-          userId: otherUserId,
-          title: 'Class Booking Declined',
-          content: `Your class session request for ${new Date(booking.scheduledAt).toLocaleDateString()} has been declined.`,
+        },
+        DECLINED: {
+          title: `${sessionLabel} Declined`,
+          content: `Your ${sessionLabel} request for ${dateStr} was declined${options?.declineReason ? `: "${options.declineReason}"` : '.'} Feel free to propose a different time.`,
           type: 'BOOKING_DECLINED',
-          data: { bookingId: booking._id },
-        });
-      } else if (status === 'CANCELLED') {
+        },
+        CANCELLED: {
+          title: `${sessionLabel} Cancelled`,
+          content: `The ${sessionLabel} scheduled for ${dateStr} was cancelled by ${actor?.name || 'the other party'}.`,
+          type: 'BOOKING_CANCELLED',
+        },
+        COMPLETED: {
+          title: `${sessionLabel} Completed`,
+          content: `Your ${sessionLabel} with ${actor?.name || 'the tutor'} is marked complete. How did it go?`,
+          type: 'BOOKING_COMPLETED',
+        },
+      };
+
+      if (notifMap[status]) {
         await NotificationModel.create({
           userId: otherUserId,
-          title: 'Class Booking Cancelled',
-          content: `The class session scheduled for ${new Date(booking.scheduledAt).toLocaleDateString()} was cancelled by ${actor?.name || 'the other party'}.`,
-          type: 'BOOKING_CANCELLED',
-          data: { bookingId: booking._id },
-        });
-      } else if (status === 'COMPLETED') {
-        await NotificationModel.create({
-          userId: booking.studentUserId,
-          title: 'Class Completed - Leave a Review',
-          content: `Your class session is complete. Please take a moment to rate and review your tutor.`,
-          type: 'BOOKING_COMPLETED',
+          ...notifMap[status],
           data: { bookingId: booking._id, tutorUserId: booking.tutorUserId },
         });
       }
     } catch (err) {
-      console.error('Failed to create booking status update notification:', err);
+      console.error('Failed to create status notification:', err);
     }
 
     return booking;
   }
 
   /**
-   * Reschedule a booking
+   * Propose a new time — transitions back to PENDING for the other party to confirm
    */
-  async rescheduleBooking(id: string, scheduledAt: string | Date, userId: string) {
+  async rescheduleBooking(id: string, newScheduledAt: string | Date, userId: string) {
     const booking = await BookingModel.findById(id);
     if (!booking) {
       const err = new Error('Booking not found');
       (err as any).statusCode = 404;
       throw err;
     }
-
-    // Validate ownership
     if (booking.studentUserId !== userId && booking.tutorUserId !== userId) {
       const err = new Error('Forbidden: Access denied');
       (err as any).statusCode = 403;
       throw err;
     }
+    if (!['PENDING', 'ACCEPTED'].includes(booking.status)) {
+      const err = new Error(`Cannot reschedule a booking with status: ${booking.status}`);
+      (err as any).statusCode = 400;
+      throw err;
+    }
 
-    booking.scheduledAt = new Date(scheduledAt);
-    // When rescheduled, it transitions back to PENDING so the other party can accept the new time
+    booking.rescheduledFrom = booking.scheduledAt;
+    booking.rescheduleRequestedBy = userId;
+    booking.scheduledAt = new Date(newScheduledAt);
     booking.status = 'PENDING';
+    booking.meetingLink = ''; // clear old link — tutor must re-add on acceptance
     await booking.save();
 
     try {
@@ -221,15 +319,24 @@ export class BookingService {
       });
       const otherUserId =
         booking.studentUserId === userId ? booking.tutorUserId : booking.studentUserId;
+      const newDateStr = new Date(newScheduledAt).toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+      const newTimeStr = new Date(newScheduledAt).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
       await NotificationModel.create({
         userId: otherUserId,
-        title: 'Class Booking Rescheduled',
-        content: `${actor?.name || 'The other party'} has proposed a new time for your class: ${new Date(scheduledAt).toLocaleDateString()} at ${new Date(scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        title: 'Session Rescheduled — Please Confirm',
+        content: `${actor?.name || 'The other party'} has proposed a new time: ${newDateStr} at ${newTimeStr}. Accept or keep the original.`,
         type: 'BOOKING_RESCHEDULED',
         data: { bookingId: booking._id },
       });
     } catch (err) {
-      console.error('Failed to create reschedule request notification:', err);
+      console.error('Failed to create reschedule notification:', err);
     }
 
     return booking;

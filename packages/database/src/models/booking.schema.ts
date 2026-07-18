@@ -5,12 +5,16 @@ export interface IBooking extends Document {
   studentUserId: string;
   tutorUserId: string;
   scheduledAt: Date;
-  duration: number; // in minutes
-  fee: number;
-  type: 'DEMO' | 'REGULAR';
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+  duration: number; // minutes
+  sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID';
+  isFirstSession: boolean; // true = trial/demo, false = regular
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED';
   notes?: string;
-  meetingLink?: string;
+  meetingLink?: string; // ONLINE only
+  location?: string; // ONSITE only — tutor area / address note
+  declineReason?: string; // tutor fills when declining
+  rescheduledFrom?: Date; // original time before reschedule
+  rescheduleRequestedBy?: string; // userId who proposed new time
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,27 +26,33 @@ const BookingSchema = new Schema<IBooking>(
     tutorUserId: { type: String, required: true, index: true },
     scheduledAt: { type: Date, required: true, index: true },
     duration: { type: Number, default: 60, required: true },
-    fee: { type: Number, default: 0, required: true },
-    type: {
+    sessionMode: {
       type: String,
-      enum: ['DEMO', 'REGULAR'],
-      default: 'DEMO',
+      enum: ['ONLINE', 'ONSITE', 'HYBRID'],
+      default: 'ONLINE',
       required: true,
     },
+    isFirstSession: { type: Boolean, default: true },
     status: {
       type: String,
-      enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'COMPLETED'],
+      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED'],
       default: 'PENDING',
       required: true,
       index: true,
     },
     notes: { type: String, default: '' },
     meetingLink: { type: String, default: '' },
+    location: { type: String, default: '' },
+    declineReason: { type: String, default: '' },
+    rescheduledFrom: { type: Date },
+    rescheduleRequestedBy: { type: String },
   },
   {
     timestamps: true,
   }
 );
+
+BookingSchema.index({ studentUserId: 1, tutorUserId: 1, isFirstSession: 1 });
 
 export const BookingModel =
   mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);

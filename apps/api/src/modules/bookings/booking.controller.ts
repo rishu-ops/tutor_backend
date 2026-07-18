@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { BookingService } from './booking.service.js';
 
 export class BookingController {
@@ -13,9 +13,20 @@ export class BookingController {
         return;
       }
 
-      const { requirementId, tutorUserId, scheduledAt, duration, fee, type, notes } = req.body;
+      const {
+        requirementId,
+        tutorUserId,
+        scheduledAt,
+        duration,
+        isFirstSession,
+        notes,
+        studentNeedsDemo,
+      } = req.body;
       if (!requirementId || !tutorUserId || !scheduledAt) {
-        res.status(400).json({ success: false, error: 'Missing required parameters' });
+        res.status(400).json({
+          success: false,
+          error: 'Missing required parameters (requirementId, tutorUserId, scheduledAt)',
+        });
         return;
       }
 
@@ -25,17 +36,16 @@ export class BookingController {
         tutorUserId,
         scheduledAt,
         duration,
-        fee,
-        type,
+        isFirstSession: isFirstSession !== false, // default true
         notes,
+        studentNeedsDemo,
       });
 
       res.status(201).json({ success: true, data: booking });
     } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-      });
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
     }
   }
 
@@ -47,14 +57,12 @@ export class BookingController {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
-
       const bookings = await this.service.getBookings(userId);
       res.json({ success: true, data: bookings });
     } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-      });
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
     }
   }
 
@@ -67,14 +75,12 @@ export class BookingController {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
-
       const booking = await this.service.getBooking(id, userId);
       res.json({ success: true, data: booking });
     } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-      });
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
     }
   }
 
@@ -83,25 +89,25 @@ export class BookingController {
     try {
       const userId = req.user?.id;
       const id = req.params.id as string;
-      const { status } = req.body;
-
+      const { status, meetingLink, declineReason } = req.body;
       if (!userId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
-
       if (!status) {
-        res.status(400).json({ success: false, error: 'Missing status parameter' });
+        res.status(400).json({ success: false, error: 'Missing status' });
         return;
       }
 
-      const booking = await this.service.updateBookingStatus(id, status, userId);
+      const booking = await this.service.updateBookingStatus(id, status, userId, {
+        meetingLink,
+        declineReason,
+      });
       res.json({ success: true, data: booking });
     } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-      });
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
     }
   }
 
@@ -111,24 +117,21 @@ export class BookingController {
       const userId = req.user?.id;
       const id = req.params.id as string;
       const { scheduledAt } = req.body;
-
       if (!userId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
-
       if (!scheduledAt) {
-        res.status(400).json({ success: false, error: 'Missing scheduledAt parameter' });
+        res.status(400).json({ success: false, error: 'Missing scheduledAt' });
         return;
       }
 
       const booking = await this.service.rescheduleBooking(id, scheduledAt, userId);
       res.json({ success: true, data: booking });
     } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-      });
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
     }
   }
 }

@@ -67,7 +67,7 @@ export default function MyApplicationsPage() {
       case 'REJECTED':
         return (
           <span className="bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
-            Rejected
+            Not Selected
           </span>
         );
       case 'VIEWED':
@@ -100,10 +100,10 @@ export default function MyApplicationsPage() {
       <div className="flex items-center gap-1.5 py-1 text-[10px] font-bold tracking-wide uppercase select-none">
         <span className={activeIndex >= 0 ? 'text-[#00A453]' : 'text-gray-300'}>Sent</span>
         <span className="text-gray-300">→</span>
-        <span className={activeIndex >= 1 ? 'text-[#00A453]' : 'text-gray-300'}>Viewed</span>
+        <span className={activeIndex >= 1 ? 'text-[#00A453]' : 'text-gray-300'}>Seen</span>
         <span className="text-gray-300">→</span>
         {status === 'REJECTED' ? (
-          <span className="text-red-500">Rejected</span>
+          <span className="text-red-500">Not Selected</span>
         ) : (
           <span className={activeIndex >= 2 ? 'text-[#00A453]' : 'text-gray-300'}>Accepted</span>
         )}
@@ -116,9 +116,9 @@ export default function MyApplicationsPage() {
       <div className="max-w-4xl mx-auto space-y-6 text-[#2d2d2d]">
         <div className="flex items-center justify-between border-b border-[#dadee2] pb-4">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">My Proposals</h1>
-            <p className="text-xs text-[#647380] mt-1 font-medium">
-              Track the statuses of your learning proposals and tutoring contracts
+            <h1 className="text-2xl font-extrabold tracking-tight">My Applications</h1>
+            <p className="text-sm text-[#647380] mt-1">
+              Track all the tutoring jobs you&apos;ve applied for.
             </p>
           </div>
           <Link href="/dashboard/requirements/browse">
@@ -180,12 +180,25 @@ export default function MyApplicationsPage() {
               📝
             </div>
             <div className="space-y-2">
-              <h3 className="text-base font-extrabold">No proposals in this section</h3>
-              <p className="text-xs text-[#647380] max-w-sm mx-auto leading-relaxed font-medium">
-                We couldn't find any proposals matching the selected category. Check recommendations
-                to apply.
+              <h3 className="text-base font-extrabold">
+                {filter === 'ALL' ? "You haven't applied yet" : 'No proposals here'}
+              </h3>
+              <p className="text-sm text-[#647380] max-w-sm mx-auto leading-relaxed">
+                {filter === 'ALL'
+                  ? 'Browse open requirements and send your first proposal to get started.'
+                  : 'No proposals match this filter. Try switching to "All Proposals".'}
               </p>
             </div>
+            {filter === 'ALL' && (
+              <Link href="/dashboard/requirements/browse">
+                <Button
+                  size="sm"
+                  className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-xs rounded-xl px-5"
+                >
+                  Browse Open Jobs
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

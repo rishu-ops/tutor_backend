@@ -1,41 +1,109 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { getSocket } from '@/lib/socket';
+import { Socket } from 'socket.io-client';
 import {
   Lock,
   MessageSquare,
   Shield,
-  Clock,
   Send,
   Compass,
   PlusCircle,
-  AlertCircle,
-  CheckCircle,
   XCircle,
   ChevronLeft,
+  Check,
+  CheckCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+
+interface Message {
+  _id: string;
+  conversationId: string;
+  senderUserId: string;
+  content: string;
+  seen: boolean;
+  createdAt: string;
+}
+
+interface Conversation {
+  _id: string;
+  status: 'ACTIVE' | 'LOCKED';
+  otherParty: { id: string; name: string; role: string };
+  lastMessage?: string;
+  lastMessageAt?: string;
+  createdAt: string;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function formatTime(dateStr: string) {
+  return new Date(dateStr).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function groupMessagesByDate(messages: Message[]) {
+  const groups: { date: string; messages: Message[] }[] = [];
+  let currentDate = '';
+  for (const msg of messages) {
+    const date = formatDate(msg.createdAt);
+    if (date !== currentDate) {
+      groups.push({ date, messages: [msg] });
+      currentDate = date;
+    } else {
+      groups[groups.length - 1].messages.push(msg);
+    }
+  }
+  return groups;
+}
 
 export default function MessagesPage() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
 
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [selectedConvo, setSelectedConvo] = useState<any | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
 
   // Booking states
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
-  const [bookingType, setBookingType] = useState<'DEMO' | 'REGULAR'>('DEMO');
+  const [isFirstSession, setIsFirstSession] = useState(true);
   const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingRate, setBookingRate] = useState('800');
   const [bookingMsg, setBookingMsg] = useState('');
   const [bookingError, setBookingError] = useState('');
+
+  const socketRef = useRef<Socket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,108 +113,188 @@ export default function MessagesPage() {
     try {
       const res = await fetch('/api/v1/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          requirementId: selectedConvo.requirementId,
+          requirementId: selectedConvo._id,
           tutorUserId: selectedConvo.otherParty.id,
-          scheduledAt: new Date(`${bookingDate}T${bookingTime}`),
-          type: bookingType,
-          fee: Number(bookingRate),
+          scheduledAt: new Date(`${bookingDate}T${bookingTime}`).toISOString(),
+          isFirstSession,
           notes: bookingNotes,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setBookingMsg('Class scheduled and pending approval from the tutor!');
-        setBookingDate('');
-        setBookingTime('');
-        setBookingNotes('');
+        setBookingMsg(
+          isFirstSession
+            ? 'Trial class request sent! Waiting for tutor confirmation.'
+            : 'Regular session request sent!'
+        );
         setTimeout(() => {
           setIsBookingOpen(false);
           setBookingMsg('');
-        }, 2000);
+        }, 2500);
       } else {
-        setBookingError(data.error || 'Failed to create booking.');
+        setBookingError(data.error || 'Failed to send request.');
       }
-    } catch (err) {
-      console.error(err);
-      setBookingError('Connection failure scheduling slot.');
+    } catch {
+      setBookingError('Connection failure.');
     }
   };
 
   const fetchConversations = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    setError('');
     try {
       const res = await fetch('/api/v1/conversations', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) {
-        setConversations(data.data || []);
-      } else {
-        setError(data.error || 'Failed to load messages.');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Connection to backend failed. Displaying demo chats.');
-      // Inject demo conversations for local testing fallback
-      setConversations([
-        {
-          _id: 'convo-demo-1',
-          status: 'LOCKED',
-          otherParty: { name: 'Dr. Rahul Sharma', role: 'TUTOR' },
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: 'convo-demo-2',
-          status: 'ACTIVE',
-          otherParty: { name: 'Amit Verma', role: 'TUTOR' },
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+      if (data.success) setConversations(data.data || []);
+    } catch {}
+    setLoading(false);
   }, [token]);
+
+  const fetchMessages = useCallback(
+    async (convoId: string) => {
+      if (!token) return;
+      setLoadingMsgs(true);
+      try {
+        const res = await fetch(`/api/v1/conversations/${convoId}/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) setMessages(data.data || []);
+      } catch {}
+      setLoadingMsgs(false);
+    },
+    [token]
+  );
+
+  // Socket
+  useEffect(() => {
+    if (!token) return;
+    const sock = getSocket(token);
+    sock.auth = { token };
+    if (!sock.connected) sock.connect();
+    socketRef.current = sock;
+
+    sock.on('new_message', (msg: Message) => {
+      if (msg.conversationId === selectedConvo?._id) {
+        setMessages((prev) => {
+          // Remove optimistic duplicate
+          const filtered = prev.filter(
+            (m) => !m._id.startsWith('opt-') || m.content !== msg.content
+          );
+          return [...filtered, msg];
+        });
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === msg.conversationId
+            ? { ...c, lastMessage: msg.content, lastMessageAt: msg.createdAt }
+            : c
+        )
+      );
+    });
+
+    sock.on('typing', ({ conversationId, userId, typing }: any) => {
+      if (conversationId !== selectedConvo?._id || userId === user?.id) return;
+      setTypingUsers((prev) => {
+        const next = new Set(prev);
+        if (typing) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+    });
+
+    sock.on('messages_seen', ({ conversationId }: { conversationId: string }) => {
+      if (conversationId === selectedConvo?._id) {
+        setMessages((prev) =>
+          prev.map((m) => (m.senderUserId === user?.id ? { ...m, seen: true } : m))
+        );
+      }
+    });
+
+    return () => {
+      sock.off('new_message');
+      sock.off('typing');
+      sock.off('messages_seen');
+    };
+  }, [token, user?.id, selectedConvo?._id]);
 
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  useEffect(() => {
+    if (selectedConvo) {
+      setMessages([]);
+      fetchMessages(selectedConvo._id);
+      socketRef.current?.emit('join_room', selectedConvo._id);
+    }
+    return () => {
+      if (selectedConvo) socketRef.current?.emit('leave_room', selectedConvo._id);
+    };
+  }, [selectedConvo?._id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim() || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    const optimistic: Message = {
+      _id: `opt-${Date.now()}`,
+      conversationId: selectedConvo._id,
+      senderUserId: user?.id || '',
+      content: inputValue.trim(),
+      seen: false,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    socketRef.current?.emit('send_message', {
+      conversationId: selectedConvo._id,
+      content: inputValue.trim(),
+    });
+    socketRef.current?.emit('typing_stop', selectedConvo._id);
+    setInputValue('');
   };
+
+  const handleInputChange = (val: string) => {
+    setInputValue(val);
+    if (!selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    socketRef.current?.emit('typing_start', selectedConvo._id);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit('typing_stop', selectedConvo._id);
+    }, 1500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const messageGroups = groupMessagesByDate(messages);
 
   return (
     <div className="flex h-[calc(100vh-8.5rem)] bg-white border border-[#dadee2] rounded-3xl overflow-hidden shadow-sm">
-      {/* Sidebar List */}
+      {/* Sidebar */}
       <div
-        className={`w-full md:w-80 border-r border-[#dadee2] flex flex-col bg-[#FAFAFA] shrink-0 ${
-          showMobileChat ? 'hidden md:flex' : 'flex'
-        }`}
+        className={`w-full md:w-80 border-r border-[#dadee2] flex flex-col bg-[#FAFAFA] shrink-0 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}
       >
         <div className="p-4 border-b border-[#dadee2]">
           <h2 className="text-md font-extrabold text-[#2d2d2d] flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-[#00A453]" /> Conversations
           </h2>
-          <p className="text-[10px] text-[#647380] mt-1">
-            Accept proposals to activate conversations
+          <p className="text-xs text-[#647380] mt-0.5">
+            Conversations open after you accept a tutor's proposal.
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {loading && conversations.length === 0 ? (
             <div className="space-y-1 p-2">
               {[1, 2, 3, 4].map((idx) => (
@@ -165,7 +313,7 @@ export default function MessagesPage() {
           ) : conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#647380] mt-12 gap-3">
               <Compass className="w-8 h-8 text-gray-300" />
-              <span>No conversations initiated yet.</span>
+              <span>No chats yet — accept a tutor proposal to start talking.</span>
             </div>
           ) : (
             conversations.map((convo) => {
@@ -179,18 +327,23 @@ export default function MessagesPage() {
                   }}
                   className={`w-full p-3.5 rounded-2xl text-left flex items-start gap-3 transition-all ${
                     isSelected
-                      ? 'bg-white shadow-sm border border-[#dadee2] scale-[1.01]'
+                      ? 'bg-white shadow-sm border border-[#dadee2]'
                       : 'hover:bg-gray-100 border border-transparent'
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/25 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-[#00A453]">
-                      {getInitials(convo.otherParty.name)}
-                    </span>
+                  <div className="relative shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/25 flex items-center justify-center">
+                      <span className="text-xs font-bold text-[#00A453]">
+                        {getInitials(convo.otherParty.name)}
+                      </span>
+                    </div>
+                    {convo.status === 'ACTIVE' && (
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00A453] border-2 border-white rounded-full" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs text-[#2d2d2d] truncate block">
+                      <span className="font-extrabold text-xs text-[#2d2d2d] truncate">
                         {convo.otherParty.name}
                       </span>
                       {convo.status === 'LOCKED' ? (
@@ -203,15 +356,12 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-[#647380] capitalize mt-0.5 block">
-                      {convo.otherParty.role.toLowerCase()}
-                    </span>
-                    <span className="text-[9px] text-[#b0b8c1] block mt-1">
-                      {new Date(convo.createdAt).toLocaleDateString([], {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
+                    <p className="text-[10px] text-[#647380] truncate mt-0.5">
+                      {convo.lastMessage ||
+                        (convo.status === 'ACTIVE'
+                          ? 'Start a conversation...'
+                          : 'Awaiting acceptance')}
+                    </p>
                   </div>
                 </button>
               );
@@ -225,9 +375,9 @@ export default function MessagesPage() {
         className={`flex-1 flex flex-col bg-white ${showMobileChat ? 'flex' : 'hidden md:flex'}`}
       >
         {selectedConvo ? (
-          <div className="flex-1 flex flex-col h-full">
-            {/* Header info */}
-            <div className="p-4 border-b border-[#dadee2] bg-[#FAFAFA] flex items-center justify-between animate-fadeIn">
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-[#dadee2] bg-[#FAFAFA] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowMobileChat(false)}
@@ -235,102 +385,192 @@ export default function MessagesPage() {
                 >
                   <ChevronLeft className="w-5 h-5 text-[#00A453] stroke-[3]" />
                 </button>
-                <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-[#00A453]">
-                    {getInitials(selectedConvo.otherParty.name)}
-                  </span>
+                <div className="relative">
+                  <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-[#00A453]">
+                      {getInitials(selectedConvo.otherParty.name)}
+                    </span>
+                  </div>
+                  {selectedConvo.status === 'ACTIVE' && (
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#00A453] border border-white rounded-full" />
+                  )}
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-[#2d2d2d]">
                     {selectedConvo.otherParty.name}
                   </h3>
-                  <span className="text-[10px] text-[#647380] capitalize">
-                    {selectedConvo.otherParty.role.toLowerCase()}
-                  </span>
+                  {typingUsers.size > 0 ? (
+                    <span className="text-[10px] text-[#00A453] font-semibold">typing...</span>
+                  ) : (
+                    <span className="text-[10px] text-[#647380] capitalize">
+                      {selectedConvo.otherParty.role.toLowerCase()}
+                    </span>
+                  )}
                 </div>
               </div>
-
               <div className="flex items-center gap-2">
                 {selectedConvo.status === 'ACTIVE' && user?.role === 'STUDENT' && (
                   <Button
                     onClick={() => setIsBookingOpen(true)}
                     className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-xs h-9 px-4 rounded-xl flex items-center gap-1.5"
                   >
-                    <PlusCircle className="w-4 h-4" /> Book Class / Demo
+                    <PlusCircle className="w-4 h-4" /> Book Class
                   </Button>
                 )}
-
                 {selectedConvo.status === 'LOCKED' && (
                   <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
-                    <Lock className="w-3.5 h-3.5" /> Locked State
+                    <Lock className="w-3.5 h-3.5" /> Locked
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Chat Body */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center bg-gray-50/50">
+            {/* Messages area */}
+            <div className="flex-1 overflow-y-auto bg-[#f0f2f5] px-4 py-4 flex flex-col gap-1">
               {selectedConvo.status === 'LOCKED' ? (
-                <div className="max-w-md w-full bg-white border border-[#dadee2] rounded-3xl p-8 text-center shadow-sm space-y-4">
-                  <div className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mx-auto text-amber-500">
-                    <Lock className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <h4 className="text-sm font-extrabold text-[#2d2d2d]">Conversation Locked</h4>
-                    <p className="text-xs text-[#647380] leading-relaxed">
-                      This chat shell has been registered. Tutors and students cannot exchange
-                      messages until the student **Accepts** the tutor's proposal.
-                    </p>
-                  </div>
-                  <div className="bg-[#FAFAFA] border border-[#dadee2] rounded-2xl p-4 flex gap-3 text-left">
-                    <Shield className="w-5 h-5 text-[#00A453] shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-xs font-extrabold text-[#2d2d2d] block">
-                        Safety & Booking Checks
-                      </span>
-                      <span className="text-[10px] text-[#647380] block mt-0.5 leading-normal">
-                        We lock conversations during evaluation to prevent off-platform hires,
-                        keeping students protected under the Tutor hiring policy.
-                      </span>
+                <div className="flex items-center justify-center h-full">
+                  <div className="max-w-md w-full bg-white border border-[#dadee2] rounded-3xl p-8 text-center shadow-sm space-y-4">
+                    <div className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mx-auto text-amber-500">
+                      <Lock className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">
+                        Chat Unlocks After Acceptance
+                      </h4>
+                      <p className="text-xs text-[#647380] leading-relaxed">
+                        Once you accept the tutor&apos;s proposal, you&apos;ll be able to chat
+                        directly.
+                      </p>
+                    </div>
+                    <div className="bg-[#FAFAFA] border border-[#dadee2] rounded-2xl p-4 flex gap-3 text-left">
+                      <Shield className="w-5 h-5 text-[#00A453] shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-extrabold text-[#2d2d2d] block">
+                          Safety & Booking Checks
+                        </span>
+                        <span className="text-[10px] text-[#647380] block mt-0.5 leading-normal">
+                          We lock conversations during evaluation to keep students protected.
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center space-y-3">
-                  <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto text-emerald-500">
-                    <MessageSquare className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#2d2d2d]">Conversation Active</h4>
-                    <p className="text-xs text-[#647380] mt-1">
-                      You are now ready to chat and negotiate schedules.
-                    </p>
-                  </div>
-                  <div className="text-[10px] text-[#b0b8c1] italic">
-                    Real-time messaging backend channels will be implemented in Phase 6.
+              ) : loadingMsgs ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="w-6 h-6 border-2 border-[#00A453] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center space-y-2">
+                    <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto text-emerald-500">
+                      <MessageSquare className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-extrabold text-[#2d2d2d]">Conversation Active</p>
+                    <p className="text-xs text-[#647380]">Send a message to get started!</p>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {messageGroups.map((group) => (
+                    <React.Fragment key={group.date}>
+                      {/* Date separator */}
+                      <div className="flex items-center justify-center my-3">
+                        <span className="text-[10px] font-semibold text-gray-400 bg-[#f0f2f5] px-3 py-1 rounded-full border border-gray-200/60">
+                          {group.date}
+                        </span>
+                      </div>
+                      {group.messages.map((msg, i) => {
+                        const isMine = msg.senderUserId === user?.id;
+                        const isLast = i === group.messages.length - 1;
+                        const nextMsg = group.messages[i + 1];
+                        const showTime =
+                          isLast ||
+                          !nextMsg ||
+                          new Date(nextMsg.createdAt).getTime() -
+                            new Date(msg.createdAt).getTime() >
+                            5 * 60 * 1000;
+                        return (
+                          <div
+                            key={msg._id}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-0.5`}
+                          >
+                            <div
+                              className={`max-w-[65%] px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
+                                isMine
+                                  ? 'bg-[#00A453] text-white rounded-2xl rounded-br-sm'
+                                  : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                            {showTime && (
+                              <div
+                                className={`flex items-center gap-1 mt-0.5 ${isMine ? 'flex-row-reverse' : ''}`}
+                              >
+                                <span className="text-[9px] text-gray-400">
+                                  {formatTime(msg.createdAt)}
+                                </span>
+                                {isMine && (
+                                  <span className={msg.seen ? 'text-[#00A453]' : 'text-gray-400'}>
+                                    {msg.seen ? (
+                                      <CheckCheck className="w-3 h-3" />
+                                    ) : (
+                                      <Check className="w-3 h-3" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                  {typingUsers.size > 0 && (
+                    <div className="flex items-start mt-1">
+                      <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border border-gray-100 flex gap-1 items-center">
+                        <span
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: '0ms' }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: '150ms' }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: '300ms' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </>
               )}
             </div>
 
             {/* Input bar */}
-            <div className="p-4 border-t border-[#dadee2] bg-white flex gap-2">
+            <div className="p-3 border-t border-[#dadee2] bg-white flex gap-2 items-center shrink-0">
               <input
                 type="text"
                 disabled={selectedConvo.status === 'LOCKED'}
                 placeholder={
                   selectedConvo.status === 'LOCKED'
-                    ? 'Accept this proposal to unlock chat...'
+                    ? 'Accept proposal to unlock chat...'
                     : 'Type a message...'
                 }
-                className="flex-1 bg-gray-50 border border-[#dadee2] rounded-xl px-4 text-xs focus:outline-none focus:border-[#00A453] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                value={inputValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 bg-[#f0f2f5] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
               />
-              <Button
-                disabled={selectedConvo.status === 'LOCKED'}
-                className="bg-[#00A453] hover:bg-[#008A45] text-white px-4 rounded-xl flex items-center gap-1.5 text-xs h-10 font-bold shrink-0 disabled:opacity-50"
+              <button
+                onClick={handleSendMessage}
+                disabled={selectedConvo.status === 'LOCKED' || !inputValue.trim()}
+                className="w-10 h-10 rounded-full bg-[#00A453] flex items-center justify-center disabled:opacity-40 hover:bg-[#008A45] transition-colors shrink-0"
               >
-                Send <Send className="w-3 h-3" />
-              </Button>
+                <Send className="w-4 h-4 text-white" />
+              </button>
             </div>
           </div>
         ) : (
@@ -339,20 +579,19 @@ export default function MessagesPage() {
             <div>
               <h3 className="text-sm font-extrabold text-[#2d2d2d]">Select a Conversation</h3>
               <p className="text-xs text-[#647380] mt-1 max-w-xs">
-                Pick a tutor or student conversation from the sidebar list to see details and
-                status.
+                Pick a conversation from the sidebar to start chatting.
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Booking Modal */}
+      {/* Session Request Modal */}
       {isBookingOpen && (
         <div className="fixed inset-0 bg-[#00060c]/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-[#dadee2] rounded-3xl p-6 w-full max-w-md shadow-xl space-y-4 animate-scaleUp text-left">
             <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <h3 className="text-md font-extrabold text-gray-950">Book Class with Tutor</h3>
+              <h3 className="text-md font-extrabold text-gray-950">Request a Session</h3>
               <button
                 onClick={() => {
                   setIsBookingOpen(false);
@@ -365,12 +604,39 @@ export default function MessagesPage() {
               </button>
             </div>
 
+            {/* Session type selector */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFirstSession(true)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isFirstSession
+                    ? 'border-purple-300 bg-purple-50 text-purple-700'
+                    : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                }`}
+              >
+                <p className="text-xs font-extrabold">✦ Trial Class</p>
+                <p className="text-[10px] mt-0.5 opacity-70">First session to evaluate fit</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFirstSession(false)}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  !isFirstSession
+                    ? 'border-blue-300 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                }`}
+              >
+                <p className="text-xs font-extrabold">Regular Session</p>
+                <p className="text-[10px] mt-0.5 opacity-70">Ongoing tutoring session</p>
+              </button>
+            </div>
+
             {bookingError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-semibold text-red-700">
                 {bookingError}
               </div>
             )}
-
             {bookingMsg && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-semibold text-emerald-700">
                 {bookingMsg}
@@ -380,21 +646,18 @@ export default function MessagesPage() {
             <form onSubmit={handleCreateBooking} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">
-                    Class Date
-                  </label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Date</label>
                   <input
                     type="date"
                     required
+                    min={new Date().toISOString().split('T')[0]}
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
                     className="w-full bg-gray-50 border border-[#dadee2] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00A453]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">
-                    Class Time
-                  </label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Time</label>
                   <input
                     type="time"
                     required
@@ -404,59 +667,29 @@ export default function MessagesPage() {
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">
-                    Class Type
-                  </label>
-                  <select
-                    value={bookingType}
-                    onChange={(e) => setBookingType(e.target.value as any)}
-                    className="w-full bg-gray-50 border border-[#dadee2] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00A453]"
-                  >
-                    <option value="DEMO">Demo Lecture (Free/Paid)</option>
-                    <option value="REGULAR">Regular Session</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">
-                    Proposed Rate (₹/hr)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={bookingRate}
-                    onChange={(e) => setBookingRate(e.target.value)}
-                    className="w-full bg-gray-50 border border-[#dadee2] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00A453]"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase">
-                  Covering Topics / Notes
+                  Topics / Notes (optional)
                 </label>
                 <textarea
-                  placeholder="E.g. We will discuss class 12 integration topics, please bring formulas sheet."
+                  placeholder="e.g. Class 12 integration chapter, NCERT Exercise 7.1"
                   value={bookingNotes}
                   onChange={(e) => setBookingNotes(e.target.value)}
-                  className="w-full bg-gray-50 border border-[#dadee2] rounded-xl px-3 py-2 text-xs h-20 focus:outline-none focus:border-[#00A453] resize-none"
+                  className="w-full bg-gray-50 border border-[#dadee2] rounded-xl px-3 py-2 text-xs h-16 focus:outline-none focus:border-[#00A453] resize-none"
                 />
               </div>
-
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-1">
                 <Button
                   type="submit"
                   className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-xs h-10 rounded-xl flex-1"
                 >
-                  Send Booking Request
+                  Send {isFirstSession ? 'Trial' : 'Session'} Request
                 </Button>
                 <Button
                   type="button"
                   onClick={() => setIsBookingOpen(false)}
                   variant="secondary"
-                  className="border border-gray-250 text-gray-700 hover:bg-gray-50 font-bold text-xs h-10 rounded-xl px-4"
+                  className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-xs h-10 rounded-xl px-4"
                 >
                   Cancel
                 </Button>

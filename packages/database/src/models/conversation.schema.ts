@@ -6,6 +6,8 @@ export interface IConversation extends Document {
   tutorUserId: string;
   applicationId: string;
   status: 'LOCKED' | 'ACTIVE';
+  lastMessage?: string;
+  lastMessageAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +25,8 @@ const ConversationSchema = new Schema<IConversation>(
       required: true,
       index: true,
     },
+    lastMessage: { type: String },
+    lastMessageAt: { type: Date },
   },
   {
     timestamps: true,

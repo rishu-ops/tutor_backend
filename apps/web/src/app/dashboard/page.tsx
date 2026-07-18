@@ -424,11 +424,10 @@ export default function DashboardPage() {
             <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
               Featured Tutors
             </h3>
-            <Link
-              href="/dashboard/tutors"
-              className="text-[10px] font-bold text-[#00A453] hover:underline"
-            >
-              View All
+            <Link href="/dashboard/tutors">
+              <span className="text-xs text-[#00A453] font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                View All <ArrowRight className="w-3.5 h-3.5" />
+              </span>{' '}
             </Link>
           </div>
           <div className="flex flex-col gap-3">
@@ -474,7 +473,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-[#dadee2] rounded-[14px] p-8 space-y-6">
           <div className="flex items-start justify-between">
             <div className="space-y-1.5">
-              <span className="text-xs font-extrabold tracking-wider text-[#2d2d2d]">
+              <span className="text-base font-semibold tracking-wider text-[#2d2d2d]">
                 Active Requirement
               </span>
               <h2 className="text-lg font-extrabold text-[#2d2d2d]">
@@ -629,11 +628,11 @@ export default function DashboardPage() {
             {displayTutors.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white border border-[#dadee2] rounded-[14px] flex overflow-hidden hover:shadow-md transition-shadow"
+                className="bg-white border border-[#dadee2] hover:border-[#00A453] rounded-2xl flex overflow-hidden hover:shadow-md transition-all duration-200"
               >
                 {/* Right content side */}
-                <div className="flex-1 p-5 space-y-4">
-                  <div className="flex justify-between w-full items-start">
+                <div className="flex-1 p-6 space-y-4">
+                  <div className="flex justify-between w-full items-start gap-4">
                     <div className="flex items-center gap-3">
                       {/* Avatar */}
                       <div className="w-10 h-10 bg-black text-white font-extrabold rounded-full flex items-center justify-center text-xs uppercase shrink-0">
@@ -647,19 +646,21 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
+                          <h4 className="text-sm font-extrabold text-[#2d2d2d] leading-none">
+                            {tutor.name}
+                          </h4>
                           {tutor.verified !== false && (
                             <ShieldCheck className="w-4 h-4 text-white fill-black shrink-0" />
                           )}
                         </div>
-                        <p className="text-[11px] text-[#647380] font-semibold mt-0.5">
+                        <p className="text-[11px] text-[#647380] font-semibold mt-1">
                           {tutor.qualifications?.join(', ') || tutor.qualifications?.[0] || 'PhD'} ·{' '}
                           {tutor.experience || '8 Years'} Experience
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-[10px] text-emerald-600 font-extrabold bg-[#e6f6ee] px-2.5 py-1 rounded-md border border-[#b2e2cb] uppercase tracking-wider">
+                      <div className="inline-flex items-center text-xs font-bold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full">
                         Active Match
                       </div>
                       <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
@@ -668,49 +669,46 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-b border-[#dadee2]/60" />
+                  <div className="border-b border-gray-150" />
 
                   {/* Highlighted match detail lists */}
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs font-semibold text-[#647380]">
-                    <div className="flex items-center gap-1.5">
-                      <BookOpenCheck className="h-4 text-[#00A453] shrink-0" />
-                      <span>Matched for:</span>
-                      <span className="font-extrabold text-[#2d2d2d]">
-                        {tutor.subjectName || 'Physics (Class 12)'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <IndianRupee className="w-4 h-4 text-[#00A453] shrink-0" />
-                      <span>Proposed rate:</span>
-                      <span className="font-extrabold text-[#2d2d2d]">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#647380] font-bold">
+                    <span className="flex items-center gap-1 bg-gray-50 border border-gray-150 rounded-full px-3 py-1">
+                      <BookOpenCheck className="w-3.5 h-3.5 text-gray-400" />
+                      Matched for:{' '}
+                      <strong className="text-[#2d2d2d] font-extrabold">
+                        {tutor.subjectName || 'Physics'}
+                      </strong>
+                    </span>
+                    <span className="flex items-center gap-1 bg-gray-50 border border-gray-150 rounded-full px-3 py-1">
+                      <IndianRupee className="w-3.5 h-3.5 text-gray-400" />
+                      Proposed rate:{' '}
+                      <strong className="text-[#2d2d2d] font-extrabold">
                         ₹{tutor.hourlyRate || tutor.pricing?.min || 800}/hr
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Video className="w-4 text-[#00A453] shrink-0" />
-                      <span>Format:</span>
-                      <span className="font-extrabold text-[#2d2d2d]">
+                      </strong>
+                    </span>
+                    <span className="flex items-center gap-1 bg-gray-50 border border-gray-150 rounded-full px-3 py-1">
+                      <Video className="w-3.5 h-3.5 text-gray-400" />
+                      Format:{' '}
+                      <strong className="text-[#2d2d2d] font-extrabold">
                         {tutor.teachingMode?.join('/') || 'Online/Home'}
-                      </span>
-                    </div>
+                      </strong>
+                    </span>
                   </div>
 
-                  <div className="border-b border-[#dadee2]/60" />
+                  <div className="border-b border-gray-150" />
 
                   {/* Bottom Actions button bar */}
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Link href="/dashboard/messages">
-                        <Button
-                          variant="secondary"
-                          className="h-8 px-3 text-xs font-extrabold  bg-white text-[#2d2d2d] hover:bg-gray-50 rounded-xl flex items-center gap-1.5 "
-                        >
-                          <MessageSquareText className="w-4 h-4  shrink-0" />
+                        <Button variant="secondary" size="sm" className="flex items-center gap-1.5">
+                          <MessageSquareText className="w-3.5 h-3.5 shrink-0" />
                           Message
                         </Button>
                       </Link>
-                      <Button className="bg-[#00060c] hover:bg-slate-800 text-white font-extrabold text-xs h-8 px-3 rounded-xl flex items-center gap-1 ">
-                        Rate Tutor <ArrowUpRight className="w-4 h-4" />
+                      <Button variant="dark" size="sm" className="flex items-center gap-1">
+                        Rate Tutor <ArrowUpRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -830,7 +828,7 @@ export default function DashboardPage() {
           </div>
           <Link href="/dashboard/requirements/browse" className="block">
             <Button className="bg-[#00A453] hover:bg-[#008A45] text-white text-[10px] font-bold px-6 rounded-xl h-9">
-              View Student Requirements Marketplace
+              Browse Open Requests
             </Button>
           </Link>
         </div>
@@ -891,9 +889,9 @@ export default function DashboardPage() {
         <div className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm space-y-5">
           <div className="space-y-1">
             <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#647380]">
-              Application Analytics
+              Your Proposals
             </span>
-            <h2 className="text-base font-extrabold text-[#2d2d2d]">Applications Tracking</h2>
+            <h2 className="text-base font-extrabold text-[#2d2d2d]">Application Tracker</h2>
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -921,7 +919,7 @@ export default function DashboardPage() {
         {/* My Applications List */}
         <div className="space-y-4">
           <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
-            Submitted Applications
+            My Proposals
           </h3>
           <div className="bg-white border border-[#dadee2] rounded-3xl divide-y divide-gray-100 overflow-hidden shadow-sm">
             {tutorApplications.map((app) => (
@@ -931,17 +929,31 @@ export default function DashboardPage() {
                     {app.requirementId?.curriculum?.subject || 'Class Subject'}
                   </h4>
                   <span className="text-[9px] text-[#647380] capitalize mt-0.5 block">
-                    Status: {app.status?.toLowerCase()}
+                    {app.status === 'PENDING'
+                      ? 'Awaiting decision'
+                      : app.status === 'ACCEPTED'
+                        ? 'Accepted ✓'
+                        : app.status === 'REJECTED'
+                          ? 'Not selected'
+                          : app.status?.toLowerCase()}
                   </span>
                 </div>
                 <span
                   className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full ${
                     app.status === 'ACCEPTED'
                       ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-gray-50 text-gray-500'
+                      : app.status === 'REJECTED'
+                        ? 'bg-red-50 text-red-500'
+                        : 'bg-gray-50 text-gray-500'
                   }`}
                 >
-                  {app.status}
+                  {app.status === 'PENDING'
+                    ? 'Pending'
+                    : app.status === 'ACCEPTED'
+                      ? 'Accepted'
+                      : app.status === 'REJECTED'
+                        ? 'Not Selected'
+                        : app.status}
                 </span>
               </div>
             ))}

@@ -29,10 +29,11 @@ export default function ApplyModal({
 }: ApplyModalProps) {
   const token = useAuthStore((s) => s.accessToken);
 
-  // Form states
   const [introduction, setIntroduction] = useState('');
   const [proposedFee, setProposedFee] = useState(defaultBudgetMin.toString());
-  const [availableTimings, setAvailableTimings] = useState('');
+  const [selectedDay, setSelectedDay] = useState('Weekdays (Mon-Fri)');
+  const [startTime, setStartTime] = useState('4:00 PM');
+  const [endTime, setEndTime] = useState('7:00 PM');
   const [freeDemo, setFreeDemo] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -69,7 +70,8 @@ export default function ApplyModal({
       setError('Please propose a positive hourly fee');
       return;
     }
-    if (!availableTimings.trim()) {
+    const finalTimings = `${selectedDay}, ${startTime} - ${endTime}`;
+    if (!finalTimings.trim()) {
       setError('Please state your available timings');
       return;
     }
@@ -85,7 +87,7 @@ export default function ApplyModal({
       const payload = {
         introduction: introduction.trim(),
         proposedFee: Number(proposedFee),
-        availableTimings: availableTimings.trim(),
+        availableTimings: finalTimings,
         freeDemo,
         message: message.trim(),
       };
@@ -111,22 +113,22 @@ export default function ApplyModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#00060c]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-[#00060c]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl flex flex-col max-h-[90vh] animate-fadeIn">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-extrabold text-[#2d2d2d] flex items-center gap-1.5">
-              <Sparkles className="w-5 h-5 text-[#00A453]" /> Submit Proposal
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+              Submit Proposal
             </h2>
-            <span className="text-xs text-[#647380] font-semibold block mt-0.5">
+            <span className="text-xs text-gray-500 font-semibold block mt-0.5">
               Subject: {requirementSubject || requirementCategory} (Budget: ₹{defaultBudgetMin} - ₹
               {defaultBudgetMax}/hr)
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -136,8 +138,8 @@ export default function ApplyModal({
         {done ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
             <CheckCircle2 className="w-16 h-16 text-[#00A453] animate-bounce" />
-            <h3 className="text-lg font-extrabold text-[#2d2d2d]">Proposal Sent!</h3>
-            <p className="text-xs text-[#647380] max-w-xs mx-auto">
+            <h3 className="text-base font-bold text-gray-900">Proposal Sent!</h3>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
               Your tutoring proposal has been successfully delivered to the student. You will be
               notified when they review it.
             </p>
@@ -145,17 +147,17 @@ export default function ApplyModal({
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto p-6 space-y-4 text-[#2d2d2d]"
+            className="flex-1 overflow-y-auto p-6 space-y-4 text-gray-700"
           >
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-xs font-semibold">
+              <div className="bg-red-50 border border-red-200 text-red-650 rounded-lg p-3 text-xs font-semibold">
                 ⚠️ {error}
               </div>
             )}
 
             {/* Profile Intro */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#647380] uppercase tracking-wider">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700">
                 Introduction / Bio
               </label>
               <textarea
@@ -163,59 +165,138 @@ export default function ApplyModal({
                 value={introduction}
                 onChange={(e) => setIntroduction(e.target.value)}
                 placeholder="Prefilled bio details from profile..."
-                className="w-full text-xs border border-[#dadee2] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00A453] resize-none"
+                className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 resize-none transition-all placeholder:text-gray-400"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Proposed Hourly Fee */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#647380] uppercase tracking-wider">
-                  Proposed Fee (₹/Hr)
-                </label>
-                <input
-                  type="number"
-                  value={proposedFee}
-                  onChange={(e) => setProposedFee(e.target.value)}
-                  className="w-full text-xs border border-[#dadee2] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00A453]"
-                />
-              </div>
+            {/* Proposed Hourly Fee */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700">
+                Proposed Fee (₹/Hr)
+              </label>
+              <input
+                type="number"
+                value={proposedFee}
+                onChange={(e) => setProposedFee(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 transition-all"
+              />
+            </div>
 
-              {/* Timing availability */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#647380] uppercase tracking-wider">
-                  Available Timings
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Weekdays 4-7 PM"
-                  value={availableTimings}
-                  onChange={(e) => setAvailableTimings(e.target.value)}
-                  className="w-full text-xs border border-[#dadee2] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00A453]"
-                />
+            {/* Timing selection selectors */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-gray-700">Available Timings</label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Day Select */}
+                <div className="space-y-1">
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Day Preference
+                  </span>
+                  <select
+                    value={selectedDay}
+                    onChange={(e) => setSelectedDay(e.target.value)}
+                    className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 transition-all cursor-pointer"
+                  >
+                    <option value="Weekdays (Mon-Fri)">Weekdays (Mon-Fri)</option>
+                    <option value="Weekends (Sat-Sun)">Weekends (Sat-Sun)</option>
+                    <option value="Everyday">Everyday</option>
+                    <option value="Mondays">Mondays</option>
+                    <option value="Tuesdays">Tuesdays</option>
+                    <option value="Wednesdays">Wednesdays</option>
+                    <option value="Thursdays">Thursdays</option>
+                    <option value="Fridays">Fridays</option>
+                    <option value="Saturdays">Saturdays</option>
+                    <option value="Sundays">Sundays</option>
+                  </select>
+                </div>
+
+                {/* Start Time Select */}
+                <div className="space-y-1">
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Start Time
+                  </span>
+                  <select
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 transition-all cursor-pointer"
+                  >
+                    {[
+                      '8:00 AM',
+                      '9:00 AM',
+                      '10:00 AM',
+                      '11:00 AM',
+                      '12:00 PM',
+                      '1:00 PM',
+                      '2:00 PM',
+                      '3:00 PM',
+                      '4:00 PM',
+                      '5:00 PM',
+                      '6:00 PM',
+                      '7:00 PM',
+                      '8:00 PM',
+                    ].map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* End Time Select */}
+                <div className="space-y-1">
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    End Time
+                  </span>
+                  <select
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 transition-all cursor-pointer"
+                  >
+                    {[
+                      '9:00 AM',
+                      '10:00 AM',
+                      '11:00 AM',
+                      '12:00 PM',
+                      '1:00 PM',
+                      '2:00 PM',
+                      '3:00 PM',
+                      '4:00 PM',
+                      '5:00 PM',
+                      '6:00 PM',
+                      '7:00 PM',
+                      '8:00 PM',
+                      '9:00 PM',
+                      '10:00 PM',
+                    ].map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Demo Class Options */}
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-2 py-1 select-none">
               <input
                 id="freeDemo"
                 type="checkbox"
                 checked={freeDemo}
                 onChange={(e) => setFreeDemo(e.target.checked)}
-                className="w-4 h-4 text-[#00A453] border-gray-300 rounded focus:ring-[#00A453]"
+                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
               />
               <label
                 htmlFor="freeDemo"
-                className="text-xs font-bold text-[#384148] cursor-pointer select-none"
+                className="text-xs font-semibold text-gray-700 cursor-pointer"
               >
                 🙋 I am offering a free 30-minute demo class
               </label>
             </div>
 
             {/* Personalized Message */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#647380] uppercase tracking-wider">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700">
                 Personalized Message to Student
               </label>
               <textarea
@@ -223,28 +304,27 @@ export default function ApplyModal({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Explain why you are the best fit for this role. List your class benchmarks or relevant success achievements."
-                className="w-full text-xs border border-[#dadee2] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00A453] resize-none"
+                className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 resize-none transition-all placeholder:text-gray-400"
               />
             </div>
 
             {/* Submitting CTAs */}
-            <div className="pt-3 border-t border-gray-50 flex items-center justify-end gap-2.5">
-              <Button
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
+              <button
                 type="button"
-                variant="secondary"
                 onClick={onClose}
-                className="border-[#dadee2] text-xs font-semibold py-2.5 bg-white"
+                className="h-9 px-4 border border-gray-300 rounded-lg text-xs font-semibold text-gray-750 bg-white hover:bg-gray-50 transition-all cursor-pointer"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[#00060c] hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-4 rounded-lg flex items-center gap-1.5"
+                className="h-9 px-4 bg-[#00A453] hover:bg-[#008f47] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
               >
                 {submitting ? 'Sending...' : 'Send Application'}
                 <Send className="w-3.5 h-3.5" />
-              </Button>
+              </button>
             </div>
           </form>
         )}

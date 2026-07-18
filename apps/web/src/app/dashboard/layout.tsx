@@ -8,6 +8,7 @@ import { authApi, notificationApi } from '@/lib/api';
 import { ROUTES } from '@/lib/constants';
 import { ChevronDown, Bell } from 'lucide-react';
 import { registerAuthErrorHandler, unregisterAuthErrorHandler } from '@/lib/auth-error-handler';
+import FloatingChatWidget from '@/components/sections/FloatingChatWidget';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -208,7 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {notifDropdownOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-white border border-[#dadee2] rounded-xl shadow-lg py-3 z-50 divide-y divide-gray-100">
+                <div className="absolute right-0 top-10 w-80 bg-white border border-[#dadee2]  shadow-sm py-3 z-50 divide-y divide-gray-100">
                   <div className="px-4 pb-2 flex items-center justify-between">
                     <span className="text-xs font-bold text-[#2d2d2d]">Notifications</span>
                     {notifications.some((n) => !n.read) && (
@@ -337,6 +338,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex max-w-[1440px] w-full mx-auto">
         <main className="flex-1 p-8 overflow-y-auto">{children}</main>
       </div>
+
+      {/* Floating chat widget - persists across all dashboard pages */}
+      <FloatingChatWidget />
     </div>
   );
 }
