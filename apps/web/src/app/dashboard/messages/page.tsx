@@ -214,6 +214,11 @@ export default function MessagesPage() {
     if (!sock.connected) sock.connect();
     socketRef.current = sock;
 
+    // Join the conversation room immediately after socket setup
+    if (selectedConvo) {
+      sock.emit('join_room', selectedConvo._id);
+    }
+
     sock.on('new_message', (msg: Message) => {
       if (msg.senderUserId !== user?.id) {
         playMessageSound('received');
@@ -236,6 +241,28 @@ export default function MessagesPage() {
       );
     });
 
+    // Also handle message_notification (when the other user sends a message to us)
+    sock.on('message_notification', (notif: any) => {
+      if (notif.senderUserId === user?.id) return;
+      playMessageSound('received');
+      // Update conversations list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === notif.conversationId
+            ? { ...c, lastMessage: notif.content, lastMessageAt: notif.createdAt }
+            : c
+        )
+      );
+      // If the notification is for the currently open conversation, add it to messages
+      if (notif.conversationId === selectedConvo?._id) {
+        setMessages((prev) => {
+          const alreadyExists = prev.some((m) => m._id === notif._id);
+          if (alreadyExists) return prev;
+          return [...prev, notif];
+        });
+      }
+    });
+
     sock.on('typing', ({ conversationId, userId, typing }: any) => {
       if (conversationId !== selectedConvo?._id || userId === user?.id) return;
       setTypingUsers((prev) => {
@@ -256,8 +283,13 @@ export default function MessagesPage() {
 
     return () => {
       sock.off('new_message');
+      sock.off('message_notification');
       sock.off('typing');
       sock.off('messages_seen');
+      // Leave the room on cleanup
+      if (selectedConvo) {
+        sock.emit('leave_room', selectedConvo._id);
+      }
     };
   }, [token, user?.id, selectedConvo?._id]);
 
@@ -269,11 +301,7 @@ export default function MessagesPage() {
     if (selectedConvo) {
       setMessages([]);
       fetchMessages(selectedConvo._id);
-      socketRef.current?.emit('join_room', selectedConvo._id);
     }
-    return () => {
-      if (selectedConvo) socketRef.current?.emit('leave_room', selectedConvo._id);
-    };
   }, [selectedConvo?._id]);
 
   useEffect(() => {
