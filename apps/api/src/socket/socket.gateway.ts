@@ -1,5 +1,5 @@
-﻿import { Server, Socket } from 'socket.io';
-import { MessageModel, ConversationModel } from 'database';
+import { Server, Socket } from 'socket.io';
+import { MessageModel, ConversationModel, NotificationModel } from 'database';
 import jwt from 'jsonwebtoken';
 
 interface AuthSocket extends Socket {
@@ -7,6 +7,18 @@ interface AuthSocket extends Socket {
 }
 
 export function initSocketGateway(io: Server): void {
+  // Broadcast general notifications in real-time
+  NotificationModel.schema.post('save', (doc: any) => {
+    io.to(`user:${doc.userId}`).emit('general_notification', {
+      _id: doc._id.toString(),
+      userId: doc.userId,
+      title: doc.title,
+      content: doc.content,
+      read: doc.read,
+      createdAt: doc.createdAt,
+    });
+  });
+
   // Auth middleware: validate JWT on every connection
   io.use((socket: AuthSocket, next) => {
     const token =

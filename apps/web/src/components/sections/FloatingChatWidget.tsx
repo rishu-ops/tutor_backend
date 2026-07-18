@@ -262,11 +262,17 @@ export default function FloatingChatWidget() {
       );
     });
 
+    sock.on('general_notification', (notif: any) => {
+      playMessageSound('received');
+      window.dispatchEvent(new CustomEvent('new_general_notification', { detail: notif }));
+    });
+
     return () => {
       sock.off('new_message');
       sock.off('message_notification');
       sock.off('typing');
       sock.off('messages_seen');
+      sock.off('general_notification');
     };
   }, [token, user?.id, openConvoId, isExpanded, conversations]);
 

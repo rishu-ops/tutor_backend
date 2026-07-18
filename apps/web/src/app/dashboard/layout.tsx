@@ -90,6 +90,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Listen for real-time notification events to update the notification bell
+  useEffect(() => {
+    function handleNewNotif() {
+      fetchNotifications();
+    }
+    window.addEventListener('new_general_notification', handleNewNotif);
+    return () => window.removeEventListener('new_general_notification', handleNewNotif);
+  }, [fetchNotifications]);
+
   // Auto-logout when the API returns "Invalid or expired access token"
   useEffect(() => {
     registerAuthErrorHandler(() => {
