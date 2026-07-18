@@ -31,8 +31,8 @@ export function initSocketGateway(io: Server): void {
 
     try {
       const secret = process.env.JWT_SECRET || 'secret';
-      const payload = jwt.verify(token, secret) as { userId: string };
-      socket.userId = payload.userId;
+      const payload = jwt.verify(token, secret) as { sub?: string; userId?: string };
+      socket.userId = payload.sub || payload.userId;
       next();
     } catch {
       return next(new Error('Invalid token'));
