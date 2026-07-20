@@ -6,7 +6,7 @@ import { getSocket } from '@/lib/socket';
 import { Socket } from 'socket.io-client';
 import {
   Lock,
-  MessageSquare,
+  MessageSquareText,
   Shield,
   Send,
   Compass,
@@ -127,6 +127,8 @@ export default function MessagesPage() {
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  // Real-time presence: set of userIds currently online
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   // Booking states
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -268,6 +270,18 @@ export default function MessagesPage() {
       }
     });
 
+    sock.on('user_online', ({ userId: uid }: { userId: string }) => {
+      setOnlineUsers((prev) => new Set(prev).add(uid));
+    });
+
+    sock.on('user_offline', ({ userId: uid }: { userId: string }) => {
+      setOnlineUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
+    });
+
     sock.on('typing', ({ conversationId, userId, typing }: any) => {
       const currentConvo = selectedConvoRef.current;
       if (conversationId !== currentConvo?._id || userId === user?.id) return;
@@ -304,6 +318,8 @@ export default function MessagesPage() {
     return () => {
       sock.off('new_message');
       sock.off('message_notification');
+      sock.off('user_online');
+      sock.off('user_offline');
       sock.off('typing');
       sock.off('messages_seen');
     };
@@ -411,7 +427,7 @@ export default function MessagesPage() {
         <div className="p-4 border-b border-[#dadee2] space-y-3 bg-[#FAFAFA]">
           <div>
             <h2 className="text-base font-extrabold text-[#2d2d2d] flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-[#00A453]" /> Conversations
+              <MessageSquareText className="w-5 h-5 text-[#00A453]" /> Messages
             </h2>
             <p className="text-xs text-[#647380] mt-0.5 font-medium">
               Conversations open after you accept a tutor's proposal.
@@ -420,13 +436,13 @@ export default function MessagesPage() {
 
           {conversations.length > 0 && (
             <div className="relative flex items-center">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#dadee2] rounded-xl pl-9 pr-8 py-1.5 text-xs focus:outline-none focus:border-[#00A453] transition-all font-semibold"
+                className="w-full bg-white border border-[#dadee2] rounded-xl pl-10 pr-8 py-1.5 text-xs focus:outline-none focus:border-[#00A453] transition-all font-semibold"
               />
               {searchQuery && (
                 <button
@@ -491,7 +507,8 @@ export default function MessagesPage() {
                         {getInitials(convo.otherParty.name)}
                       </span>
                     </div>
-                    {convo.status === 'ACTIVE' && (
+                    {/* Only show green dot when the other user is actually online */}
+                    {onlineUsers.has(convo.otherParty.id) && (
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00A453] border-2 border-white rounded-full" />
                     )}
                   </div>
@@ -500,13 +517,10 @@ export default function MessagesPage() {
                       <span className="font-extrabold text-sm text-[#2d2d2d] truncate">
                         {convo.otherParty.name}
                       </span>
-                      {convo.status === 'LOCKED' ? (
+                      {/* Only show lock badge for locked conversations; remove ACTIVE tag */}
+                      {convo.status === 'LOCKED' && (
                         <span className="flex items-center gap-0.5 text-[8px] bg-amber-50 text-amber-600 font-extrabold px-1.5 py-0.5 rounded-full border border-amber-200/50">
                           <Lock className="w-2.5 h-2.5" /> LOCKED
-                        </span>
-                      ) : (
-                        <span className="text-[8px] bg-emerald-50 text-emerald-600 font-extrabold px-1.5 py-0.5 rounded-full border border-emerald-200/50">
-                          ACTIVE
                         </span>
                       )}
                     </div>
@@ -545,7 +559,7 @@ export default function MessagesPage() {
                       {getInitials(selectedConvo.otherParty.name)}
                     </span>
                   </div>
-                  {selectedConvo.status === 'ACTIVE' && (
+                  {onlineUsers.has(selectedConvo.otherParty.id) && (
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#00A453] border border-white rounded-full" />
                   )}
                 </div>
@@ -557,6 +571,8 @@ export default function MessagesPage() {
                     <span className="text-xs text-[#00A453] font-semibold block mt-1">
                       typing...
                     </span>
+                  ) : onlineUsers.has(selectedConvo.otherParty.id) ? (
+                    <span className="text-xs text-[#00A453] font-semibold block mt-1">Online</span>
                   ) : (
                     <span className="text-xs text-[#647380] capitalize block mt-1">
                       {selectedConvo.otherParty.role.toLowerCase()}
@@ -769,7 +785,7 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-3">
-            <MessageSquare className="w-10 h-10 text-gray-300 animate-pulse" />
+            <MessageSquareText className="w-10 h-10 text-gray-300 animate-pulse" />
             <div>
               <h3 className="text-sm font-extrabold text-[#2d2d2d]">Select a Conversation</h3>
               <p className="text-xs text-[#647380] mt-1 max-w-xs">

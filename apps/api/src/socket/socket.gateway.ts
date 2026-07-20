@@ -46,6 +46,28 @@ export function initSocketGateway(io: Server): void {
     // Join personal room to receive direct messages
     socket.join(`user:${userId}`);
 
+    // Broadcast online presence to all conversation partners
+    (async () => {
+      try {
+        const conversations = await ConversationModel.find({
+          $or: [{ studentUserId: userId }, { tutorUserId: userId }],
+        });
+        for (const convo of conversations) {
+          const otherUserId =
+            convo.studentUserId === userId ? convo.tutorUserId : convo.studentUserId;
+          // Notify the other party that this user came online
+          io.to(`user:${otherUserId}`).emit('user_online', { userId });
+          // Check if the other party is online and notify this user
+          const otherSockets = await io.in(`user:${otherUserId}`).fetchSockets();
+          if (otherSockets.length > 0) {
+            socket.emit('user_online', { userId: otherUserId });
+          }
+        }
+      } catch (err) {
+        console.error('[Socket] presence broadcast error:', err);
+      }
+    })();
+
     // ── Join a conversation room ──────────────────────────────────────────
     socket.on('join_room', async (conversationId: string) => {
       try {
@@ -172,21 +194,22 @@ export function initSocketGateway(io: Server): void {
     // ── Disconnect ────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`[Socket] User disconnected: ${userId}`);
-      // Broadcast typing_stop to every room this socket was in so the
-      // other party's typing indicator clears immediately on disconnect
+      // Broadcast typing_stop and offline presence to every room this socket was in
       try {
-        const rooms = Array.from(socket.rooms).filter((r) => r.startsWith('room:'));
-        for (const room of rooms) {
-          const conversationId = room.replace('room:', '');
-          const convo = await ConversationModel.findById(conversationId);
-          if (!convo) continue;
+        const convos = await ConversationModel.find({
+          $or: [{ studentUserId: userId }, { tutorUserId: userId }],
+        });
+        for (const convo of convos) {
           const otherUserId =
             convo.studentUserId === userId ? convo.tutorUserId : convo.studentUserId;
+          // Clear typing indicator
           io.to(`user:${otherUserId}`).emit('typing', {
-            conversationId,
+            conversationId: convo._id.toString(),
             userId,
             typing: false,
           });
+          // Broadcast offline
+          io.to(`user:${otherUserId}`).emit('user_offline', { userId });
         }
       } catch (err) {
         console.error('[Socket] disconnect cleanup error:', err);
