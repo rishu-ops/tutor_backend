@@ -95,10 +95,7 @@ export default function ApplyModal({
       const res = await applicationApi.applyToRequirement(requirementId, payload, token);
       if (res.success) {
         setDone(true);
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 1500);
+        onSuccess();
       } else {
         setError(res.error || res.message || 'Failed to submit proposal.');
       }
@@ -110,39 +107,106 @@ export default function ApplyModal({
     }
   };
 
+  const handleFinishSuccess = () => {
+    setDone(false);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#00060c]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl flex flex-col max-h-[90vh] animate-fadeIn">
+    <div className="fixed inset-0 bg-[#00060c]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn border border-[#dadee2]">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
-              Submit Proposal
-            </h2>
-            <span className="text-xs text-gray-500 font-semibold block mt-0.5">
-              Subject: {requirementSubject || requirementCategory} (Budget: ₹{defaultBudgetMin} - ₹
-              {defaultBudgetMax}/hr)
-            </span>
+        {!done && (
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-[#FAFAFA]">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                Submit Proposal
+              </h2>
+              <span className="text-xs text-gray-500 font-semibold block mt-0.5">
+                Subject: {requirementSubject || requirementCategory} (Budget: ₹{defaultBudgetMin} -
+                ₹{defaultBudgetMax}/hr)
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        )}
 
         {/* Modal Content */}
         {done ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
-            <CheckCircle2 className="w-16 h-16 text-[#00A453] animate-bounce" />
-            <h3 className="text-base font-bold text-gray-900">Proposal Sent!</h3>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-              Your tutoring proposal has been successfully delivered to the student. You will be
-              notified when they review it.
+          <div className="relative overflow-hidden p-8 text-center flex flex-col items-center justify-center space-y-6 bg-gradient-to-b from-[#F0FBF6] via-white to-white">
+            {/* Background ambient lighting effects */}
+            <div className="absolute -top-12 -right-12 w-44 h-44 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Glowing Icon Badge */}
+            <div className="relative">
+              <div className="w-20 h-20 bg-[#e6f6ee] border-2 border-[#00A453]/30 rounded-full flex items-center justify-center mx-auto shadow-inner relative z-10">
+                <CheckCircle2 className="w-10 h-10 text-[#00A453]" />
+              </div>
+              <Sparkles className="w-6 h-6 text-amber-400 absolute -top-1 -right-1 animate-pulse z-20" />
+              <Award className="w-5 h-5 text-[#00A453] absolute -bottom-1 -left-1 z-20" />
+            </div>
+
+            {/* Main Header Text */}
+            <div className="space-y-2 max-w-sm">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] border border-[#b2e2cb] px-3 py-1 rounded-full inline-block">
+                Proposal Delivered 🎉
+              </span>
+              <h3 className="text-xl font-extrabold text-[#1b4332] tracking-tight">
+                Congratulations!
+              </h3>
+              <p className="text-xs text-[#647380] leading-relaxed font-medium">
+                Your tutoring application for{' '}
+                <strong className="text-[#2d2d2d] font-extrabold">
+                  {requirementSubject || requirementCategory}
+                </strong>{' '}
+                has been delivered directly to the student.
+              </p>
+            </div>
+
+            {/* Proposal Summary Chips */}
+            <div className="w-full bg-[#FAFAFA] border border-[#dadee2] rounded-2xl p-4 space-y-2 text-left">
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
+                Proposal Highlights
+              </span>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <div className="bg-white border border-gray-200 px-3 py-1.5 rounded-xl font-bold text-[#2d2d2d] flex items-center gap-1 shadow-2xs">
+                  <span>Proposed Rate:</span>
+                  <span className="text-[#00A453]">₹{proposedFee}/hr</span>
+                </div>
+                {freeDemo && (
+                  <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold text-emerald-700 flex items-center gap-1">
+                    <span>Free Demo Class Offered</span>
+                  </div>
+                )}
+                <div className="bg-white border border-gray-200 px-3 py-1.5 rounded-xl font-medium text-gray-600 truncate max-w-full">
+                  📅 {selectedDay}, {startTime} - {endTime}
+                </div>
+              </div>
+            </div>
+
+            {/* Next Steps Hint */}
+            <p className="text-[11px] text-[#647380] italic">
+              💡 You will receive a real-time notification as soon as the student accepts your
+              proposal!
             </p>
+
+            {/* Action CTAs */}
+            <div className="pt-2 w-full flex items-center justify-center gap-3">
+              <Button
+                onClick={handleFinishSuccess}
+                className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-extrabold text-xs h-11 rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer"
+              >
+                Awesome, Got It!
+              </Button>
+            </div>
           </div>
         ) : (
           <form
