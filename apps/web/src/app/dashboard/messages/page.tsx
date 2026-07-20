@@ -140,6 +140,11 @@ export default function MessagesPage() {
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Always keep a ref to the latest selectedConvo to avoid stale closures in socket handlers
+  const selectedConvoRef = useRef<Conversation | null>(null);
+  useEffect(() => {
+    selectedConvoRef.current = selectedConvo;
+  }, [selectedConvo]);
 
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,7 +211,7 @@ export default function MessagesPage() {
     [token]
   );
 
-  // Socket
+  // Socket — runs once per token/user; reads selectedConvo from ref to avoid stale closures
   useEffect(() => {
     if (!token) return;
     const sock = getSocket(token);
@@ -214,16 +219,12 @@ export default function MessagesPage() {
     if (!sock.connected) sock.connect();
     socketRef.current = sock;
 
-    // Join the conversation room immediately after socket setup
-    if (selectedConvo) {
-      sock.emit('join_room', selectedConvo._id);
-    }
-
     sock.on('new_message', (msg: Message) => {
+      const currentConvo = selectedConvoRef.current;
       if (msg.senderUserId !== user?.id) {
         playMessageSound('received');
       }
-      if (msg.conversationId === selectedConvo?._id) {
+      if (msg.conversationId === currentConvo?._id) {
         setMessages((prev) => {
           // Remove optimistic duplicate
           const filtered = prev.filter(
@@ -241,11 +242,11 @@ export default function MessagesPage() {
       );
     });
 
-    // Also handle message_notification (when the other user sends a message to us)
+    // Also handle message_notification as a fallback
     sock.on('message_notification', (notif: any) => {
+      const currentConvo = selectedConvoRef.current;
       if (notif.senderUserId === user?.id) return;
       playMessageSound('received');
-      // Update conversations list
       setConversations((prev) =>
         prev.map((c) =>
           c._id === notif.conversationId
@@ -253,8 +254,7 @@ export default function MessagesPage() {
             : c
         )
       );
-      // If the notification is for the currently open conversation, add it to messages
-      if (notif.conversationId === selectedConvo?._id) {
+      if (notif.conversationId === currentConvo?._id) {
         setMessages((prev) => {
           const alreadyExists = prev.some((m) => m._id === notif._id);
           if (alreadyExists) return prev;
@@ -264,7 +264,8 @@ export default function MessagesPage() {
     });
 
     sock.on('typing', ({ conversationId, userId, typing }: any) => {
-      if (conversationId !== selectedConvo?._id || userId === user?.id) return;
+      const currentConvo = selectedConvoRef.current;
+      if (conversationId !== currentConvo?._id || userId === user?.id) return;
       setTypingUsers((prev) => {
         const next = new Set(prev);
         if (typing) next.add(userId);
@@ -274,7 +275,8 @@ export default function MessagesPage() {
     });
 
     sock.on('messages_seen', ({ conversationId }: { conversationId: string }) => {
-      if (conversationId === selectedConvo?._id) {
+      const currentConvo = selectedConvoRef.current;
+      if (conversationId === currentConvo?._id) {
         setMessages((prev) =>
           prev.map((m) => (m.senderUserId === user?.id ? { ...m, seen: true } : m))
         );
@@ -286,12 +288,22 @@ export default function MessagesPage() {
       sock.off('message_notification');
       sock.off('typing');
       sock.off('messages_seen');
-      // Leave the room on cleanup
-      if (selectedConvo) {
-        sock.emit('leave_room', selectedConvo._id);
+    };
+  }, [token, user?.id]);
+
+  // Join/leave room when the selected conversation changes
+  useEffect(() => {
+    const sock = socketRef.current;
+    if (!sock) return;
+    if (selectedConvo) {
+      sock.emit('join_room', selectedConvo._id);
+    }
+    return () => {
+      if (selectedConvo && socketRef.current) {
+        socketRef.current.emit('leave_room', selectedConvo._id);
       }
     };
-  }, [token, user?.id, selectedConvo?._id]);
+  }, [selectedConvo?._id]);
 
   useEffect(() => {
     fetchConversations();
