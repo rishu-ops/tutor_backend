@@ -625,9 +625,9 @@ export default function DashboardPage() {
           </h3>
 
           <div className="space-y-6">
-            {displayTutors.map((tutor) => (
+            {displayTutors.map((tutor, idx) => (
               <div
-                key={tutor._id}
+                key={tutor._id || tutor.id || idx}
                 className="bg-white border border-[#dadee2] hover:border-[#00A453] rounded-2xl flex overflow-hidden hover:shadow-md transition-all duration-200"
               >
                 {/* Right content side */}

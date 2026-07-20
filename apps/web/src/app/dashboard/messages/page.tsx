@@ -575,13 +575,53 @@ export default function MessagesPage() {
                   <div className="w-6 h-6 border-2 border-[#00A453] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex flex-col items-center justify-center h-full px-4 space-y-5">
+                  {/* Avatar + greeting */}
                   <div className="text-center space-y-2">
-                    <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto text-emerald-500">
-                      <MessageSquare className="w-6 h-6" />
+                    <div className="w-14 h-14 rounded-full bg-[#e6f6ee] border border-[#00A453]/25 flex items-center justify-center mx-auto shadow-sm">
+                      <span className="text-lg font-extrabold text-[#00A453]">
+                        {getInitials(selectedConvo.otherParty.name)}
+                      </span>
                     </div>
-                    <p className="text-sm font-extrabold text-[#2d2d2d]">Conversation Active</p>
-                    <p className="text-xs text-[#647380]">Send a message to get started!</p>
+                    <p className="text-sm font-extrabold text-[#2d2d2d]">
+                      Say hello to {selectedConvo.otherParty.name}!
+                    </p>
+                    <p className="text-xs text-[#647380] font-medium">
+                      This is the beginning of your conversation. Start with a quick intro below.
+                    </p>
+                  </div>
+
+                  {/* Suggested messages */}
+                  <div className="w-full max-w-sm space-y-2">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[#647380] text-center">
+                      Suggested messages
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {(user?.role === 'STUDENT'
+                        ? [
+                            `Hi! I'm looking forward to working with you.`,
+                            `Can we schedule our first session this week?`,
+                            `What's the best time to connect for a trial class?`,
+                            `Could you share your teaching approach for ${selectedConvo.otherParty.name.split(' ')[0]}'s subject?`,
+                            `I have a few questions before we start. Is now a good time?`,
+                          ]
+                        : [
+                            `Hi! Happy to be connected with you.`,
+                            `When would you like to schedule the first session?`,
+                            `I'd love to understand your learning goals better.`,
+                            `I can start with a free 15-min intro call. Interested?`,
+                            `Feel free to ask me anything about the curriculum!`,
+                          ]
+                      ).map((suggestion, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setInputValue(suggestion)}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white border border-[#dadee2] text-[#2d2d2d] hover:border-[#00A453] hover:text-[#00A453] hover:bg-[#f0fbf6] transition-all duration-150 shadow-sm"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
