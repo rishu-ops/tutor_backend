@@ -963,63 +963,136 @@ export default function DashboardPage() {
     );
   };
 
-  // State 4 — Tutor Accepted
+  // State 4 — Tutor Accepted (keep applying!)
   const renderTutorAccepted = () => {
+    const acceptedApps = tutorApplications.filter((a) => a.status === 'ACCEPTED');
+    const pendingApps = tutorApplications.filter((a) => a.status === 'PENDING');
+
     return (
       <div className="space-y-8">
         {/* Congratulations Banner */}
         <div className="relative overflow-hidden bg-gradient-to-r from-[#F0FBF6] via-[#E6F6EE] to-[#F0FBF6] text-black rounded-3xl p-8 border border-[#b2e2cb]">
-          {/* Abstract background shapes */}
           <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-[#b2e2cb]/30 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute left-1/3 bottom-0 -mb-16 w-48 h-48 bg-[#d1f2e1]/30 rounded-full blur-2xl pointer-events-none" />
-
-          {/* Subtle grid pattern overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#00A45318_1px,transparent_1px),linear-gradient(to_bottom,#00A45318_1px,transparent_1px)] bg-[size:36px_36px] pointer-events-none" />
 
           <div className="relative z-10 space-y-5">
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#00A453] border border-[#b2e2cb] bg-[#e6f6ee] px-3 py-1 rounded-full inline-block">
-                Hired Match
+                {acceptedApps.length} Student{acceptedApps.length !== 1 ? 's' : ''} Hired
               </span>
               <h2 className="text-xl font-extrabold tracking-tight text-[#1b4332] mt-2">
-                Congratulations!
+                Keep Growing Your Classes!
               </h2>
               <p className="text-sm text-[#2d2d2d] leading-relaxed max-w-sm">
-                A student accepted your proposal! Click below to open chat and schedule the first
-                class.
+                You're teaching {acceptedApps.length} student
+                {acceptedApps.length !== 1 ? 's' : ''} — there&apos;s no limit! Keep applying to
+                more open requests below.
               </p>
             </div>
-            <Link href="/dashboard/messages" className="inline-block">
-              <Button className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-[12px] px-6 h-10 rounded-2xl flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
-                Open Chat <MessageSquareText className="w-4 h-4 shrink-0" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Link href="/dashboard/messages" className="inline-block">
+                <Button className="bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-[12px] px-6 h-10 rounded-2xl flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-95">
+                  Open Chat <MessageSquareText className="w-4 h-4 shrink-0" />
+                </Button>
+              </Link>
+              <Link href="/dashboard/requirements/browse" className="inline-block">
+                <Button className="bg-white border border-[#b2e2cb] text-[#00A453] font-bold text-[12px] px-6 h-10 rounded-2xl hover:bg-[#f0fbf6] transition-transform hover:scale-[1.02] active:scale-95 flex items-center gap-1.5">
+                  Browse More Requests <ArrowRight className="w-4 h-4 shrink-0" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Teaching Schedule strip */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white border border-[#dadee2] p-5 rounded-3xl space-y-2">
-            <span className="text-[9px] text-[#647380] uppercase tracking-wider font-extrabold block">
-              Today's Schedule
+        {/* Stats strip */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
+            <span className="text-[9px] text-[#647380] font-bold block uppercase">Teaching</span>
+            <span className="text-base font-extrabold text-[#00A453] block mt-1">
+              {acceptedApps.length}
             </span>
-            <div className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-emerald-600" /> 5:30 PM - Noida Home
-            </div>
-            <span className="text-[10px] text-[#647380] block">Class 10 CBSE Math lesson</span>
+            <span className="text-[9px] text-[#647380]">students</span>
+          </div>
+          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
+            <span className="text-[9px] text-[#647380] font-bold block uppercase">Pending</span>
+            <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">
+              {pendingApps.length}
+            </span>
+            <span className="text-[9px] text-[#647380]">proposals</span>
+          </div>
+          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
+            <span className="text-[9px] text-[#647380] font-bold block uppercase">Total</span>
+            <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">
+              {tutorApplications.length}
+            </span>
+            <span className="text-[9px] text-[#647380]">applied</span>
+          </div>
+        </div>
+
+        {/* Recommended requirements — always visible so tutor can keep applying */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+              Recommended for You
+            </h3>
+            <Link href="/dashboard/requirements/browse">
+              <span className="text-xs text-[#00A453] font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                View All <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
           </div>
 
-          <div className="bg-white border border-[#dadee2] p-5 rounded-3xl space-y-2">
-            <span className="text-[9px] text-[#647380] uppercase tracking-wider font-extrabold block">
-              Earnings Summary
-            </span>
-            <div className="text-xs font-bold text-[#2d2d2d] flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-emerald-600" /> ₹3,400 earned
+          {recommendations.length > 0 ? (
+            <div className="space-y-4">
+              {recommendations.slice(0, 3).map((req) => (
+                <div
+                  key={req._id}
+                  className="bg-white border border-[#dadee2] hover:border-[#00A453] rounded-3xl p-6 shadow-sm space-y-4 transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-[#2d2d2d]">
+                      {req.curriculum?.subject || req.category}
+                    </span>
+                    <span className="text-[9px] text-[#00A453] font-bold bg-[#e6f6ee] px-2 py-0.5 rounded-full border border-[#00A453]/25">
+                      Open
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
+                    {req.description}
+                  </p>
+                  <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
+                    <span className="text-xs font-extrabold text-[#2d2d2d]">
+                      ₹{req.budget?.min} – ₹{req.budget?.max}/hr
+                    </span>
+                    <Link href={`/dashboard/requirements/${req._id}`}>
+                      <Button
+                        size="sm"
+                        className="bg-[#00060c] hover:bg-slate-800 text-white text-[10px] font-bold rounded-xl px-4"
+                      >
+                        Apply Now
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
-            <span className="text-[10px] text-[#647380] block">
-              Payout releases on monthly cycle
-            </span>
-          </div>
+          ) : (
+            <div className="bg-white border border-[#dadee2] rounded-3xl p-8 text-center space-y-3">
+              <Compass className="w-8 h-8 text-gray-300 mx-auto" />
+              <p className="text-xs font-semibold text-[#647380]">
+                No new recommendations right now. Check back soon or browse all open requests.
+              </p>
+              <Link href="/dashboard/requirements/browse">
+                <Button
+                  size="sm"
+                  className="bg-[#00A453] hover:bg-[#008A45] text-white text-[10px] font-bold rounded-xl px-4"
+                >
+                  Browse All Requests
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     );
