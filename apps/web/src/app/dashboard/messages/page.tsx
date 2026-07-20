@@ -139,7 +139,12 @@ export default function MessagesPage() {
 
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Sender side: debounce typing_stop after last keystroke
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Sender side: track whether typing_start has already been emitted for this burst
+  const isTypingRef = useRef(false);
+  // Receiver side: auto-clear stuck typing indicator if typing_stop is never received
+  const receiverTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Always keep a ref to the latest selectedConvo to avoid stale closures in socket handlers
   const selectedConvoRef = useRef<Conversation | null>(null);
   useEffect(() => {
@@ -266,10 +271,23 @@ export default function MessagesPage() {
     sock.on('typing', ({ conversationId, userId, typing }: any) => {
       const currentConvo = selectedConvoRef.current;
       if (conversationId !== currentConvo?._id || userId === user?.id) return;
+      // Clear any pending auto-clear timer
+      if (receiverTypingTimeoutRef.current) clearTimeout(receiverTypingTimeoutRef.current);
       setTypingUsers((prev) => {
         const next = new Set(prev);
-        if (typing) next.add(userId);
-        else next.delete(userId);
+        if (typing) {
+          next.add(userId);
+          // Auto-clear after 4s in case typing_stop is never received
+          receiverTypingTimeoutRef.current = setTimeout(() => {
+            setTypingUsers((p) => {
+              const n = new Set(p);
+              n.delete(userId);
+              return n;
+            });
+          }, 4000);
+        } else {
+          next.delete(userId);
+        }
         return next;
       });
     });
@@ -316,12 +334,28 @@ export default function MessagesPage() {
     }
   }, [selectedConvo?._id]);
 
+  // Clear typing state when conversation changes
+  useEffect(() => {
+    // Clear any lingering sender-side typing timeout
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isTypingRef.current = false;
+    // Clear receiver-side typing indicator and auto-clear timer
+    if (receiverTypingTimeoutRef.current) clearTimeout(receiverTypingTimeoutRef.current);
+    setTypingUsers(new Set());
+  }, [selectedConvo?._id]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    // Clear sender-side typing state immediately
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (isTypingRef.current) {
+      socketRef.current?.emit('typing_stop', selectedConvo._id);
+      isTypingRef.current = false;
+    }
     playMessageSound('sent');
     const optimistic: Message = {
       _id: `opt-${Date.now()}`,
@@ -336,18 +370,23 @@ export default function MessagesPage() {
       conversationId: selectedConvo._id,
       content: inputValue.trim(),
     });
-    socketRef.current?.emit('typing_stop', selectedConvo._id);
     setInputValue('');
   };
 
   const handleInputChange = (val: string) => {
     setInputValue(val);
     if (!selectedConvo || selectedConvo.status !== 'ACTIVE') return;
-    socketRef.current?.emit('typing_start', selectedConvo._id);
+    // Only emit typing_start once per burst (not on every keystroke)
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socketRef.current?.emit('typing_start', selectedConvo._id);
+    }
+    // Reset the stop timer on every keystroke
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       socketRef.current?.emit('typing_stop', selectedConvo._id);
-    }, 1500);
+      isTypingRef.current = false;
+    }, 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -170,8 +170,27 @@ export function initSocketGateway(io: Server): void {
     });
 
     // ── Disconnect ────────────────────────────────────────────────────────
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`[Socket] User disconnected: ${userId}`);
+      // Broadcast typing_stop to every room this socket was in so the
+      // other party's typing indicator clears immediately on disconnect
+      try {
+        const rooms = Array.from(socket.rooms).filter((r) => r.startsWith('room:'));
+        for (const room of rooms) {
+          const conversationId = room.replace('room:', '');
+          const convo = await ConversationModel.findById(conversationId);
+          if (!convo) continue;
+          const otherUserId =
+            convo.studentUserId === userId ? convo.tutorUserId : convo.studentUserId;
+          io.to(`user:${otherUserId}`).emit('typing', {
+            conversationId,
+            userId,
+            typing: false,
+          });
+        }
+      } catch (err) {
+        console.error('[Socket] disconnect cleanup error:', err);
+      }
     });
   });
 }
