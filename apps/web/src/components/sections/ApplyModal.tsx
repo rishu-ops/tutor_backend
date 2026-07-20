@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Send, Award, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Send, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { applicationApi, profileApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -140,71 +140,26 @@ export default function ApplyModal({
 
         {/* Modal Content */}
         {done ? (
-          <div className="relative overflow-hidden p-8 text-center flex flex-col items-center justify-center space-y-6 bg-gradient-to-b from-[#F0FBF6] via-white to-white">
-            {/* Background ambient lighting effects */}
-            <div className="absolute -top-12 -right-12 w-44 h-44 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Glowing Icon Badge */}
-            <div className="relative">
-              <div className="w-20 h-20 bg-[#e6f6ee] border-2 border-[#00A453]/30 rounded-full flex items-center justify-center mx-auto shadow-inner relative z-10">
-                <CheckCircle2 className="w-10 h-10 text-[#00A453]" />
-              </div>
-              <Sparkles className="w-6 h-6 text-amber-400 absolute -top-1 -right-1 animate-pulse z-20" />
-              <Award className="w-5 h-5 text-[#00A453] absolute -bottom-1 -left-1 z-20" />
+          <div className="p-8 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-14 h-14 bg-[#e6f6ee] text-[#00A453] rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-
-            {/* Main Header Text */}
-            <div className="space-y-2 max-w-sm">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#00A453] bg-[#e6f6ee] border border-[#b2e2cb] px-3 py-1 rounded-full inline-block">
-                Proposal Delivered 🎉
-              </span>
-              <h3 className="text-xl font-extrabold text-[#1b4332] tracking-tight">
-                Congratulations!
-              </h3>
+            <div className="space-y-1 max-w-xs mx-auto">
+              <h3 className="text-base font-extrabold text-[#2d2d2d]">Proposal Sent!</h3>
               <p className="text-xs text-[#647380] leading-relaxed font-medium">
-                Your tutoring application for{' '}
-                <strong className="text-[#2d2d2d] font-extrabold">
+                Your proposal for{' '}
+                <strong className="text-[#2d2d2d] font-bold">
                   {requirementSubject || requirementCategory}
                 </strong>{' '}
-                has been delivered directly to the student.
+                has been delivered to the student. You will be notified when they review it.
               </p>
             </div>
-
-            {/* Proposal Summary Chips */}
-            <div className="w-full bg-[#FAFAFA] border border-[#dadee2] rounded-2xl p-4 space-y-2 text-left">
-              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
-                Proposal Highlights
-              </span>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <div className="bg-white border border-gray-200 px-3 py-1.5 rounded-xl font-bold text-[#2d2d2d] flex items-center gap-1 shadow-2xs">
-                  <span>Proposed Rate:</span>
-                  <span className="text-[#00A453]">₹{proposedFee}/hr</span>
-                </div>
-                {freeDemo && (
-                  <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold text-emerald-700 flex items-center gap-1">
-                    <span>Free Demo Class Offered</span>
-                  </div>
-                )}
-                <div className="bg-white border border-gray-200 px-3 py-1.5 rounded-xl font-medium text-gray-600 truncate max-w-full">
-                  📅 {selectedDay}, {startTime} - {endTime}
-                </div>
-              </div>
-            </div>
-
-            {/* Next Steps Hint */}
-            <p className="text-[11px] text-[#647380] italic">
-              💡 You will receive a real-time notification as soon as the student accepts your
-              proposal!
-            </p>
-
-            {/* Action CTAs */}
-            <div className="pt-2 w-full flex items-center justify-center gap-3">
+            <div className="pt-2 w-full max-w-xs">
               <Button
                 onClick={handleFinishSuccess}
-                className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-extrabold text-xs h-11 rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer"
+                className="w-full bg-[#00A453] hover:bg-[#008A45] text-white font-bold text-xs h-9 rounded-xl transition-all cursor-pointer"
               >
-                Awesome, Got It!
+                Done
               </Button>
             </div>
           </div>
