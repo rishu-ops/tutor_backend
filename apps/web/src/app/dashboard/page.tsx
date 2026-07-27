@@ -1282,16 +1282,21 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white border border-[#dadee2] rounded-3xl p-8 text-center space-y-3">
-              <Compass className="w-8 h-8 text-gray-300 mx-auto" />
-              <p className="text-xs font-semibold text-[#647380]">
-                No new recommendations right now. Check back soon or browse all open requests.
-              </p>
-              <Link href="/dashboard/requirements/browse">
+            <div className="bg-white border border-[#dadee2] rounded-[24px] p-10 text-center shadow-xs flex flex-col items-center justify-center space-y-5 bg-gradient-to-b from-white to-[#fafafa]/50">
+              <div className="w-16 h-16 rounded-full bg-[#f0fbf6] border border-[#d1f2e1] flex items-center justify-center text-[#00A453] transition-all hover:scale-105 duration-300">
+                <Compass className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5 max-w-xs">
+                <h4 className="text-sm font-extrabold text-[#2d2d2d] tracking-tight">No recommendations yet</h4>
+                <p className="text-[11px] text-[#647380] leading-relaxed font-medium">
+                  We couldn&apos;t find matching student requests that fit your profile. Try updating your subjects or browse open requests to apply manually.
+                </p>
+              </div>
+              <Link href="/dashboard/requirements/browse" className="pt-1">
                 <Button
                   variant="primary-modern"
                   size="sm"
-                  className="text-[10px] font-bold rounded-xl px-4"
+                  className="text-xs font-bold rounded-xl px-5 h-9"
                 >
                   Browse All Requests
                 </Button>
