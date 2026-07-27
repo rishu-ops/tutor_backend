@@ -12,6 +12,8 @@ import { fileURLToPath } from 'url';
 import { authRouter } from './modules/auth/index.js';
 import { onboardingRouter } from './modules/onboarding/index.js';
 import { mediaRouter } from './modules/media/index.js';
+import { notificationWorker } from './modules/notifications/notification.queue.js';
+import { profileCompletenessWorker } from './modules/onboarding/profile.queue.js';
 import { studentRouter } from './modules/student/index.js';
 import { tutorRouter } from './modules/tutor/index.js';
 import { requirementRouter } from './modules/requirements/index.js';
@@ -161,6 +163,7 @@ async function startServer() {
     if (process.env.REDIS_URL) {
       connectRedis(process.env.REDIS_URL);
       logger.info('Connected to Redis successfully.');
+      logger.info(`BullMQ Workers initialized: ${notificationWorker.name}, ${profileCompletenessWorker.name}`);
     } else {
       logger.warn('REDIS_URL is not defined in environment variables.');
     }
