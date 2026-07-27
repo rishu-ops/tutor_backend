@@ -975,7 +975,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <Link href="/dashboard/requirements/browse" className="block">
-            <Button className="bg-[#00A453] hover:bg-[#008A45] text-white text-[10px] font-bold px-6 rounded-xl h-9">
+            <Button variant="primary-modern" className="text-[10px] font-bold px-6 rounded-xl h-9">
               Browse Open Requests
             </Button>
           </Link>
@@ -1270,8 +1270,9 @@ export default function DashboardPage() {
                     </span>
                     <Link href={`/dashboard/requirements/${req._id}`}>
                       <Button
+                        variant="dark-modern"
                         size="sm"
-                        className="bg-[#00060c] hover:bg-slate-800 text-white text-[10px] font-bold rounded-xl px-4"
+                        className="text-[10px] font-bold rounded-xl px-4"
                       >
                         Apply Now
                       </Button>
@@ -1288,8 +1289,9 @@ export default function DashboardPage() {
               </p>
               <Link href="/dashboard/requirements/browse">
                 <Button
+                  variant="primary-modern"
                   size="sm"
-                  className="bg-[#00A453] hover:bg-[#008A45] text-white text-[10px] font-bold rounded-xl px-4"
+                  className="text-[10px] font-bold rounded-xl px-4"
                 >
                   Browse All Requests
                 </Button>

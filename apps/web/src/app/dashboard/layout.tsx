@@ -26,6 +26,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
 
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
+
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
@@ -205,8 +207,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="p-2 text-[#647380] hover:text-[#2d2d2d] hover:bg-gray-100 rounded-full transition-all focus:outline-none relative"
               >
                 <Bell className="w-5 h-5" />
-                {notifications.some((n) => !n.read) && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-extrabold h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center leading-none border border-white">
+                    {unreadCount}
+                  </span>
                 )}
               </button>
 
