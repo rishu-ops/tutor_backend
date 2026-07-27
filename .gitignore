@@ -86,3 +86,6 @@ build/
 # Prisma
 /packages/database/src/generated/
 .prisma
+
+# Uploaded media files
+apps/api/uploads/

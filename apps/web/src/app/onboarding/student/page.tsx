@@ -11,6 +11,7 @@ import { onboardingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { ROUTES } from '@/lib/constants';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
 
 export default function StudentOnboardingPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function StudentOnboardingPage() {
 
   const STEPS_NAMES = ['Basics', 'Academic', 'Preferences', 'Ready'];
 
-  const { step, name, city, studentClass, school, preferredLanguage, learningModes } = studentState;
+  const { step, name, city, avatarUrl, studentClass, school, preferredLanguage, learningModes } = studentState;
 
   // Local validation per step
   const validateStep = (currentStep: number): boolean => {
@@ -140,6 +141,7 @@ export default function StudentOnboardingPage() {
           role: 'STUDENT',
           name,
           city,
+          avatarUrl: avatarUrl || undefined,
           school: school || 'Not Specified',
           class: studentClass,
           preferredLanguage,
@@ -172,6 +174,7 @@ export default function StudentOnboardingPage() {
         role: 'STUDENT' as const,
         name,
         city,
+        avatarUrl: avatarUrl || null,
       };
       setUser(updatedUser);
     }
@@ -263,6 +266,13 @@ export default function StudentOnboardingPage() {
               {/* Step 1: Basics */}
               {step === 1 && (
                 <div className="space-y-4">
+                  <div className="flex justify-center mb-6">
+                    <AvatarUpload
+                      value={avatarUrl}
+                      onChange={(url) => setStudentField('avatarUrl', url)}
+                      token={accessToken || ''}
+                    />
+                  </div>
                   <Input
                     label="Full Name"
                     placeholder="Enter your name"

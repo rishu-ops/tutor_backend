@@ -731,8 +731,12 @@ export default function FindTutorsPage() {
                   }`}
                 >
                   {/* Profile Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-[#e6f6ee] flex items-center justify-center font-bold text-[#00A453] text-sm shrink-0 border border-[#00A453]/10 shadow-xs mt-0.5">
-                    {getInitials(tutor.name)}
+                  <div className="w-10 h-10 rounded-full bg-[#e6f6ee] overflow-hidden flex items-center justify-center font-bold text-[#00A453] text-sm shrink-0 border border-[#00A453]/10 shadow-xs mt-0.5">
+                    {tutor.avatarUrl ? (
+                      <img src={tutor.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials(tutor.name)
+                    )}
                   </div>
 
                   {/* Simplified Info Column */}
@@ -781,8 +785,12 @@ export default function FindTutorsPage() {
               <div className="border border-[#dadee2] rounded-2xl p-6 bg-white space-y-4 hover:border-[#00A453] transition-all duration-200 shadow-xs">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center font-bold text-white text-lg shrink-0">
-                      {getInitials(selectedTutor.name)}
+                    <div className="w-14 h-14 rounded-full bg-gray-900 overflow-hidden flex items-center justify-center font-bold text-white text-lg shrink-0 border border-[#dadee2]">
+                      {selectedTutor.avatarUrl ? (
+                        <img src={selectedTutor.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(selectedTutor.name)
+                      )}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
@@ -967,6 +975,27 @@ export default function FindTutorsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Profile Q&A Section */}
+              {selectedTutor.qa && selectedTutor.qa.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-gray-950 flex items-center gap-1.5 px-1">
+                    <MessageSquare className="w-4 h-4 text-gray-500" /> Tutor Q&A
+                  </h3>
+                  <div className="space-y-4 bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs">
+                    {selectedTutor.qa.map((item: any, idx: number) => (
+                      <div key={idx} className="space-y-1.5 last:border-b-0 pb-3 last:pb-0 border-b border-gray-100">
+                        <h4 className="text-xs font-extrabold text-gray-900 leading-snug">
+                          {item.question}
+                        </h4>
+                        <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                          {item.answer}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center p-12 text-center text-gray-400">

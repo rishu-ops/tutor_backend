@@ -368,3 +368,62 @@ export const adminApi = {
   getAuditLogs: (token: string) =>
     api<any>('/api/audit-logs', { method: 'GET', token }) as Promise<any>,
 };
+
+export const mediaApi = {
+  uploadImage: async (file: File, token: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to upload image');
+    }
+    return json.url;
+  },
+
+  uploadDocument: async (file: File, token: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('document', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/media/upload-document`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to upload document');
+    }
+    return json.url;
+  },
+
+  uploadVideo: async (file: File, token: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('video', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/media/upload-video`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to upload video');
+    }
+    return json.url;
+  },
+};

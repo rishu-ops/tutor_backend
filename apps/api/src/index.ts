@@ -7,8 +7,11 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import { logger } from 'logger';
 import { connectPostgres, connectMongoDB, connectRedis } from 'database';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { authRouter } from './modules/auth/index.js';
 import { onboardingRouter } from './modules/onboarding/index.js';
+import { mediaRouter } from './modules/media/index.js';
 import { studentRouter } from './modules/student/index.js';
 import { tutorRouter } from './modules/tutor/index.js';
 import { requirementRouter } from './modules/requirements/index.js';
@@ -59,7 +62,11 @@ const io = new SocketIOServer(httpServer, {
 // Register socket event handlers
 initSocketGateway(io);
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Swagger Configuration
 const swaggerOptions: swaggerJSDoc.Options = {
@@ -103,6 +110,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  */
 app.use('/api/auth', authRouter);
 app.use('/api/v1/onboarding', onboardingRouter);
+app.use('/api/v1/media', mediaRouter);
 app.use('/api/v1/student', studentRouter);
 app.use('/api/v1/tutor', tutorRouter);
 app.use('/api/v1/requirements', requirementRouter);

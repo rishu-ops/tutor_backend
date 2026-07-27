@@ -99,8 +99,17 @@ export default function ComparisonTable({
                       key={col.applicationId}
                       className="py-3.5 px-6 font-extrabold text-sm text-[#2d2d2d] text-center border-l border-gray-100"
                     >
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="truncate max-w-[120px]">{col.tutorName}</span>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
+                          {col.tutorAvatarUrl ? (
+                            <img src={col.tutorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-[#e6f6ee] text-[#00A453] flex items-center justify-center text-xs font-bold">
+                              {col.tutorName ? col.tutorName[0].toUpperCase() : 'T'}
+                            </div>
+                          )}
+                        </div>
+                        <span className="truncate max-w-[120px] text-xs font-extrabold text-[#2d2d2d]">{col.tutorName}</span>
                         {col.verified && (
                           <span className="text-[9px] text-[#00A453] bg-[#e6f6ee] px-1.5 py-0.5 rounded font-extrabold flex items-center gap-0.5 select-none">
                             <ShieldCheck className="w-3 h-3 shrink-0" /> Verified

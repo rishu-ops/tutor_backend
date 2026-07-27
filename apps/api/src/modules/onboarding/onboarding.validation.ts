@@ -8,11 +8,13 @@ export const onboardingStudentSchema = z.object({
   class: z.string().min(1, 'Class is required'),
   preferredLanguage: z.string().min(1, 'Preferred language is required'),
   learningMode: z.enum(['ONLINE', 'OFFLINE', 'HYBRID']),
+  avatarUrl: z.string().optional(),
 });
 
 export const onboardingTutorSchema = z.object({
   role: z.literal('TUTOR'),
   name: z.string().min(1, 'Name is required'),
+  avatarUrl: z.string().optional(),
   bio: z.string().min(50, 'Bio must be at least 50 characters long'),
   subjects: z
     .array(
@@ -39,10 +41,12 @@ export const onboardingTutorSchema = z.object({
         degree: z.string().min(1, 'Degree is required'),
         institution: z.string().min(1, 'Institution is required'),
         year: z.coerce.number().int().positive('Year must be a positive integer'),
+        certificateUrl: z.string().optional(),
       })
     )
     .optional(),
   availability: z.array(z.string()).optional(),
+  introVideoUrl: z.string().optional(),
 });
 
 // Discriminated union for routing and validation

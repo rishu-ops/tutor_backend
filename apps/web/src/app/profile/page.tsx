@@ -12,11 +12,14 @@ import {
   Save,
   Loader2,
   Check,
+  FileText,
 } from 'lucide-react';
 import DashboardLayout from '../dashboard/layout';
 import { useAuthStore } from '@/stores/auth-store';
 import { profileApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { DocumentUpload } from '@/components/ui/document-upload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -136,6 +139,7 @@ const TUTOR_SECTIONS = [
       { id: 'Pricing', label: 'Pricing and Fees' },
       { id: 'Qualifications', label: 'Qualifications' },
       { id: 'Availability', label: 'Availability' },
+      { id: 'QA', label: 'Profile Q&A' },
     ],
   },
   {
@@ -162,6 +166,7 @@ const SECTION_DESC: Record<string, string> = {
   Pricing: 'Set your hourly rate range for tutoring sessions.',
   Qualifications: 'List your academic degrees and professional certifications.',
   Availability: 'Let students know when you are free to teach.',
+  QA: 'Answer standard questions to help students understand your style and approach.',
   Verification: 'Track the status of your identity and credential checks.',
   Reviews: 'See what your students are saying about you.',
   'Account Settings': 'Manage your notification and privacy preferences.',
@@ -514,8 +519,12 @@ export default function ProfilePage() {
               {/* ═══ LEFT SIDEBAR ═══ */}
               <aside className="w-[280px] shrink-0 space-y-6">
                 <div className="border border-[#dadee2] rounded-[8px] p-5 bg-white flex items-start gap-4 relative">
-                  <div className="h-14 w-14 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center text-lg font-bold text-[#00A453] select-none shrink-0">
-                    {getInitials()}
+                  <div className="h-14 w-14 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center text-lg font-bold text-[#00A453] select-none shrink-0">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials()
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-base font-bold text-[#2d2d2d] leading-tight truncate">
@@ -570,8 +579,18 @@ export default function ProfilePage() {
                     illustration={illustration}
                     onSaved={(updated: any) => {
                       setProfileData(updated);
+                      const updatedUser = { ...user };
+                      let changed = false;
                       if (updated.name && updated.name !== user.name) {
-                        setUser({ ...user, name: updated.name });
+                        updatedUser.name = updated.name;
+                        changed = true;
+                      }
+                      if (updated.avatarUrl !== undefined && updated.avatarUrl !== user.avatarUrl) {
+                        updatedUser.avatarUrl = updated.avatarUrl;
+                        changed = true;
+                      }
+                      if (changed) {
+                        setUser(updatedUser);
                       }
                     }}
                   />
@@ -584,8 +603,18 @@ export default function ProfilePage() {
                     illustration={illustration}
                     onSaved={(updated: any) => {
                       setProfileData(updated);
+                      const updatedUser = { ...user };
+                      let changed = false;
                       if (updated.name && updated.name !== user.name) {
-                        setUser({ ...user, name: updated.name });
+                        updatedUser.name = updated.name;
+                        changed = true;
+                      }
+                      if (updated.avatarUrl !== undefined && updated.avatarUrl !== user.avatarUrl) {
+                        updatedUser.avatarUrl = updated.avatarUrl;
+                        changed = true;
+                      }
+                      if (changed) {
+                        setUser(updatedUser);
                       }
                     }}
                   />
@@ -648,13 +677,14 @@ function StudentPersonalSection({ profileData, accessToken, user, illustration, 
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [serverError, setServerError] = useState('');
-  const [form, setForm] = useState({ name: '', city: '', email: '' });
+  const [form, setForm] = useState({ name: '', city: '', email: '', avatarUrl: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const savedForm = {
     name: profileData?.name || user?.name || '',
     city: profileData?.city || '',
     email: profileData?.email || '',
+    avatarUrl: profileData?.avatarUrl || user?.avatarUrl || '',
   };
 
   const startEdit = () => {
@@ -688,6 +718,7 @@ function StudentPersonalSection({ profileData, accessToken, user, illustration, 
       const payload: Record<string, unknown> = {};
       if (form.name !== savedForm.name) payload.name = form.name.trim();
       if (form.city !== savedForm.city) payload.city = form.city.trim();
+      if (form.avatarUrl !== savedForm.avatarUrl) payload.avatarUrl = form.avatarUrl;
       if (Object.keys(payload).length === 0) {
         setIsEditing(false);
         setSaveStatus('idle');
@@ -730,16 +761,26 @@ function StudentPersonalSection({ profileData, accessToken, user, illustration, 
       <div className="px-8 py-7 space-y-5">
         {serverError && <ServerErrorBanner message={serverError} />}
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-16 w-16 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center text-xl font-bold text-[#00A453]">
-            {isEditing
-              ? getInitials()
-              : (profileData?.name || user?.name || 'U')
+          {isEditing ? (
+            <AvatarUpload
+              value={form.avatarUrl}
+              onChange={(url) => setForm((f) => ({ ...f, avatarUrl: url }))}
+              token={accessToken}
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center text-xl font-bold text-[#00A453]">
+              {profileData?.avatarUrl || user?.avatarUrl ? (
+                <img src={profileData?.avatarUrl || user?.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                (profileData?.name || user?.name || 'U')
                   .split(' ')
                   .map((n: string) => n[0])
                   .join('')
                   .toUpperCase()
-                  .slice(0, 2)}
-          </div>
+                  .slice(0, 2)
+              )}
+            </div>
+          )}
         </div>
         {isEditing ? (
           <>
@@ -1059,6 +1100,14 @@ function TutorSections({ activeTab, profileData, accessToken, user, illustration
           onSaved={onSaved}
         />
       )}
+      {activeTab === 'QA' && (
+        <TutorQASection
+          profileData={profileData}
+          accessToken={accessToken}
+          illustration={illustration}
+          onSaved={onSaved}
+        />
+      )}
       {activeTab === 'Verification' && <VerificationSection profileData={profileData} />}
       {activeTab === 'Reviews' && <ReviewsSection profileData={profileData} />}
       {activeTab === 'Account Settings' && <AccountSettings />}
@@ -1072,7 +1121,7 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [serverError, setServerError] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', locationCity: '', locationArea: '' });
+  const [form, setForm] = useState({ name: '', email: '', locationCity: '', locationArea: '', avatarUrl: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const savedForm = {
@@ -1080,6 +1129,7 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
     email: profileData?.email || '',
     locationCity: profileData?.location?.city || '',
     locationArea: profileData?.location?.area || '',
+    avatarUrl: profileData?.avatarUrl || user?.avatarUrl || '',
   };
 
   const startEdit = () => {
@@ -1116,6 +1166,7 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
       ) {
         payload.location = { city: form.locationCity.trim(), area: form.locationArea.trim() };
       }
+      if (form.avatarUrl !== savedForm.avatarUrl) payload.avatarUrl = form.avatarUrl;
       if (Object.keys(payload).length === 0) {
         setIsEditing(false);
         return;
@@ -1157,16 +1208,26 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
       <div className="px-8 py-7 space-y-5">
         {serverError && <ServerErrorBanner message={serverError} />}
         <div className="flex items-center gap-4 mb-4">
-          <div className="h-16 w-16 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center text-xl font-bold text-[#00A453]">
-            {isEditing
-              ? getInitials()
-              : (profileData?.name || user?.name || 'U')
+          {isEditing ? (
+            <AvatarUpload
+              value={form.avatarUrl}
+              onChange={(url) => setForm((f) => ({ ...f, avatarUrl: url }))}
+              token={accessToken}
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center text-xl font-bold text-[#00A453]">
+              {profileData?.avatarUrl || user?.avatarUrl ? (
+                <img src={profileData?.avatarUrl || user?.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                (profileData?.name || user?.name || 'U')
                   .split(' ')
                   .map((n: string) => n[0])
                   .join('')
                   .toUpperCase()
-                  .slice(0, 2)}
-          </div>
+                  .slice(0, 2)
+              )}
+            </div>
+          )}
         </div>
         {isEditing ? (
           <>
@@ -1825,6 +1886,16 @@ function TutorQualificationsSection({ profileData, accessToken, illustration, on
                     error={errors[`institution_${i}`]}
                     placeholder="e.g. University of Delhi"
                   />
+                  <div className="pt-1">
+                    <label className="block text-xs font-bold text-[#384148] uppercase tracking-wider mb-2">
+                      Certificate / Transcript <span className="text-[10px] text-[#8c9ba5] italic font-normal lowercase">(optional)</span>
+                    </label>
+                    <DocumentUpload
+                      value={q.certificateUrl}
+                      onChange={(url) => updateQual(i, 'certificateUrl', url)}
+                      token={accessToken}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -1841,9 +1912,22 @@ function TutorQualificationsSection({ profileData, accessToken, illustration, on
               profileData.qualifications.map((q: any, i: number) => (
                 <div key={i} className="border border-[#dadee2] rounded-[4px] px-4 py-3">
                   <p className="text-sm font-semibold text-[#2d2d2d]">{q.degree}</p>
-                  <p className="text-xs text-[#647380]">
+                  <p className="text-xs text-[#647380] mt-0.5">
                     {q.institution} · {q.year}
                   </p>
+                  {q.certificateUrl && (
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-[#00A453] shrink-0" />
+                      <a
+                        href={q.certificateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-[#00A453] hover:underline"
+                      >
+                        View Certificate
+                      </a>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
@@ -1985,6 +2069,128 @@ function TutorAvailabilitySection({ profileData, accessToken, illustration, onSa
               savedSlots.map((slot) => <TagChip key={slot} value={slot} />)
             ) : (
               <p className="text-sm text-[#b0b8c1]">No availability set.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+const QA_QUESTIONS = [
+  "What is your approach to teaching complex topics?",
+  "How do you prepare students for school/board examinations?",
+  "What is your tutoring style (e.g. interactive, lecture-based, homework-driven)?",
+  "Do you provide custom learning worksheets/notes?"
+];
+
+function TutorQASection({ profileData, accessToken, illustration, onSaved }: any) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [serverError, setServerError] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  const savedQA = profileData?.qa || [];
+
+  const startEdit = () => {
+    const initialAnswers: Record<string, string> = {};
+    QA_QUESTIONS.forEach((q) => {
+      const found = savedQA.find((item: any) => item.question === q);
+      initialAnswers[q] = found ? found.answer : '';
+    });
+    setAnswers(initialAnswers);
+    setServerError('');
+    setSaveStatus('idle');
+    setIsEditing(true);
+  };
+
+  const cancel = () => {
+    setIsEditing(false);
+    setServerError('');
+    setSaveStatus('idle');
+  };
+
+  const isDirty = (() => {
+    for (const q of QA_QUESTIONS) {
+      const saved = savedQA.find((item: any) => item.question === q)?.answer || '';
+      const current = answers[q] || '';
+      if (saved !== current) return true;
+    }
+    return false;
+  })();
+
+  const save = async () => {
+    setSaveStatus('saving');
+    setServerError('');
+    try {
+      const qaPayload = QA_QUESTIONS.map((q) => ({
+        question: q,
+        answer: (answers[q] || '').trim(),
+      })).filter((item) => item.answer.length > 0);
+
+      const res = await profileApi.updateTutorProfile({ qa: qaPayload }, accessToken);
+      if (res.success) {
+        onSaved(res.data);
+        setIsEditing(false);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2500);
+      }
+    } catch (err: any) {
+      setSaveStatus('error');
+      setServerError(err.message || 'Failed to save. Please try again.');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
+  return (
+    <>
+      <SectionHeader
+        title="Profile Q&A"
+        description={SECTION_DESC['QA']}
+        isEditing={isEditing}
+        saveStatus={saveStatus}
+        canSave={isDirty}
+        onEdit={startEdit}
+        onSave={save}
+        onCancel={cancel}
+        illustration={illustration}
+      />
+      <div className="px-8 py-7 space-y-6">
+        {serverError && <ServerErrorBanner message={serverError} />}
+        
+        {isEditing ? (
+          <div className="space-y-5">
+            {QA_QUESTIONS.map((q) => (
+              <div key={q} className="space-y-1.5">
+                <label className="block text-sm font-semibold text-[#2d2d2d] leading-snug">
+                  {q}
+                </label>
+                <textarea
+                  value={answers[q] || ''}
+                  onChange={(e) => setAnswers({ ...answers, [q]: e.target.value })}
+                  placeholder="Type your answer here..."
+                  className="w-full min-h-[80px] p-3 text-sm text-[#00060c] bg-white border border-[#dadee2] rounded-[4px] focus:outline-none focus:ring-2 focus:ring-[#00A453] focus:border-[#00A453] transition-all"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {savedQA.length > 0 ? (
+              savedQA.map((item: any, i: number) => (
+                <div key={i} className="border-l-2 border-[#00A453] pl-4 py-1 space-y-1.5">
+                  <h4 className="text-sm font-extrabold text-[#2d2d2d] leading-snug">
+                    {item.question}
+                  </h4>
+                  <p className="text-sm text-[#647380] leading-relaxed font-medium">
+                    {item.answer}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-[#b0b8c1]">
+                No Q&As added. Answer standard questions to boost profile completeness and help students understand your style.
+              </p>
             )}
           </div>
         )}

@@ -821,7 +821,16 @@ export default function BrowseRequirementsPage() {
                         {selectedReq.curriculum?.board ? `· ${selectedReq.curriculum.board}` : ''}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 font-semibold mt-1 animate-fadeIn">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 font-semibold mt-1.5 animate-fadeIn">
+                        <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-gray-200">
+                          {selectedReq.studentAvatarUrl ? (
+                            <img src={selectedReq.studentAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-[#e6f6ee] text-[#00A453] flex items-center justify-center text-[10px] font-bold">
+                              {selectedReq.studentName ? selectedReq.studentName[0].toUpperCase() : 'S'}
+                            </div>
+                          )}
+                        </div>
                         <span>Posted by: {selectedReq.studentName || 'Anonymous Student'}</span>
                         <span>·</span>
                         <Link

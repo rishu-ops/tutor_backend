@@ -121,8 +121,12 @@ export default function StudentProfilePage({ params }: PageProps) {
       {/* Main Profile Box */}
       <div className="border border-[#dadee2] rounded-3xl p-6 bg-white shadow-xs space-y-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center font-extrabold text-green-700 text-2xl shrink-0 border border-green-150 shadow-xs">
-            {getInitials(studentUser?.name)}
+          <div className="w-16 h-16 rounded-full bg-green-50 overflow-hidden flex items-center justify-center font-extrabold text-green-700 text-2xl shrink-0 border border-green-150 shadow-xs">
+            {studentUser?.avatarUrl ? (
+              <img src={studentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              getInitials(studentUser?.name)
+            )}
           </div>
           <div className="space-y-1">
             <h2 className="text-xl font-extrabold text-gray-950 leading-tight">

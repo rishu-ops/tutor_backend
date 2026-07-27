@@ -10,6 +10,7 @@ export interface ITutorQualification {
   degree: string;
   institution: string;
   year: number;
+  certificateUrl?: string;
 }
 
 export interface ITutorPricing {
@@ -22,6 +23,11 @@ export interface ITutorLocation {
   area: string;
   lat?: number;
   lng?: number;
+}
+
+export interface ITutorQA {
+  question: string;
+  answer: string;
 }
 
 export interface ITutorProfile extends Document {
@@ -40,6 +46,8 @@ export interface ITutorProfile extends Document {
   visibilityTier: 'FREE' | 'BRONZE' | 'SILVER' | 'GOLD';
   ratingAvg: number;
   ratingCount: number;
+  introVideoUrl?: string;
+  qa?: ITutorQA[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +66,7 @@ const TutorQualificationSchema = new Schema<ITutorQualification>(
     degree: { type: String, required: true },
     institution: { type: String, required: true },
     year: { type: Number, required: true },
+    certificateUrl: { type: String },
   },
   { _id: false }
 );
@@ -105,6 +114,19 @@ const TutorProfileSchema = new Schema<ITutorProfile>(
     },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
+    introVideoUrl: { type: String },
+    qa: {
+      type: [
+        new Schema(
+          {
+            question: { type: String, required: true },
+            answer: { type: String, required: true },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

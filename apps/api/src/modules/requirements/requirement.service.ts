@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { RequirementRepository } from './requirement.repository.js';
 import { prisma, TutorProfileModel } from 'database';
+import { notificationQueue } from '../notifications/notification.queue.js';
 
 export class RequirementService {
   private repository = new RequirementRepository();
@@ -12,7 +13,32 @@ export class RequirementService {
       status: 'OPEN',
       applicationsCount: 0,
     };
-    return this.repository.create(requirementData);
+    const req = await this.repository.create(requirementData);
+
+    // Trigger match notifications for matching tutors (delayed check for accuracy)
+    try {
+      const subject = req.curriculum?.subject || req.category;
+      if (subject) {
+        const matchingTutors = await TutorProfileModel.find({
+          subjects: subject,
+          userId: { $ne: studentUserId }
+        });
+        for (const tutor of matchingTutors) {
+          notificationQueue.add('new-requirements-match', {
+            type: 'NEW_REQUIREMENTS_MATCH',
+            data: {
+              tutorUserId: tutor.userId,
+            }
+          }, { delay: 10000 }).catch(err => {
+            console.error('Failed to enqueue matched requirement notification:', err);
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to schedule match notifications:', err);
+    }
+
+    return req;
   }
 
   async getMyRequirements(studentUserId: string) {
@@ -27,10 +53,10 @@ export class RequirementService {
       throw err;
     }
 
-    // Load Student name and city for detail view
+    // Load Student name, city, and avatarUrl for detail view
     const studentUser = await prisma.user.findUnique({
       where: { id: requirement.studentUserId },
-      select: { name: true, city: true },
+      select: { name: true, city: true, avatarUrl: true },
     });
 
     const isOwner = viewerUserId === requirement.studentUserId;
@@ -47,6 +73,7 @@ export class RequirementService {
       ...reqObj,
       studentName: studentUser?.name || 'Anonymous Student',
       studentCity: studentUser?.city || requirement.location.city,
+      studentAvatarUrl: studentUser?.avatarUrl || null,
     };
   }
 

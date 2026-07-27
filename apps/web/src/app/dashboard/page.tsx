@@ -73,6 +73,7 @@ const MOCK_RECOMMENDED_TUTORS = [
     verified: true,
     teachingMode: ['Online', 'Home'],
     hourlyRate: 800,
+    avatarUrl: null as string | null,
   },
   {
     _id: 'rec-t-2',
@@ -83,6 +84,7 @@ const MOCK_RECOMMENDED_TUTORS = [
     verified: true,
     teachingMode: ['Online'],
     hourlyRate: 650,
+    avatarUrl: null as string | null,
   },
 ];
 
@@ -114,11 +116,13 @@ export default function DashboardPage() {
 
   // Data States
   const [tutorProfile, setTutorProfile] = useState<any>(null);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
   const [tutorApplications, setTutorApplications] = useState<any[]>([]);
   const [studentRequirements, setStudentRequirements] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [hiredTutors, setHiredTutors] = useState<any[]>([]);
+  const [articles, setArticles] = useState<any[]>(MOCK_ARTICLES);
 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -126,22 +130,28 @@ export default function DashboardPage() {
 
   // Rotating announcement state
   const [activeAnnounceIndex, setActiveAnnounceIndex] = useState(0);
-  // Compute profile completion percentage for Tutors
+  // Compute profile completion percentage for Tutors and Students
   const getProfileCompletionPercentage = () => {
-    if (!tutorProfile) return 40; // Default base completion
-    let score = 30; // base score
-    if (tutorProfile.bio) score += 15;
-    if (tutorProfile.location?.city) score += 15;
-    if (tutorProfile.subjects && tutorProfile.subjects.length > 0) score += 15;
-    if (tutorProfile.teachingModes && tutorProfile.teachingModes.length > 0) score += 15;
-    if (tutorProfile.pricing?.min) score += 10;
-    return Math.min(score, 100);
+    if (user?.role === 'STUDENT') {
+      if (!studentProfile) return 40;
+      return studentProfile.profileCompleteness || 0;
+    }
+    if (user?.role === 'TUTOR') {
+      if (!tutorProfile) return 40;
+      return tutorProfile.profileCompleteness || 0;
+    }
+    return 0;
   };
 
   // Fetch Student Home Data
   const fetchStudentHomeData = useCallback(async () => {
     if (!token) return;
     try {
+      const profRes = await profileApi.getStudentProfile(token);
+      if (profRes.success && profRes.data) {
+        setStudentProfile(profRes.data);
+      }
+
       const reqsRes = await requirementApi.getMyRequirements(token);
       if (reqsRes.success && reqsRes.data) {
         setStudentRequirements(reqsRes.data);
@@ -230,6 +240,31 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [announcements]);
 
+  // Load dynamic education news articles
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.theguardian.com/education/rss');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'ok' && json.items && json.items.length > 0) {
+            const mapped = json.items.slice(0, 3).map((item: any, i: number) => ({
+              id: `news-${i}`,
+              title: item.title,
+              readTime: '3 min read',
+              category: 'Education News',
+              link: item.link
+            }));
+            setArticles(mapped);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load education RSS news feeds:', err);
+      }
+    }
+    fetchNews();
+  }, []);
+
   const getInitials = (name?: string) => {
     const target = name || user?.name || 'User';
     return target
@@ -309,13 +344,18 @@ export default function DashboardPage() {
       <div className="bg-white border border-[#dadee2] rounded-[14px] p-6 space-y-4">
         <div className="space-y-1 pb-1">
           <h3 className="text-lg font-bold text-black tracking-tight">Learning Guides</h3>
-          <span className="text-xs text-[#00A453] font-bold flex items-center gap-1 hover:underline cursor-pointer">
+          <a
+            href="https://www.theguardian.com/education"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-[#00A453] font-bold flex items-center gap-1 hover:underline cursor-pointer"
+          >
             Explore all Guides <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          </a>
         </div>
 
         <div className="divide-y divide-gray-100">
-          {MOCK_ARTICLES.map((article) => (
+          {articles.map((article) => (
             <div
               key={article.id}
               className="py-4 first:pt-0 last:pb-0 flex items-start gap-3.5 justify-between"
@@ -332,9 +372,20 @@ export default function DashboardPage() {
 
               {/* Right Column: View / Read Buttons */}
               <div className="flex items-center gap-2 shrink-0">
-                <button className="bg-[#F4F6F8] hover:bg-gray-200 text-xs font-bold text-black px-3 py-1.5 rounded-full transition-colors">
-                  Read
-                </button>
+                {article.link ? (
+                  <a
+                    href={article.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#F4F6F8] hover:bg-gray-200 text-xs font-bold text-black px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    Read
+                  </a>
+                ) : (
+                  <button className="bg-[#F4F6F8] hover:bg-gray-200 text-xs font-bold text-black px-3 py-1.5 rounded-full transition-colors">
+                    Read
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -421,7 +472,7 @@ export default function DashboardPage() {
         {/* Section 2: Featured Tutors */}
         <div className="space-y-4">
           <div className="flex justify-between items-center px-1">
-            <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider">
+            <h3 className="text-xs font-extrabold text-[#647380] tracking-wider">
               Featured Tutors
             </h3>
             <Link href="/dashboard/tutors">
@@ -437,8 +488,12 @@ export default function DashboardPage() {
                 className="bg-white border border-[#dadee2] p-4 rounded-2xl flex justify-between items-center hover:border-[#00A453] transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#e6f6ee] flex items-center justify-center font-bold text-[#00A453] text-xs shrink-0">
-                    {getInitials(tutor.name)}
+                  <div className="w-10 h-10 rounded-xl bg-[#e6f6ee] overflow-hidden flex items-center justify-center font-bold text-[#00A453] text-xs shrink-0 border border-[#00A453]/10">
+                    {tutor.avatarUrl ? (
+                      <img src={tutor.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials(tutor.name)
+                    )}
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
@@ -449,8 +504,9 @@ export default function DashboardPage() {
                 </div>
                 <Link href="/dashboard/tutors">
                   <Button
+                    variant="secondary"
                     size="sm"
-                    className="border border-[#dadee2] bg-white hover:bg-gray-50 text-[#2d2d2d] text-[10px] font-bold h-8 rounded-xl"
+                    className="text-[10px] h-8"
                   >
                     View Profile
                   </Button>
@@ -490,7 +546,7 @@ export default function DashboardPage() {
 
           {/* Stepper progress */}
           <div className="border-t border-[#dadee2] pt-5">
-            <span className="text-xs text-[#b0b8c1] block font-extrabold uppercase tracking-wider mb-3">
+            <span className="text-xs text-[#b0b8c1] block font-extrabold tracking-wider mb-3">
               Hiring Progress
             </span>
             <div className="flex items-center justify-between text-xs font-extrabold">
@@ -509,32 +565,70 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
             AI Recommended Matches
           </h3>
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {MOCK_RECOMMENDED_TUTORS.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white border border-[#dadee2] rounded-[14px] p-5 space-y-4"
+                className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-5 space-y-4 flex flex-col justify-between transition-all duration-200"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-bold text-[#2d2d2d] text-xs">
-                      {getInitials(tutor.name)}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
-                      <p className="text-xs text-[#647380]">{tutor.experience} Experience</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full">
+                      98% Match
+                    </span>
+                    <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-[#b28b00] text-[#b28b00]" />
+                      {tutor.ratingAvg}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-base font-extrabold text-[#2d2d2d] leading-snug">
+                      {tutor.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] text-[#647380] flex-wrap">
+                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                        <Layers className="w-3 h-3 text-gray-400" />
+                        {tutor.subjects[0]}
+                      </span>
+                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        {tutor.experience} Experience
+                      </span>
                     </div>
                   </div>
-                  <span className="text-xs bg-[#e6f6ee] text-[#00A453] font-extrabold px-2.5 py-1 rounded-full">
-                    98% Match
-                  </span>
                 </div>
-                <div className="text-xs text-[#647380]">
-                  Proposed budget:{' '}
-                  <span className="font-extrabold text-[#2d2d2d]">₹{tutor.hourlyRate}/hr</span>
+
+                <div className="border-t border-gray-150 pt-4 mt-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] text-[#647380] font-bold uppercase tracking-wider">
+                        Proposed Rate
+                      </div>
+                      <div className="text-sm font-black text-[#2d2d2d]">
+                        ₹{tutor.hourlyRate}{' '}
+                        <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">
+                          per hour
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-150">
+                    <Link href="/dashboard/tutors" className="flex-1">
+                      <Button variant="primary" size="sm" className="w-full text-xs h-8">
+                        View Profile
+                      </Button>
+                    </Link>
+                    <Link href="/dashboard/messages" className="flex-1">
+                      <Button variant="secondary" size="sm" className="w-full text-xs h-8">
+                        Message
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
@@ -542,23 +636,70 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
             Recently Active Tutors
           </h3>
-          <div className="bg-white border border-[#dadee2] rounded-[14px] divide-y divide-gray-100 overflow-hidden ">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {MOCK_ACTIVE_TUTORS.map((tutor) => (
-              <div key={tutor._id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#e6f6ee] flex items-center justify-center font-bold text-xs text-[#00A453]">
-                    {getInitials(tutor.name)}
+              <div
+                key={tutor._id}
+                className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-5 space-y-4 flex flex-col justify-between transition-all duration-200"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full">
+                      Active Now
+                    </span>
+                    <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-[#b28b00] text-[#b28b00]" />
+                      {tutor.ratingAvg}
+                    </span>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
-                    <span className="text-xs text-[#647380]">{tutor.subjects.join(', ')}</span>
+
+                  <div className="space-y-2">
+                    <h3 className="text-base font-extrabold text-[#2d2d2d] leading-snug">
+                      {tutor.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] text-[#647380] flex-wrap">
+                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                        <Layers className="w-3 h-3 text-gray-400" />
+                        {tutor.subjects[0]}
+                      </span>
+                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        {tutor.experience} Experience
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#b28b00]">
-                  <Star className="w-3.5 h-3.5 fill-[#b28b00]" /> {tutor.ratingAvg}
+
+                <div className="border-t border-gray-150 pt-4 mt-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] text-[#647380] font-bold uppercase tracking-wider">
+                        Starting from
+                      </div>
+                      <div className="text-sm font-black text-[#2d2d2d]">
+                        ₹{tutor.hourlyRate}{' '}
+                        <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">
+                          per hour
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-150">
+                    <Link href="/dashboard/tutors" className="flex-1">
+                      <Button variant="primary" size="sm" className="w-full text-xs h-8">
+                        View Profile
+                      </Button>
+                    </Link>
+                    <Link href="/dashboard/messages" className="flex-1">
+                      <Button variant="secondary" size="sm" className="w-full text-xs h-8">
+                        Message
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
@@ -635,14 +776,21 @@ export default function DashboardPage() {
                   <div className="flex justify-between w-full items-start gap-4">
                     <div className="flex items-center gap-3">
                       {/* Avatar */}
-                      <div className="w-10 h-10 bg-black text-white font-extrabold rounded-full flex items-center justify-center text-xs uppercase shrink-0">
-                        {tutor.name
-                          ? tutor.name
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')
-                              .slice(0, 2)
-                          : 'T'}
+                      <div className="w-10 h-10 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center shrink-0">
+                        {tutor.avatarUrl ? (
+                          <img src={tutor.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-bold text-[#00A453]">
+                            {tutor.name
+                              ? tutor.name
+                                  .split(' ')
+                                  .map((n: string) => n[0])
+                                  .join('')
+                                  .slice(0, 2)
+                                  .toUpperCase()
+                              : 'T'}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
@@ -793,7 +941,7 @@ export default function DashboardPage() {
 
         {/* popular requirements fallback */}
         <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
             Top Subjects on Platform
           </h3>
           <div className="grid grid-cols-3 gap-2">
@@ -835,38 +983,93 @@ export default function DashboardPage() {
 
         {/* Nearby Requirements list */}
         <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
             Recommended Requirements
           </h3>
           <div className="space-y-4">
             {recommendations.slice(0, 2).map((req) => (
               <div
                 key={req._id}
-                className="bg-white border border-[#dadee2] rounded-3xl p-6 shadow-sm space-y-4"
+                className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-5 space-y-4 flex flex-col justify-between transition-all duration-200"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-[#2d2d2d]">
-                    {req.curriculum?.subject || req.category}
-                  </span>
-                  <span className="text-[9px] text-[#00A453] font-bold bg-[#e6f6ee] px-2 py-0.5 rounded-full border border-[#00A453]/25">
-                    95% Match
-                  </span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full">
+                      Accepting Applications
+                    </span>
+                    <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      {new Date(req.createdAt || Date.now()).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-base font-extrabold text-[#2d2d2d] leading-snug">
+                      {req.curriculum?.subject || req.category}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] text-[#647380] flex-wrap">
+                      {req.curriculum?.level && (
+                        <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                          <Layers className="w-3 h-3 text-gray-400" />
+                          {req.curriculum.level}
+                        </span>
+                      )}
+                      {req.curriculum?.board && (
+                        <span className="font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                          {req.curriculum.board}
+                        </span>
+                      )}
+                      {req.location && (
+                        <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          {req.location.city}, {req.location.area}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-[#647380] line-clamp-2 leading-relaxed font-medium">
+                    {req.description}
+                  </p>
                 </div>
-                <p className="text-[11px] text-[#647380] leading-relaxed line-clamp-2">
-                  {req.description}
-                </p>
-                <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-                  <span className="text-xs font-extrabold text-[#2d2d2d]">
-                    ₹{req.budget?.min} - ₹{req.budget?.max}/hr
-                  </span>
-                  <Link href={`/dashboard/requirements/${req._id}`}>
-                    <Button
-                      size="sm"
-                      className="bg-[#00060c] hover:bg-slate-800 text-white text-[10px] font-bold rounded-xl px-4"
-                    >
-                      Apply Now
-                    </Button>
-                  </Link>
+
+                <div className="border-t border-gray-150 pt-4 mt-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] text-[#647380] font-bold uppercase tracking-wider">
+                        Budget
+                      </div>
+                      <div className="text-sm font-black text-[#2d2d2d]">
+                        ₹{req.budget?.min} - ₹{req.budget?.max}{' '}
+                        <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">
+                          {req.budget?.feeType === 'PER_HOUR'
+                            ? 'per hour'
+                            : req.budget?.feeType === 'PER_MONTH'
+                              ? 'per month'
+                              : 'per session'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-[#647380] font-bold bg-gray-50 border border-gray-150 px-2 rounded-full py-0.5">
+                      95% Match
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-150">
+                    <Link href={`/dashboard/requirements/${req._id}`} className="flex-1">
+                      <Button variant="primary" size="sm" className="w-full text-xs h-8">
+                        Apply Now
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/requirements/${req._id}`} className="flex-1">
+                      <Button variant="secondary" size="sm" className="w-full text-xs h-8">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
@@ -918,7 +1121,7 @@ export default function DashboardPage() {
 
         {/* My Applications List */}
         <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider px-1">
+          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
             My Proposals
           </h3>
           <div className="bg-white border border-[#dadee2] rounded-3xl divide-y divide-gray-100 overflow-hidden shadow-sm">
@@ -1006,27 +1209,27 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
-            <span className="text-[9px] text-[#647380] font-bold block uppercase">Teaching</span>
-            <span className="text-base font-extrabold text-[#00A453] block mt-1">
+        <div className="grid grid-cols-3 gap-4 md:gap-6 text-center">
+          <div className="bg-white border border-[#dadee2] py-6 px-4 rounded-[20px] flex flex-col justify-between h-28 shadow-xs">
+            <span className="text-[10px] text-[#647380] font-extrabold block uppercase tracking-wider">Teaching</span>
+            <span className="text-3xl md:text-4xl font-extrabold text-[#00A453] block my-1">
               {acceptedApps.length}
             </span>
-            <span className="text-[9px] text-[#647380]">students</span>
+            <span className="text-[11px] text-[#647380] font-semibold">students</span>
           </div>
-          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
-            <span className="text-[9px] text-[#647380] font-bold block uppercase">Pending</span>
-            <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">
+          <div className="bg-white border border-[#dadee2] py-6 px-4 rounded-[20px] flex flex-col justify-between h-28 shadow-xs">
+            <span className="text-[10px] text-[#647380] font-extrabold block uppercase tracking-wider">Pending</span>
+            <span className="text-3xl md:text-4xl font-extrabold text-[#2d2d2d] block my-1">
               {pendingApps.length}
             </span>
-            <span className="text-[9px] text-[#647380]">proposals</span>
+            <span className="text-[11px] text-[#647380] font-semibold">proposals</span>
           </div>
-          <div className="bg-white border border-[#dadee2] p-4 rounded-2xl">
-            <span className="text-[9px] text-[#647380] font-bold block uppercase">Total</span>
-            <span className="text-base font-extrabold text-[#2d2d2d] block mt-1">
+          <div className="bg-white border border-[#dadee2] py-6 px-4 rounded-[20px] flex flex-col justify-between h-28 shadow-xs">
+            <span className="text-[10px] text-[#647380] font-extrabold block uppercase tracking-wider">Total</span>
+            <span className="text-3xl md:text-4xl font-extrabold text-[#2d2d2d] block my-1">
               {tutorApplications.length}
             </span>
-            <span className="text-[9px] text-[#647380]">applied</span>
+            <span className="text-[11px] text-[#647380] font-semibold">applied</span>
           </div>
         </div>
 
@@ -1101,13 +1304,21 @@ export default function DashboardPage() {
   return (
     <div className="max-w-[1300px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8 py-6 bg-[#FAFAFA] min-h-screen text-[#2d2d2d] relative">
       {/* LEFT COLUMN: ACTIVE ROLE IDENTITY SUMMARY */}
-      <div className="lg:col-span-1 space-y-6">
+      <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-6 self-start">
         <div className="bg-white border border-[#dadee2] rounded-[18px] p-6 space-y-5">
           <div className="flex items-start gap-4">
             {/* Avatar circle (RR) on the left */}
-            <div className="w-14 h-14 rounded-full bg-[#e6f6ee] border border-[#b2e2cb] flex items-center justify-center font-extrabold text-[#00A453] text-lg select-none shrink-0 shadow-sm">
-              {getInitials()}
-            </div>
+            {user?.avatarUrl || studentProfile?.avatarUrl || tutorProfile?.avatarUrl ? (
+              <img
+                src={user?.avatarUrl || studentProfile?.avatarUrl || tutorProfile?.avatarUrl}
+                alt="Profile Avatar"
+                className="w-14 h-14 rounded-full object-cover shrink-0 shadow-sm border border-[#dadee2]"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-[#e6f6ee] border border-[#b2e2cb] flex items-center justify-center font-extrabold text-[#00A453] text-lg select-none shrink-0 shadow-sm">
+                {getInitials()}
+              </div>
+            )}
 
             {/* Details stacked on the right */}
             <div className="min-w-0 flex-1 space-y-2">
@@ -1164,6 +1375,25 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Profile Completeness Section */}
+          <div className="border-t border-[#dadee2] pt-4 space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-[#647380]">Profile Completion</span>
+              <span className="text-[#00A453]">{getProfileCompletionPercentage()}%</span>
+            </div>
+            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#00A453] h-full transition-all duration-500"
+                style={{ width: `${getProfileCompletionPercentage()}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-[#647380] leading-relaxed">
+              {getProfileCompletionPercentage()}% profile is completed. {user?.role === 'TUTOR' 
+                ? 'Get more chance of getting students.' 
+                : 'Get more chance of getting tutors.'}
+            </p>
+          </div>
         </div>
 
         {/* Platform stats for Students or list of active applications */}
@@ -1242,6 +1472,33 @@ export default function DashboardPage() {
       <div className="lg:col-span-1 space-y-6">
         {renderAnnouncementWidget()}
         {renderEducationalGuides()}
+
+        {/* Sticky wrapper for Footer Links */}
+        <div className="lg:sticky lg:top-6 self-start pt-2">
+          {/* Footer Links */}
+          <div className="px-2 pt-4 border-t border-[#dadee2] space-y-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-[#647380] font-semibold">
+              <Link href="/about" className="hover:text-[#00A453] hover:underline transition-colors">
+                About
+              </Link>
+              <span className="text-gray-300 select-none">·</span>
+              <Link href="/accessibility" className="hover:text-[#00A453] hover:underline transition-colors">
+                Accessibility
+              </Link>
+              <span className="text-gray-300 select-none">·</span>
+              <Link href="/help" className="hover:text-[#00A453] hover:underline transition-colors">
+                Help Center
+              </Link>
+              <span className="text-gray-300 select-none">·</span>
+              <Link href="/privacy" className="hover:text-[#00A453] hover:underline transition-colors">
+                Privacy & Terms
+              </Link>
+            </div>
+            <div className="text-[10px] text-[#8c9ba5] font-semibold tracking-wide">
+              findmyTutor Corporation © 2026
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

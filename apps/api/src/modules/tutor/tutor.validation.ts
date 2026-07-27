@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const updateTutorProfileSchema = z.object({
   name: z.string().min(1, 'Name cannot be empty').optional(),
+  avatarUrl: z.string().optional(),
   bio: z.string().min(50, 'Bio must be at least 50 characters long').optional(),
   subjects: z
     .array(
@@ -19,6 +20,7 @@ export const updateTutorProfileSchema = z.object({
         degree: z.string().min(1, 'Degree cannot be empty'),
         institution: z.string().min(1, 'Institution cannot be empty'),
         year: z.number().min(1900, 'Invalid year'),
+        certificateUrl: z.string().optional(),
       })
     )
     .optional(),
@@ -37,6 +39,15 @@ export const updateTutorProfileSchema = z.object({
     })
     .optional(),
   availability: z.array(z.string()).optional(),
+  introVideoUrl: z.string().optional(),
+  qa: z
+    .array(
+      z.object({
+        question: z.string().min(1),
+        answer: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 export type UpdateTutorProfileInput = z.infer<typeof updateTutorProfileSchema>;

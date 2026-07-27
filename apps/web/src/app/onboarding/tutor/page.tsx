@@ -21,6 +21,9 @@ import { onboardingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { ROUTES } from '@/lib/constants';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { DocumentUpload } from '@/components/ui/document-upload';
+import { VideoUpload } from '@/components/ui/video-upload';
 
 interface SubjectInput {
   subject: string;
@@ -32,6 +35,7 @@ interface QualificationInput {
   degree: string;
   institution: string;
   year: string;
+  certificateUrl?: string;
 }
 
 const COMMON_LEVELS = ['Class 6–8', 'Class 10', 'Class 12', 'JEE Prep', 'NEET Prep', 'Beginner'];
@@ -94,6 +98,8 @@ export default function TutorOnboardingPage() {
     step,
     name,
     city,
+    avatarUrl,
+    introVideoUrl,
     bio,
     subjects,
     teachingModes,
@@ -127,7 +133,7 @@ export default function TutorOnboardingPage() {
 
   // Row operations for Qualifications
   const addQualRow = () => {
-    setTutorField('qualifications', [...qualifications, { degree: '', institution: '', year: '' }]);
+    setTutorField('qualifications', [...qualifications, { degree: '', institution: '', year: '', certificateUrl: '' }]);
   };
 
   const removeQualRow = (index: number) => {
@@ -185,6 +191,17 @@ export default function TutorOnboardingPage() {
       if (minVal > maxVal) {
         errors.maxPrice = 'Max price must be greater than or equal to min price';
       }
+    } else if (currentStep === 6) {
+      if (qualifications.length === 0) {
+        errors.qualifications = 'Please add at least one qualification/degree detail';
+      } else {
+        const invalid = qualifications.some(
+          (q) => !q.degree.trim() || !q.institution.trim() || !q.year.trim()
+        );
+        if (invalid) {
+          errors.qualifications = 'Please fill out all fields (Degree, Institution, and Year) for each qualification';
+        }
+      }
     }
 
     setFieldErrors(errors);
@@ -229,6 +246,8 @@ export default function TutorOnboardingPage() {
       const payload = {
         role: 'TUTOR',
         name,
+        avatarUrl: avatarUrl || undefined,
+        introVideoUrl: introVideoUrl || undefined,
         bio,
         location: {
           city,
@@ -250,8 +269,10 @@ export default function TutorOnboardingPage() {
         qualifications: qualifications
           .filter((q) => q.degree.trim() && q.institution.trim())
           .map((q) => ({
-            ...q,
+            degree: q.degree,
+            institution: q.institution,
             year: parseInt(q.year, 10) || 0,
+            certificateUrl: q.certificateUrl || undefined,
           })),
         availability,
       };
@@ -282,6 +303,7 @@ export default function TutorOnboardingPage() {
         role: 'TUTOR' as const,
         name,
         city,
+        avatarUrl: avatarUrl || null,
       };
       setUser(updatedUser);
     }
@@ -362,7 +384,7 @@ export default function TutorOnboardingPage() {
             {step === 3 && 'Specify your subjects, teaching level, and experience.'}
             {step === 4 && 'Select languages spoken and available formats.'}
             {step === 5 && 'Specify your min/max fees and billing frequency.'}
-            {step === 6 && 'Add degrees or educational certificates (Optional).'}
+            {step === 6 && 'Add degrees or educational certificates.'}
             {step === 7 && 'Select times/days you are open for requests (Optional).'}
             {step === 8 && 'Start exploring student requirements.'}
           </p>
@@ -382,6 +404,13 @@ export default function TutorOnboardingPage() {
               {/* STEP 1: Basic Information */}
               {step === 1 && (
                 <div className="space-y-4">
+                  <div className="flex justify-center mb-6">
+                    <AvatarUpload
+                      value={avatarUrl}
+                      onChange={(url) => setTutorField('avatarUrl', url)}
+                      token={accessToken || ''}
+                    />
+                  </div>
                   <Input
                     label="Full Name"
                     placeholder="Enter display name"
@@ -411,7 +440,7 @@ export default function TutorOnboardingPage() {
               {/* STEP 2: About You (Bio) */}
               {step === 2 && (
                 <div>
-                  <label className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
+                  <label className="block text-xs font-bold text-[#384148] uppercase tracking-wider mb-2">
                     Short Bio (Min 50 characters)
                   </label>
                   <textarea
@@ -423,7 +452,7 @@ export default function TutorOnboardingPage() {
                       if (fieldErrors.bio) setFieldErrors({ ...fieldErrors, bio: '' });
                     }}
                     disabled={loading}
-                    className={`w-full px-3 py-2 text-sm text-[#00060c] bg-white border rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb] placeholder:text-[#647380] ${
+                    className={`w-full px-4 py-3 text-sm text-[#00060c] bg-white border transition-all focus:outline-none focus:ring-2 focus:ring-[#00A453] focus:border-[#00A453] placeholder:text-[#647380] ${
                       fieldErrors.bio
                         ? 'border-[#DC2626] focus:ring-[#DC2626] focus:border-[#DC2626]'
                         : 'border-[#dadee2]'
@@ -443,6 +472,13 @@ export default function TutorOnboardingPage() {
                   {fieldErrors.bio && (
                     <p className="mt-1.5 text-xs text-[#DC2626]">{fieldErrors.bio}</p>
                   )}
+                  <div className="mt-6 pt-6 border-t border-dashed border-[#dadee2]">
+                    <VideoUpload
+                      value={introVideoUrl}
+                      onChange={(url) => setTutorField('introVideoUrl', url)}
+                      token={accessToken || ''}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -468,11 +504,11 @@ export default function TutorOnboardingPage() {
                     <p className="text-xs text-[#DC2626]">{fieldErrors.subjects}</p>
                   )}
 
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                  <div className="space-y-5 max-h-[550px] overflow-y-auto pr-1.5">
                     {subjects.map((sub, index) => (
                       <div
                         key={index}
-                        className="border border-[#dadee2] rounded-[12px] p-4 bg-[#FAFAFA] relative space-y-3"
+                        className="border border-[#dadee2] rounded-[8px] p-5 bg-[#FAFAFA]/50 relative space-y-4 hover:shadow-sm transition-shadow"
                       >
                         {/* Trash */}
                         {subjects.length > 1 && (
@@ -486,7 +522,7 @@ export default function TutorOnboardingPage() {
                           </button>
                         )}
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <Input
                             label="Subject"
                             placeholder="e.g. Mathematics, Calculus"
@@ -494,16 +530,12 @@ export default function TutorOnboardingPage() {
                             onChange={(e) => updateSubjectField(index, 'subject', e.target.value)}
                           />
 
-                          <div>
-                            <label className="block text-sm font-bold text-[#2d2d2d] mb-1.5">
-                              Level (e.g. Class 10, JEE)
-                            </label>
-                            <input
-                              type="text"
+                          <div className="space-y-1">
+                            <Input
+                              label="Level (e.g. Class 10, JEE)"
                               placeholder="e.g. Class 10"
                               value={sub.level}
                               onChange={(e) => updateSubjectField(index, 'level', e.target.value)}
-                              className="w-full px-3 py-2 text-sm text-[#00060c] bg-white border border-[#dadee2] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb]"
                             />
                             <div className="flex gap-1.5 mt-1.5 flex-wrap">
                               {COMMON_LEVELS.map((lvl) => (
@@ -649,9 +681,12 @@ export default function TutorOnboardingPage() {
                 </div>
               )}
 
-              {/* STEP 6: Qualifications (Optional) */}
+              {/* STEP 6: Qualifications */}
               {step === 6 && (
                 <div className="space-y-4">
+                  {fieldErrors.qualifications && (
+                    <p className="text-xs text-[#DC2626] font-semibold">{fieldErrors.qualifications}</p>
+                  )}
                   <div className="flex items-center justify-between border-b border-[#dadee2] pb-1">
                     <label className="text-sm font-bold text-[#00060c] uppercase tracking-wider">
                       Degrees & Qualifications
@@ -673,28 +708,42 @@ export default function TutorOnboardingPage() {
                       Continue to skip.
                     </p>
                   ) : (
-                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                    <div className="space-y-5 max-h-[550px] overflow-y-auto pr-1.5">
                       {qualifications.map((qual, index) => (
                         <div
                           key={index}
-                          className="border border-[#dadee2] rounded-[12px] p-4 bg-[#FAFAFA] relative space-y-3"
+                          className="border border-[#dadee2] rounded-[8px] p-5 bg-[#FAFAFA]/50 relative space-y-4 hover:shadow-sm transition-shadow"
                         >
                           <button
                             type="button"
                             onClick={() => removeQualRow(index)}
-                            className="absolute top-2 right-2 text-[#647380] hover:text-[#DC2626] transition-colors p-1"
+                            className="absolute top-3 right-3 text-[#647380] hover:text-[#DC2626] transition-colors p-1"
                             aria-label="Remove qualification"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
 
-                          <div className="space-y-3">
-                            <Input
-                              label="Degree / Course"
-                              placeholder="e.g. B.Sc Mathematics, B.Tech"
-                              value={qual.degree}
-                              onChange={(e) => updateQualField(index, 'degree', e.target.value)}
-                            />
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="col-span-2">
+                                <Input
+                                  label="Degree / Course"
+                                  placeholder="e.g. B.Sc Mathematics, B.Tech"
+                                  value={qual.degree}
+                                  onChange={(e) => updateQualField(index, 'degree', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <Input
+                                  label="Year"
+                                  type="number"
+                                  placeholder="e.g. 2022"
+                                  value={qual.year}
+                                  onChange={(e) => updateQualField(index, 'year', e.target.value)}
+                                />
+                              </div>
+                            </div>
+
                             <Input
                               label="Institution / University"
                               placeholder="e.g. Delhi University"
@@ -703,13 +752,17 @@ export default function TutorOnboardingPage() {
                                 updateQualField(index, 'institution', e.target.value)
                               }
                             />
-                            <Input
-                              label="Year of Completion"
-                              type="number"
-                              placeholder="e.g. 2022"
-                              value={qual.year}
-                              onChange={(e) => updateQualField(index, 'year', e.target.value)}
-                            />
+
+                            <div className="pt-1">
+                              <label className="block text-xs font-bold text-[#384148] mb-2">
+                                <span className="uppercase tracking-wider">Certificate / Transcript</span> <span className="text-[10px] text-[#8c9ba5] italic font-normal lowercase">(optional)</span>
+                              </label>
+                              <DocumentUpload
+                                value={qual.certificateUrl}
+                                onChange={(url) => updateQualField(index, 'certificateUrl', url)}
+                                token={accessToken || ''}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}

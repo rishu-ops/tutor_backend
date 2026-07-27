@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ApplicationModel,
   RequirementModel,
@@ -7,6 +6,7 @@ import {
   ConversationModel,
   prisma,
 } from 'database';
+import { notificationQueue } from '../notifications/notification.queue.js';
 
 export class ApplicationService {
   /**
@@ -165,7 +165,7 @@ export class ApplicationService {
       // Load tutor info
       const tutorUser = await prisma.user.findUnique({
         where: { id: app.tutorUserId },
-        select: { name: true, phone: true, email: true },
+        select: { name: true, phone: true, email: true, avatarUrl: true },
       });
 
       const tutorProfile = await TutorProfileModel.findOne({ userId: app.tutorUserId });
@@ -176,6 +176,7 @@ export class ApplicationService {
           name: tutorUser?.name || 'Anonymous Tutor',
           phone: tutorUser?.phone,
           email: tutorUser?.email,
+          avatarUrl: tutorUser?.avatarUrl || null,
           bio: tutorProfile?.bio || '',
           qualifications: tutorProfile?.qualifications || [],
           subjects: tutorProfile?.subjects || [],
@@ -271,6 +272,18 @@ export class ApplicationService {
       content: `Congratulations! Your proposal for ${subjectName} has been accepted.`,
     });
 
+    // 5. Schedule Chat Reminder in background (15 seconds delay for immediate verification/demo)
+    notificationQueue.add('matched-chat-reminder', {
+      type: 'MATCHED_CHAT_REMINDER',
+      data: {
+        requirementId: requirement._id.toString(),
+        studentUserId: requirement.studentUserId,
+        tutorUserId: application.tutorUserId,
+      }
+    }, { delay: 15000 }).catch(err => {
+      console.error('Failed to schedule matched chat reminder:', err);
+    });
+
     return application;
   }
 
@@ -332,7 +345,7 @@ export class ApplicationService {
     // Load tutor details
     const tutorUser = await prisma.user.findUnique({
       where: { id: application.tutorUserId },
-      select: { name: true, phone: true, email: true },
+      select: { name: true, phone: true, email: true, avatarUrl: true },
     });
 
     const tutorProfile = await TutorProfileModel.findOne({ userId: application.tutorUserId });
@@ -343,6 +356,7 @@ export class ApplicationService {
         name: tutorUser?.name || 'Anonymous Tutor',
         phone: tutorUser?.phone,
         email: tutorUser?.email,
+        avatarUrl: tutorUser?.avatarUrl || null,
         bio: tutorProfile?.bio || '',
         qualifications: tutorProfile?.qualifications || [],
         subjects: tutorProfile?.subjects || [],
@@ -405,7 +419,7 @@ export class ApplicationService {
       // Load tutor info
       const tutorUser = await prisma.user.findUnique({
         where: { id: app.tutorUserId },
-        select: { name: true },
+        select: { name: true, avatarUrl: true },
       });
 
       const tutorProfile = await TutorProfileModel.findOne({ userId: app.tutorUserId });
@@ -425,6 +439,7 @@ export class ApplicationService {
         applicationId: app._id,
         tutorUserId: app.tutorUserId,
         tutorName: tutorUser?.name || 'Anonymous Tutor',
+        tutorAvatarUrl: tutorUser?.avatarUrl || null,
         rating: tutorProfile?.ratingAvg || 5.0,
         proposedFee: app.proposedFee,
         freeDemo: app.freeDemo,

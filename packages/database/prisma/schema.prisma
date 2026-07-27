@@ -14,6 +14,7 @@ model User {
   role            UserRole?
   name            String?
   city            String?
+  avatarUrl       String?
   isPhoneVerified Boolean   @default(false)
   isActive        Boolean   @default(true)
   passwordHash    String?   // Added for admin login

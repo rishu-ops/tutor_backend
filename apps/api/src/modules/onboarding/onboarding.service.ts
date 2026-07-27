@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma, StudentProfileModel, TutorProfileModel } from 'database';
+import { profileCompletenessQueue } from './profile.queue.js';
+import { notificationQueue } from '../notifications/notification.queue.js';
 import { OnboardingInput } from './onboarding.validation.js';
 
 export class OnboardingService {
@@ -13,8 +15,10 @@ export class OnboardingService {
     if (input.languages && input.languages.length > 0) completeness += 10;
     if (input.pricing && input.pricing.min > 0) completeness += 10;
     if (input.location && input.location.city && input.location.area) completeness += 10;
-    // Profile photo: future (5%)
-    return completeness;
+    if (input.avatarUrl) completeness += 5;
+    if (input.introVideoUrl) completeness += 5;
+    if (input.qualifications && input.qualifications.some((q: any) => q.certificateUrl)) completeness += 5;
+    return Math.min(100, completeness);
   }
 
   async onboardUser(userId: string, input: OnboardingInput) {
@@ -62,7 +66,19 @@ export class OnboardingService {
           role: 'STUDENT',
           name: input.name,
           city: input.city,
+          avatarUrl: input.avatarUrl,
         },
+      });
+
+      profileCompletenessQueue.add('calculate-completeness', { userId, role: 'STUDENT' }).catch(err => {
+        console.error('Failed to queue student completeness task:', err);
+      });
+
+      notificationQueue.add('profile-completeness-reminder', {
+        type: 'PROFILE_COMPLETENESS_REMINDER',
+        data: { userId, role: 'STUDENT' }
+      }, { delay: 15000 }).catch(err => {
+        console.error('Failed to queue student completeness reminder:', err);
       });
 
       return { profile };
@@ -91,6 +107,7 @@ export class OnboardingService {
           area: input.location.area,
         },
         availability: (input as any).availability || [],
+        introVideoUrl: (input as any).introVideoUrl || undefined,
         profileCompleteness: completeness,
         verificationStatus: 'PENDING',
         visibilityTier: 'FREE',
@@ -104,7 +121,33 @@ export class OnboardingService {
           role: 'TUTOR',
           name: input.name,
           city: input.location.city,
+          avatarUrl: input.avatarUrl || null,
         },
+      });
+
+      profileCompletenessQueue.add('calculate-completeness', { userId, role: 'TUTOR' }).catch(err => {
+        console.error('Failed to queue tutor completeness task:', err);
+      });
+
+      notificationQueue.add('profile-completeness-reminder', {
+        type: 'PROFILE_COMPLETENESS_REMINDER',
+        data: { userId, role: 'TUTOR' }
+      }, { delay: 15000 }).catch(err => {
+        console.error('Failed to queue tutor completeness reminder:', err);
+      });
+
+      notificationQueue.add('new-requirements-match', {
+        type: 'NEW_REQUIREMENTS_MATCH',
+        data: { tutorUserId: userId }
+      }, { delay: 10000 }).catch(err => {
+        console.error('Failed to enqueue matched requirements check:', err);
+      });
+
+      notificationQueue.add('new-tutor-registered-match', {
+        type: 'NEW_TUTOR_REGISTERED_MATCH',
+        data: { tutorUserId: userId }
+      }, { delay: 10000 }).catch(err => {
+        console.error('Failed to enqueue new tutor matched check:', err);
       });
 
       return { profile };

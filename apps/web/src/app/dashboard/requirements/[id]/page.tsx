@@ -511,8 +511,12 @@ export default function RequirementDetailPage() {
                               className="w-4 h-4 text-[#00A453] border-gray-300 rounded focus:ring-[#00A453] cursor-pointer"
                             />
 
-                            <div className="w-10 h-10 rounded-full bg-[#f4f7f6] flex items-center justify-center font-bold text-[#00A453] border border-gray-100">
-                              {app.tutor?.name?.[0] || 'T'}
+                            <div className="w-10 h-10 rounded-full bg-[#f4f7f6] overflow-hidden flex items-center justify-center font-bold text-[#00A453] border border-gray-100 shrink-0">
+                              {app.tutor?.avatarUrl ? (
+                                <img src={app.tutor.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{app.tutor?.name?.[0] || 'T'}</span>
+                              )}
                             </div>
 
                             <div>

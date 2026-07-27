@@ -7,6 +7,7 @@ export interface IStudentProfile extends Document {
   preferredLanguage: string;
   learningMode: 'ONLINE' | 'OFFLINE' | 'HYBRID';
   city: string;
+  profileCompleteness: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +24,7 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
       required: true,
     },
     city: { type: String, required: true },
+    profileCompleteness: { type: Number, default: 0 },
   },
   {
     timestamps: true,

@@ -10,6 +10,7 @@ interface User {
   role: string | null;
   name: string | null;
   city?: string | null;
+  avatarUrl?: string | null;
   isPhoneVerified: boolean;
 }
 

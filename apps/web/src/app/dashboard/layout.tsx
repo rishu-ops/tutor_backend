@@ -125,11 +125,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <nav className="hidden md:flex items-center gap-8  ml-10">
               <Link
                 href="/dashboard"
-                className={`text-sm font-semibold transition-colors ${
-                  pathname === '/dashboard'
-                    ? 'text-[#00A453]'
-                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                }`}
+                className={`text-sm font-semibold transition-colors ${pathname === '/dashboard'
+                  ? 'text-[#00A453]'
+                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                  }`}
               >
                 Home
               </Link>
@@ -137,21 +136,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <Link
                     href="/dashboard/tutors"
-                    className={`text-sm font-semibold transition-colors ${
-                      pathname.startsWith('/dashboard/tutors')
-                        ? 'text-[#00A453]'
-                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                    }`}
+                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/tutors')
+                      ? 'text-[#00A453]'
+                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                      }`}
                   >
                     Find Tutors
                   </Link>
                   <Link
                     href="/dashboard/requirements"
-                    className={`text-sm font-semibold transition-colors ${
-                      pathname.startsWith('/dashboard/requirements')
-                        ? 'text-[#00A453]'
-                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                    }`}
+                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/requirements')
+                      ? 'text-[#00A453]'
+                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                      }`}
                   >
                     My Requirements
                   </Link>
@@ -161,21 +158,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <Link
                     href="/dashboard/requirements/browse"
-                    className={`text-sm font-semibold transition-colors ${
-                      pathname.includes('/browse')
-                        ? 'text-[#00A453]'
-                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                    }`}
+                    className={`text-sm font-semibold transition-colors ${pathname.includes('/browse')
+                      ? 'text-[#00A453]'
+                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                      }`}
                   >
                     Find Students
                   </Link>
                   <Link
                     href="/dashboard/applications"
-                    className={`text-sm font-semibold transition-colors ${
-                      pathname.startsWith('/dashboard/applications')
-                        ? 'text-[#00A453]'
-                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                    }`}
+                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/applications')
+                      ? 'text-[#00A453]'
+                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                      }`}
                   >
                     My Applications
                   </Link>
@@ -183,21 +178,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
               <Link
                 href="/dashboard/messages"
-                className={`text-sm font-semibold transition-colors ${
-                  pathname.startsWith('/dashboard/messages')
-                    ? 'text-[#00A453]'
-                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                }`}
+                className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/messages')
+                  ? 'text-[#00A453]'
+                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                  }`}
               >
                 Messages
               </Link>
               <Link
                 href="/dashboard/bookings"
-                className={`text-sm font-semibold transition-colors ${
-                  pathname.startsWith('/dashboard/bookings')
-                    ? 'text-[#00A453]'
-                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                }`}
+                className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/bookings')
+                  ? 'text-[#00A453]'
+                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                  }`}
               >
                 Bookings
               </Link>
@@ -222,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="px-4 pb-2 flex items-center justify-between">
                     <span className="text-xs font-bold text-[#2d2d2d]">Notifications</span>
                     {notifications.some((n) => !n.read) && (
-                      <span className="text-[9px] bg-red-50 text-red-500 font-bold px-1.5 py-0.5 rounded-full">
+                      <span className="text-[9px] text-blue-500 font-bold px-1.5 py-0.5 rounded-full">
                         New Activity
                       </span>
                     )}
@@ -236,9 +229,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       notifications.map((notif) => (
                         <div
                           key={notif._id}
-                          className={`p-3 space-y-1 hover:bg-gray-50 transition-colors flex items-start justify-between gap-2 ${
-                            !notif.read ? 'bg-gray-50/50' : ''
-                          }`}
+                          className={`p-3 space-y-1 hover:bg-gray-50 transition-colors flex items-start justify-between gap-2 ${!notif.read ? 'bg-gray-50/50' : ''
+                            }`}
                         >
                           <div className="min-w-0">
                             <span className="font-bold text-[#2d2d2d] block">{notif.title}</span>
@@ -283,8 +275,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setDropdownOpen((o) => !o)}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
               >
-                <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center select-none">
-                  <span className="text-sm font-bold text-[#00A453]">{getInitials()}</span>
+                <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center select-none">
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-bold text-[#00A453]">{getInitials()}</span>
+                  )}
                 </div>
                 <ChevronDown
                   className={`w-4 h-4 text-[#647380] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
@@ -295,8 +291,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="absolute right-0 top-12 w-72 bg-white border border-[#dadee2]  shadow-md py-2 z-50">
                   {/* User identity */}
                   <div className="flex items-center gap-3 px-4 py-3 border-b border-[#dadee2]">
-                    <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-[#00A453]">{getInitials()}</span>
+                    <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center shrink-0">
+                      {user?.avatarUrl ? (
+                        <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[#00A453]">{getInitials()}</span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-[#2d2d2d] truncate">{user?.name}</p>

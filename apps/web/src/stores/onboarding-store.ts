@@ -7,6 +7,7 @@ interface StudentOnboardingData {
   step: number;
   name: string;
   city: string;
+  avatarUrl: string;
   studentClass: string;
   school: string;
   preferredLanguage: string;
@@ -23,12 +24,15 @@ interface TutorQualification {
   degree: string;
   institution: string;
   year: string;
+  certificateUrl?: string;
 }
 
 interface TutorOnboardingData {
   step: number;
   name: string;
   city: string;
+  avatarUrl: string;
+  introVideoUrl: string;
   bio: string;
   subjects: TutorSubject[];
   teachingModes: string[]; // Home Tuition, Online, Group Classes, Coaching Center
@@ -52,6 +56,7 @@ const initialStudentState: StudentOnboardingData = {
   step: 1,
   name: '',
   city: '',
+  avatarUrl: '',
   studentClass: '',
   school: '',
   preferredLanguage: '',
@@ -62,6 +67,8 @@ const initialTutorState: TutorOnboardingData = {
   step: 1,
   name: '',
   city: '',
+  avatarUrl: '',
+  introVideoUrl: '',
   bio: '',
   subjects: [{ subject: '', level: '', experienceYears: 1 }],
   teachingModes: ['Online'],

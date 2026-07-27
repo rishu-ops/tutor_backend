@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { NotificationController } from './notification.controller.js';
 import { requireAuth } from '../auth/auth.middleware.js';
+import './notification.queue.js';
 
 const router = Router();
 const controller = new NotificationController();

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const updateStudentProfileSchema = z.object({
   name: z.string().min(1, 'Name cannot be empty').optional(),
+  avatarUrl: z.string().optional(),
   city: z.string().min(1, 'City cannot be empty').optional(),
   school: z.string().min(1, 'School cannot be empty').optional(),
   class: z.string().min(1, 'Class cannot be empty').optional(),
