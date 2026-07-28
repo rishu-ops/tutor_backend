@@ -15,6 +15,8 @@ export interface IBooking extends Document {
   declineReason?: string; // tutor fills when declining
   rescheduledFrom?: Date; // original time before reschedule
   rescheduleRequestedBy?: string; // userId who proposed new time
+  requestedBy: string; // userId who requested/created the booking
+  subject?: string; // cached subject title from requirement
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +48,8 @@ const BookingSchema = new Schema<IBooking>(
     declineReason: { type: String, default: '' },
     rescheduledFrom: { type: Date },
     rescheduleRequestedBy: { type: String },
+    requestedBy: { type: String, required: true, index: true },
+    subject: { type: String, default: '' },
   },
   {
     timestamps: true,

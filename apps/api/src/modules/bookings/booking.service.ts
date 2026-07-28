@@ -6,18 +6,90 @@ export class BookingService {
    * - Detects sessionMode from tutor profile teachingModes
    * - Guards regular sessions behind a completed trial
    */
+  async checkTimeConflict(
+    tutorUserId: string,
+    studentUserId: string,
+    scheduledAt: Date,
+    duration: number,
+    excludeBookingId?: string
+  ) {
+    const start = new Date(scheduledAt);
+    const end = new Date(start.getTime() + duration * 60 * 1000);
+
+    // Fetch accepted bookings for either tutor or student within 24 hours of scheduled time
+    const rangeStart = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+    const rangeEnd = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+
+    const overlappingBookings = await BookingModel.find({
+      _id: excludeBookingId ? { $ne: excludeBookingId } : { $exists: true },
+      status: 'ACCEPTED',
+      $or: [
+        { tutorUserId },
+        { studentUserId }
+      ],
+      scheduledAt: { $gte: rangeStart, $lte: rangeEnd }
+    });
+
+    for (const b of overlappingBookings) {
+      const bStart = new Date(b.scheduledAt).getTime();
+      const bEnd = bStart + (b.duration || 60) * 60 * 1000;
+
+      const reqStart = start.getTime();
+      const reqEnd = end.getTime();
+
+      // Math.max(start1, start2) < Math.min(end1, end2)
+      if (Math.max(reqStart, bStart) < Math.min(reqEnd, bEnd)) {
+        const isSelfTutor = b.tutorUserId === tutorUserId;
+        const targetName = isSelfTutor ? 'tutor' : 'student';
+        const formattedTime = new Date(b.scheduledAt).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const err = new Error(
+          `Schedule Conflict: The ${targetName} already has an accepted class at this time (${formattedTime}). Please choose another time.`
+        );
+        (err as any).statusCode = 400;
+        throw err;
+      }
+    }
+  }
+
   async createBooking(data: {
     requirementId: string;
-    studentUserId: string;
-    tutorUserId: string;
+    creatorUserId: string;
+    partnerUserId: string;
     scheduledAt: string | Date;
     duration?: number;
     isFirstSession: boolean;
     notes?: string;
-    studentNeedsDemo?: boolean; // from requirement preference
+    studentNeedsDemo?: boolean;
   }) {
+    const creatorUser = await prisma.user.findUnique({ where: { id: data.creatorUserId } });
+    if (!creatorUser) {
+      const err = new Error('Creator user not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    let studentUserId = '';
+    let tutorUserId = '';
+    let isTutorCreator = false;
+
+    if (creatorUser.role === 'TUTOR') {
+      tutorUserId = data.creatorUserId;
+      studentUserId = data.partnerUserId;
+      isTutorCreator = true;
+    } else {
+      studentUserId = data.creatorUserId;
+      tutorUserId = data.partnerUserId;
+    }
+
+    // Check for schedule conflicts (block booking request if slot is already occupied)
+    const duration = data.duration || 60;
+    await this.checkTimeConflict(tutorUserId, studentUserId, new Date(data.scheduledAt), duration);
+
     // --- Resolve session mode from tutor profile ---
-    const tutorProfile = await TutorProfileModel.findOne({ userId: data.tutorUserId });
+    const tutorProfile = await TutorProfileModel.findOne({ userId: tutorUserId });
     const modes: string[] = tutorProfile?.teachingModes || [];
 
     const sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID' =
@@ -28,10 +100,11 @@ export class BookingService {
           : 'ONLINE';
 
     // --- Guard: cannot request regular session without completed trial ---
-    if (!data.isFirstSession) {
+    const offersDemo = tutorProfile?.offersDemo !== false;
+    if (!data.isFirstSession && offersDemo) {
       const completedTrial = await BookingModel.findOne({
-        studentUserId: data.studentUserId,
-        tutorUserId: data.tutorUserId,
+        studentUserId: studentUserId,
+        tutorUserId: tutorUserId,
         isFirstSession: true,
         status: 'COMPLETED',
       });
@@ -61,30 +134,34 @@ export class BookingService {
         ? `${tutorProfile.location.area}, ${tutorProfile.location.city}`
         : '';
 
+    const requirement = await RequirementModel.findById(data.requirementId);
+    const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
+
     const booking = await BookingModel.create({
       requirementId: data.requirementId,
-      studentUserId: data.studentUserId,
-      tutorUserId: data.tutorUserId,
+      studentUserId,
+      tutorUserId,
       scheduledAt: new Date(data.scheduledAt),
-      duration: data.duration || 60,
+      duration,
       sessionMode,
       isFirstSession: data.isFirstSession,
       status: 'PENDING',
       notes: data.notes || '',
       location: locationNote,
+      requestedBy: data.creatorUserId,
+      subject
     });
 
-    // Notify tutor
+    // Notify partner user
     try {
-      const studentUser = await prisma.user.findUnique({
-        where: { id: data.studentUserId },
-        select: { name: true },
-      });
+      const creatorName = creatorUser.name || (isTutorCreator ? 'Your tutor' : 'A student');
       const sessionLabel = data.isFirstSession ? 'Trial Class' : 'Regular Session';
+      const recipientId = isTutorCreator ? studentUserId : tutorUserId;
+      
       await NotificationModel.create({
-        userId: data.tutorUserId,
-        title: `New ${sessionLabel} Request`,
-        content: `${studentUser?.name || 'A student'} has requested a ${sessionLabel} on ${new Date(data.scheduledAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at ${new Date(data.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.`,
+        userId: recipientId,
+        title: `New ${sessionLabel} Proposed`,
+        content: `${creatorName} has scheduled a ${sessionLabel} on ${new Date(data.scheduledAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at ${new Date(data.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}. Please review and accept it.`,
         type: 'BOOKING_REQUESTED',
         data: { bookingId: booking._id, requirementId: data.requirementId },
       });
@@ -197,10 +274,13 @@ export class BookingService {
     const isStudent = booking.studentUserId === userId;
 
     // State machine enforcement
-    if ((status === 'ACCEPTED' || status === 'DECLINED') && !isTutor) {
-      const err = new Error('Only the tutor can accept or decline a booking.');
-      (err as any).statusCode = 403;
-      throw err;
+    if (status === 'ACCEPTED' || status === 'DECLINED') {
+      // The accepting party must NOT be the one who requested it
+      if (booking.requestedBy === userId) {
+        const err = new Error('You cannot accept or decline a booking request that you initiated.');
+        (err as any).statusCode = 403;
+        throw err;
+      }
     }
     if (status === 'COMPLETED' && !isTutor) {
       const err = new Error('Only the tutor can mark a session as completed.');
@@ -226,6 +306,17 @@ export class BookingService {
       const err = new Error('Invalid status');
       (err as any).statusCode = 400;
       throw err;
+    }
+
+    // Check for overlaps when status is updated to ACCEPTED
+    if (status === 'ACCEPTED') {
+      await this.checkTimeConflict(
+        booking.tutorUserId,
+        booking.studentUserId,
+        booking.scheduledAt,
+        booking.duration,
+        booking._id.toString()
+      );
     }
 
     booking.status = status as any;

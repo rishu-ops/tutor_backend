@@ -37,6 +37,7 @@ interface Booking {
   rescheduledFrom?: string;
   rescheduleRequestedBy?: string;
   subject?: string;
+  requestedBy: string;
   otherParty: { id: string; name: string; role: string; email?: string; phone?: string };
 }
 
@@ -367,51 +368,68 @@ export default function BookingsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* TUTOR actions on PENDING */}
-                    {isTutor && b.status === 'PENDING' && (
+                    {/* PENDING ACTIONS */}
+                    {b.status === 'PENDING' && (
                       <>
-                        <Button
-                          onClick={() => {
-                            if (b.sessionMode === 'ONSITE') {
-                              action(b._id, 'ACCEPTED');
-                            } else {
-                              setShowAcceptModal(b._id);
-                            }
-                          }}
-                          disabled={isActing}
-                          variant="primary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {isActing ? 'Accepting...' : 'Accept'}
-                        </Button>
-                        <Button
-                          onClick={() => setShowDeclineModal(b._id)}
-                          disabled={isActing}
-                          variant="secondary"
-                          size="sm"
-                          className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          Decline
-                        </Button>
+                        {b.requestedBy === user?.id ? (
+                          <Button
+                            onClick={() => action(b._id, 'CANCELLED')}
+                            disabled={isActing}
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            {isActing ? 'Cancelling...' : 'Cancel Request'}
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => {
+                                if (b.sessionMode === 'ONSITE') {
+                                  action(b._id, 'ACCEPTED');
+                                } else {
+                                  setShowAcceptModal(b._id);
+                                }
+                              }}
+                              disabled={isActing}
+                              variant="primary"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {isActing ? 'Accepting...' : 'Accept'}
+                            </Button>
+                            <Button
+                              onClick={() => setShowDeclineModal(b._id)}
+                              disabled={isActing}
+                              variant="secondary"
+                              size="sm"
+                              className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Decline
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
 
-                    {/* TUTOR actions on ACCEPTED */}
-                    {isTutor && b.status === 'ACCEPTED' && (
+                    {/* ACCEPTED ACTIONS */}
+                    {b.status === 'ACCEPTED' && (
                       <>
-                        <Button
-                          onClick={() => action(b._id, 'COMPLETED')}
-                          disabled={isActing}
-                          variant="primary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {isActing ? '...' : 'Mark Complete'}
-                        </Button>
+                        {isTutor && (
+                          <Button
+                            onClick={() => action(b._id, 'COMPLETED')}
+                            disabled={isActing}
+                            variant="primary"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {isActing ? '...' : 'Mark Complete'}
+                          </Button>
+                        )}
                         <Button
                           onClick={() => setShowRescheduleModal(b._id)}
                           variant="secondary"
@@ -420,26 +438,6 @@ export default function BookingsPage() {
                         >
                           <RefreshCw className="w-3.5 h-3.5" /> Reschedule
                         </Button>
-                      </>
-                    )}
-
-                    {/* STUDENT actions on PENDING */}
-                    {!isTutor && b.status === 'PENDING' && (
-                      <Button
-                        onClick={() => action(b._id, 'CANCELLED')}
-                        disabled={isActing}
-                        variant="secondary"
-                        size="sm"
-                        className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        {isActing ? 'Cancelling...' : 'Cancel Request'}
-                      </Button>
-                    )}
-
-                    {/* STUDENT actions on ACCEPTED */}
-                    {!isTutor && b.status === 'ACCEPTED' && (
-                      <>
                         <Button
                           onClick={() => action(b._id, 'CANCELLED')}
                           disabled={isActing}
@@ -448,15 +446,7 @@ export default function BookingsPage() {
                           className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={() => setShowRescheduleModal(b._id)}
-                          variant="secondary"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" /> Propose New Time
+                          Cancel Session
                         </Button>
                       </>
                     )}

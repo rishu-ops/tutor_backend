@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { BookingService } from './booking.service.js';
 
 export class BookingController {
@@ -7,8 +7,8 @@ export class BookingController {
   // POST /api/v1/bookings
   async createBooking(req: Request, res: Response): Promise<void> {
     try {
-      const studentUserId = req.user?.id;
-      if (!studentUserId) {
+      const creatorUserId = req.user?.id;
+      if (!creatorUserId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
@@ -16,24 +16,28 @@ export class BookingController {
       const {
         requirementId,
         tutorUserId,
+        studentUserId,
         scheduledAt,
         duration,
         isFirstSession,
         notes,
         studentNeedsDemo,
       } = req.body;
-      if (!requirementId || !tutorUserId || !scheduledAt) {
+
+      const partnerUserId = tutorUserId || studentUserId;
+
+      if (!requirementId || !partnerUserId || !scheduledAt) {
         res.status(400).json({
           success: false,
-          error: 'Missing required parameters (requirementId, tutorUserId, scheduledAt)',
+          error: 'Missing required parameters (requirementId, partner (tutorUserId/studentUserId), scheduledAt)',
         });
         return;
       }
 
       const booking = await this.service.createBooking({
         requirementId,
-        studentUserId,
-        tutorUserId,
+        creatorUserId,
+        partnerUserId,
         scheduledAt,
         duration,
         isFirstSession: isFirstSession !== false, // default true
