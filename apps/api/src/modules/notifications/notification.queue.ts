@@ -1,5 +1,5 @@
 import { Queue, Worker } from 'bullmq';
-import { TutorProfileModel, StudentProfileModel, prisma, NotificationModel, ConversationModel, MessageModel, RequirementModel } from 'database';
+import { TutorProfileModel, StudentProfileModel, prisma, NotificationModel, ConversationModel, MessageModel, RequirementModel, BookingModel } from 'database';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -9,6 +9,20 @@ const connection = {
 };
 
 export const notificationQueue = new Queue('notification-queue', { connection });
+
+// Schedule repeatable job to run every 5 minutes
+notificationQueue.add(
+  'check-upcoming-classes',
+  { type: 'CHECK_UPCOMING_CLASSES', data: {} },
+  {
+    repeat: { every: 5 * 60 * 1000 }, // every 5 minutes
+    jobId: 'check-upcoming-classes-job',
+  }
+).then(() => {
+  console.log('[NotificationQueue] Repeatable class reminders check registered.');
+}).catch((err) => {
+  console.error('[NotificationQueue] Failed to register class reminders check:', err);
+});
 
 export const notificationWorker = new Worker(
   'notification-queue',
@@ -165,6 +179,73 @@ export const notificationWorker = new Worker(
           });
         }
         console.log(`[NotificationQueue] Dispatched matches notification for new tutor ${tutorUserId} to ${matchingReqs.length} students`);
+      } else if (type === 'CHECK_UPCOMING_CLASSES') {
+        console.log('[NotificationQueue] Running upcoming class reminders check...');
+        const now = new Date();
+        const thirtyMinutesLater = new Date(now.getTime() + 30 * 60 * 1000);
+
+        // Find all accepted sessions scheduled within the next 30 minutes
+        const upcomingBookings = await BookingModel.find({
+          status: 'ACCEPTED',
+          scheduledAt: { $gte: now, $lte: thirtyMinutesLater }
+        });
+
+        console.log(`[NotificationQueue] Found ${upcomingBookings.length} confirmed classes scheduled within the next 30 minutes.`);
+
+        for (const booking of upcomingBookings) {
+          const bookingId = booking._id.toString();
+
+          // Check if we have already sent reminders for this class
+          const exists = await NotificationModel.exists({
+            type: 'CLASS_REMINDER',
+            'data.bookingId': bookingId
+          });
+
+          if (exists) {
+            console.log(`[NotificationQueue] Reminders for class ${bookingId} already dispatched. Skipping.`);
+            continue;
+          }
+
+          // Fetch student and tutor details to construct the messages
+          const studentUser = await prisma.user.findUnique({
+            where: { id: booking.studentUserId },
+            select: { name: true }
+          });
+
+          const tutorUser = await prisma.user.findUnique({
+            where: { id: booking.tutorUserId },
+            select: { name: true }
+          });
+
+          const formattedTime = new Date(booking.scheduledAt).toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          const linkText = booking.sessionMode === 'ONLINE' && booking.meetingLink 
+            ? ` Join here: ${booking.meetingLink}` 
+            : '';
+
+          // Create notification for student
+          await NotificationModel.create({
+            userId: booking.studentUserId,
+            title: 'Upcoming Class Reminder',
+            content: `Your class with tutor ${tutorUser?.name || 'your tutor'} is starting soon at ${formattedTime}!${linkText}`,
+            type: 'CLASS_REMINDER',
+            data: { bookingId }
+          });
+
+          // Create notification for tutor
+          await NotificationModel.create({
+            userId: booking.tutorUserId,
+            title: 'Upcoming Class Reminder',
+            content: `Your class with student ${studentUser?.name || 'your student'} is starting soon at ${formattedTime}!${linkText}`,
+            type: 'CLASS_REMINDER',
+            data: { bookingId }
+          });
+
+          console.log(`[NotificationQueue] Dispatched class reminders for booking ${bookingId} to student and tutor.`);
+        }
       }
     } catch (err) {
       console.error(`[NotificationQueue] Failed processing job:`, err);

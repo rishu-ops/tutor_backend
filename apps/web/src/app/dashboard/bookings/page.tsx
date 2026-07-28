@@ -36,6 +36,7 @@ interface Booking {
   declineReason?: string;
   rescheduledFrom?: string;
   rescheduleRequestedBy?: string;
+  subject?: string;
   otherParty: { id: string; name: string; role: string; email?: string; phone?: string };
 }
 
@@ -280,10 +281,10 @@ export default function BookingsPage() {
                     </div>
                     <div>
                       <h3 className="text-base font-extrabold text-gray-950 leading-none">
-                        {b.otherParty.name}
+                        {b.subject || 'Class Session'}
                       </h3>
-                      <p className="text-[10px] text-[#647380] font-bold uppercase mt-1">
-                        {b.otherParty.role}
+                      <p className="text-xs text-[#647380] font-semibold mt-1">
+                        {b.otherParty.role === 'TUTOR' ? 'Tutor' : 'Student'}: <span className="font-extrabold text-gray-900">{b.otherParty.name}</span>
                       </p>
                     </div>
                   </div>

@@ -123,6 +123,7 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [hiredTutors, setHiredTutors] = useState<any[]>([]);
   const [articles, setArticles] = useState<any[]>(MOCK_ARTICLES);
+  const [nextClass, setNextClass] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -141,6 +142,109 @@ export default function DashboardPage() {
       return tutorProfile.profileCompleteness || 0;
     }
     return 0;
+  };
+
+  const fetchNextClass = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/v1/bookings', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const now = new Date();
+        const todayStr = now.toDateString();
+        // Find accepted classes scheduled for today that haven't started/finished yet
+        const upcoming = json.data
+          .filter((b: any) => b.status === 'ACCEPTED' && new Date(b.scheduledAt).getTime() + (b.duration || 60) * 60 * 1000 > now.getTime() && new Date(b.scheduledAt).toDateString() === todayStr)
+          .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+        
+        if (upcoming.length > 0) {
+          setNextClass(upcoming[0]);
+        } else {
+          setNextClass(null);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch next class:', e);
+    }
+  }, [token]);
+
+  const renderUpcomingClassBanner = () => {
+    if (!nextClass) return null;
+
+    const scheduledTime = new Date(nextClass.scheduledAt);
+    const timeFormatted = scheduledTime.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const isOnline = nextClass.sessionMode === 'ONLINE' || nextClass.sessionMode === 'HYBRID';
+    const hasLink = isOnline && nextClass.meetingLink;
+    const now = new Date();
+    
+    // Check if class starts within 30 minutes (or is currently active)
+    const timeDiffMinutes = Math.floor((scheduledTime.getTime() - now.getTime()) / (60 * 1000));
+    const isStartingSoon = timeDiffMinutes <= 30 && timeDiffMinutes >= -nextClass.duration;
+
+    return (
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-[24px] p-6 mb-8 border border-emerald-800 shadow-md">
+        {/* Background glow patterns */}
+        <div className="absolute right-0 top-0 -mr-20 -mt-20 w-72 h-72 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`text-[9px] uppercase tracking-wider font-black px-2.5 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-950/80 text-emerald-400`}>
+                {isStartingSoon ? '● Class Starting Soon' : 'Upcoming Session Today'}
+              </span>
+              {nextClass.isFirstSession && (
+                <span className="text-[9px] uppercase tracking-wider font-black px-2.5 py-0.5 rounded-full border border-purple-500/40 bg-purple-950/80 text-purple-400">
+                  Trial Session
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h2 className="text-lg font-black tracking-tight text-white leading-tight">
+                {nextClass.subject || 'Class Session'} with {nextClass.otherParty?.name}
+              </h2>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-gray-300 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  {timeFormatted} ({nextClass.duration} mins)
+                </span>
+                <span className="text-gray-600 select-none hidden sm:inline">·</span>
+                <span className="flex items-center gap-1.5">
+                  {isOnline ? <Video className="w-4 h-4 text-emerald-400" /> : <MapPin className="w-4 h-4 text-emerald-400" />}
+                  {nextClass.sessionMode} session {nextClass.location ? `at ${nextClass.location}` : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {hasLink ? (
+              <a href={nextClass.meetingLink} target="_blank" rel="noreferrer" className="inline-block">
+                <Button variant="primary-modern" className="text-xs font-bold px-6 h-10 rounded-2xl flex items-center gap-1.5 shadow-md">
+                  Join Meeting <Video className="w-4 h-4 shrink-0" />
+                </Button>
+              </a>
+            ) : isOnline ? (
+              <span className="text-xs font-semibold text-gray-400 italic bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2">
+                Awaiting link from tutor
+              </span>
+            ) : null}
+            <Link href="/dashboard/bookings" className="inline-block">
+              <Button variant="secondary-modern" className="bg-white/10 hover:bg-white/20 border-white/10 text-white font-bold text-xs px-5 h-10 rounded-2xl">
+                View All
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Fetch Student Home Data
@@ -220,12 +324,13 @@ export default function DashboardPage() {
       } else if (user?.role === 'TUTOR') {
         await fetchTutorHomeData();
       }
+      await fetchNextClass();
     } catch (err: any) {
       setError(err.message || 'Failed to sync dashboard status.');
     } finally {
       setLoading(false);
     }
-  }, [user, fetchStudentHomeData, fetchTutorHomeData]);
+  }, [user, fetchStudentHomeData, fetchTutorHomeData, fetchNextClass]);
 
   useEffect(() => {
     loadData();
@@ -1452,6 +1557,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            {renderUpcomingClassBanner()}
             {/* Student state branches */}
             {user?.role === 'STUDENT' && (
               <>

@@ -1,4 +1,4 @@
-import { BookingModel, TutorProfileModel, prisma, NotificationModel } from 'database';
+import { BookingModel, TutorProfileModel, prisma, NotificationModel, RequirementModel } from 'database';
 
 export class BookingService {
   /**
@@ -118,8 +118,12 @@ export class BookingService {
       select: { name: true, role: true, email: true, phone: true },
     });
 
+    const requirement = await RequirementModel.findById(booking.requirementId);
+    const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
+
     return {
       ...booking.toObject(),
+      subject,
       otherParty: {
         id: otherUserId,
         name: otherUser?.name || 'Anonymous User',
@@ -146,8 +150,13 @@ export class BookingService {
         where: { id: otherUserId },
         select: { name: true, role: true, email: true, phone: true },
       });
+
+      const requirement = await RequirementModel.findById(booking.requirementId);
+      const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
+
       enriched.push({
         ...booking.toObject(),
+        subject,
         otherParty: {
           id: otherUserId,
           name: otherUser?.name || 'Anonymous User',
