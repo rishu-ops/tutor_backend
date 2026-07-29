@@ -198,9 +198,17 @@ export class BookingService {
     const requirement = await RequirementModel.findById(booking.requirementId);
     const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
 
+    const tutorProfile = await TutorProfileModel.findOne({ userId: booking.tutorUserId });
+    const coordinates = tutorProfile?.location?.lat && tutorProfile?.location?.lng
+      ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
+      : undefined;
+    const offersDemo = tutorProfile?.offersDemo !== false;
+
     return {
       ...booking.toObject(),
       subject,
+      coordinates,
+      offersDemo,
       otherParty: {
         id: otherUserId,
         name: otherUser?.name || 'Anonymous User',
@@ -231,9 +239,17 @@ export class BookingService {
       const requirement = await RequirementModel.findById(booking.requirementId);
       const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
 
+      const tutorProfile = await TutorProfileModel.findOne({ userId: booking.tutorUserId });
+      const coordinates = tutorProfile?.location?.lat && tutorProfile?.location?.lng
+        ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
+        : undefined;
+      const offersDemo = tutorProfile?.offersDemo !== false;
+
       enriched.push({
         ...booking.toObject(),
         subject,
+        coordinates,
+        offersDemo,
         otherParty: {
           id: otherUserId,
           name: otherUser?.name || 'Anonymous User',

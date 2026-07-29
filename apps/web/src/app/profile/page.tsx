@@ -198,6 +198,19 @@ function validateTutorPersonal(form: any) {
   if (form.name && form.name.trim().length < 2) errors.name = 'Name must be at least 2 characters.';
   if (form.locationCity && !form.locationCity.trim()) errors.locationCity = 'City cannot be empty.';
   if (form.locationArea && !form.locationArea.trim()) errors.locationArea = 'Area cannot be empty.';
+  
+  if (form.locationLat !== undefined && form.locationLat !== '') {
+    const lat = parseFloat(form.locationLat);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      errors.locationLat = 'Latitude must be between -90 and 90.';
+    }
+  }
+  if (form.locationLng !== undefined && form.locationLng !== '') {
+    const lng = parseFloat(form.locationLng);
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      errors.locationLng = 'Longitude must be between -180 and 180.';
+    }
+  }
   return errors;
 }
 
@@ -1121,7 +1134,16 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [serverError, setServerError] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', locationCity: '', locationArea: '', avatarUrl: '' });
+  const isOfflineTutor = profileData?.teachingModes?.includes('OFFLINE') || profileData?.teachingModes?.includes('HYBRID');
+  const [form, setForm] = useState({ 
+    name: '', 
+    email: '', 
+    locationCity: '', 
+    locationArea: '', 
+    locationLat: '',
+    locationLng: '',
+    avatarUrl: '' 
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const savedForm = {
@@ -1129,6 +1151,8 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
     email: profileData?.email || '',
     locationCity: profileData?.location?.city || '',
     locationArea: profileData?.location?.area || '',
+    locationLat: profileData?.location?.lat?.toString() || '',
+    locationLng: profileData?.location?.lng?.toString() || '',
     avatarUrl: profileData?.avatarUrl || user?.avatarUrl || '',
   };
 
@@ -1162,9 +1186,16 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
       if (form.name !== savedForm.name) payload.name = form.name.trim();
       if (
         form.locationCity !== savedForm.locationCity ||
-        form.locationArea !== savedForm.locationArea
+        form.locationArea !== savedForm.locationArea ||
+        form.locationLat !== savedForm.locationLat ||
+        form.locationLng !== savedForm.locationLng
       ) {
-        payload.location = { city: form.locationCity.trim(), area: form.locationArea.trim() };
+        payload.location = { 
+          city: form.locationCity.trim(), 
+          area: form.locationArea.trim(),
+          lat: form.locationLat ? parseFloat(form.locationLat) : undefined,
+          lng: form.locationLng ? parseFloat(form.locationLng) : undefined
+        };
       }
       if (form.avatarUrl !== savedForm.avatarUrl) payload.avatarUrl = form.avatarUrl;
       if (Object.keys(payload).length === 0) {
@@ -1269,6 +1300,30 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
                 placeholder="e.g. Andheri West"
               />
             </div>
+            {isOfflineTutor && (
+              <div className="grid grid-cols-2 gap-4">
+                <EditField
+                  label="Coaching Latitude"
+                  value={form.locationLat}
+                  onChange={(v: string) => {
+                    setForm((f) => ({ ...f, locationLat: v }));
+                    setErrors((e) => ({ ...e, locationLat: '' }));
+                  }}
+                  error={errors.locationLat}
+                  placeholder="e.g. 28.6282"
+                />
+                <EditField
+                  label="Coaching Longitude"
+                  value={form.locationLng}
+                  onChange={(v: string) => {
+                    setForm((f) => ({ ...f, locationLng: v }));
+                    setErrors((e) => ({ ...e, locationLng: '' }));
+                  }}
+                  error={errors.locationLng}
+                  placeholder="e.g. 77.3898"
+                />
+              </div>
+            )}
             <ReadField
               label="Phone number"
               value={user?.phone}
@@ -1283,6 +1338,12 @@ function TutorPersonalSection({ profileData, accessToken, user, illustration, on
               <ReadField label="City" value={profileData?.location?.city} />
               <ReadField label="Area" value={profileData?.location?.area} />
             </div>
+            {isOfflineTutor && (
+              <div className="grid grid-cols-2 gap-4">
+                <ReadField label="Coaching Latitude" value={profileData?.location?.lat?.toString() || 'Not set'} />
+                <ReadField label="Coaching Longitude" value={profileData?.location?.lng?.toString() || 'Not set'} />
+              </div>
+            )}
             <ReadField
               label="Phone number"
               value={user?.phone}

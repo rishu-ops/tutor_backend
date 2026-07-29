@@ -203,17 +203,26 @@ export default function MessagesPage() {
   }, [token]);
 
   const fetchMessages = useCallback(
-    async (convoId: string) => {
+    async (convoId: string, silent = false) => {
       if (!token) return;
-      setLoadingMsgs(true);
+      if (!silent) setLoadingMsgs(true);
       try {
         const res = await fetch(`/api/v1/conversations/${convoId}/messages`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) setMessages(data.data || []);
+        if (data.success) {
+          const fetched: Message[] = data.data || [];
+          setMessages((prev) => {
+            // Keep any optimistic messages that haven't been confirmed yet
+            const optimistics = prev.filter((m) => m._id.startsWith('opt-'));
+            const fetchedIds = new Set(fetched.map((m) => m._id));
+            const stillPending = optimistics.filter((m) => !fetchedIds.has(m._id));
+            return [...fetched, ...stillPending];
+          });
+        }
       } catch {}
-      setLoadingMsgs(false);
+      if (!silent) setLoadingMsgs(false);
     },
     [token]
   );
@@ -315,6 +324,16 @@ export default function MessagesPage() {
       }
     });
 
+    // Re-join the active room after any reconnect so new_message events resume
+    const handleReconnect = () => {
+      const currentConvo = selectedConvoRef.current;
+      if (currentConvo) {
+        sock.emit('join_room', currentConvo._id);
+        console.log('[Socket] Reconnected — rejoined room:', currentConvo._id);
+      }
+    };
+    sock.on('connect', handleReconnect);
+
     return () => {
       sock.off('new_message');
       sock.off('message_notification');
@@ -322,6 +341,7 @@ export default function MessagesPage() {
       sock.off('user_offline');
       sock.off('typing');
       sock.off('messages_seen');
+      sock.off('connect', handleReconnect);
     };
   }, [token, user?.id]);
 
@@ -349,6 +369,16 @@ export default function MessagesPage() {
       fetchMessages(selectedConvo._id);
     }
   }, [selectedConvo?._id]);
+
+  // Polling fallback: silently re-fetch messages every 8s while a conversation is open
+  // This ensures messages appear even if the socket fails to deliver them
+  useEffect(() => {
+    if (!selectedConvo) return;
+    const interval = setInterval(() => {
+      fetchMessages(selectedConvo._id, true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [selectedConvo?._id, fetchMessages]);
 
   // Clear typing state when conversation changes
   useEffect(() => {

@@ -158,7 +158,7 @@ export default function DashboardPage() {
         const upcoming = json.data
           .filter((b: any) => b.status === 'ACCEPTED' && new Date(b.scheduledAt).getTime() + (b.duration || 60) * 60 * 1000 > now.getTime() && new Date(b.scheduledAt).toDateString() === todayStr)
           .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-        
+
         if (upcoming.length > 0) {
           setNextClass(upcoming[0]);
         } else {
@@ -182,7 +182,7 @@ export default function DashboardPage() {
     const isOnline = nextClass.sessionMode === 'ONLINE' || nextClass.sessionMode === 'HYBRID';
     const hasLink = isOnline && nextClass.meetingLink;
     const now = new Date();
-    
+
     // Check if class starts within 30 minutes (or is currently active)
     const timeDiffMinutes = Math.floor((scheduledTime.getTime() - now.getTime()) / (60 * 1000));
     const isStartingSoon = timeDiffMinutes <= 30 && timeDiffMinutes >= -nextClass.duration;
@@ -235,6 +235,17 @@ export default function DashboardPage() {
               <span className="text-xs font-semibold text-gray-400 italic bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2">
                 Awaiting link from tutor
               </span>
+            ) : nextClass.sessionMode !== 'ONLINE' && nextClass.coordinates ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${nextClass.coordinates.lat},${nextClass.coordinates.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block"
+              >
+                <Button variant="primary-modern" className="text-xs font-bold px-6 h-10 rounded-2xl flex items-center gap-1.5 shadow-md">
+                  Get Directions <MapPin className="w-4 h-4 shrink-0" />
+                </Button>
+              </a>
             ) : null}
             <Link href="/dashboard/bookings" className="inline-block">
               <Button variant="secondary-modern" className="bg-white/10 hover:bg-white/20 border-white/10 text-white font-bold text-xs px-5 h-10 rounded-2xl">
@@ -820,18 +831,18 @@ export default function DashboardPage() {
       hiredTutors.length > 0
         ? hiredTutors
         : [
-            {
-              _id: 'mock-hired-1',
-              name: 'Dr. Rahul Sharma',
-              qualifications: ['PhD in Physics'],
-              experience: '8 Yrs',
-              subjects: ['Physics', 'Mathematics'],
-              subjectName: 'Physics (Class 12)',
-              hourlyRate: 800,
-              teachingMode: ['Home', 'Online'],
-              verified: true,
-            },
-          ];
+          {
+            _id: 'mock-hired-1',
+            name: 'Dr. Rahul Sharma',
+            qualifications: ['PhD in Physics'],
+            experience: '8 Yrs',
+            subjects: ['Physics', 'Mathematics'],
+            subjectName: 'Physics (Class 12)',
+            hourlyRate: 800,
+            teachingMode: ['Home', 'Online'],
+            verified: true,
+          },
+        ];
 
     return (
       <div className="space-y-6">
@@ -888,11 +899,11 @@ export default function DashboardPage() {
                           <span className="text-xs font-bold text-[#00A453]">
                             {tutor.name
                               ? tutor.name
-                                  .split(' ')
-                                  .map((n: string) => n[0])
-                                  .join('')
-                                  .slice(0, 2)
-                                  .toUpperCase()
+                                .split(' ')
+                                .map((n: string) => n[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase()
                               : 'T'}
                           </span>
                         )}
@@ -1012,6 +1023,44 @@ export default function DashboardPage() {
   // State 1 — New Tutor
   const renderNewTutor = () => {
     const completion = getProfileCompletionPercentage();
+
+    // Checklist validations
+    const isOffline = tutorProfile?.teachingModes?.includes('OFFLINE') || tutorProfile?.teachingModes?.includes('HYBRID');
+    const checklist = [
+      {
+        label: 'Write Bio Pitch (at least 50 characters)',
+        isDone: tutorProfile?.bio && tutorProfile.bio.trim().length >= 50,
+      },
+      {
+        label: 'Add at least one expertise Subject',
+        isDone: tutorProfile?.subjects && tutorProfile.subjects.length > 0,
+      },
+      {
+        label: 'Set hourly pricing rates',
+        isDone: tutorProfile?.pricing && tutorProfile.pricing.min > 0,
+      },
+      {
+        label: 'Provide languages spoken',
+        isDone: tutorProfile?.languages && tutorProfile.languages.length > 0,
+      },
+      {
+        label: 'Define city & area details',
+        isDone: tutorProfile?.location?.city && tutorProfile?.location?.area && tutorProfile?.location?.area !== 'Not Specified',
+      },
+      ...(isOffline
+        ? [
+          {
+            label: 'Set coaching center map coordinates (Latitude & Longitude)',
+            isDone: tutorProfile?.location?.lat !== undefined && tutorProfile?.location?.lng !== undefined,
+          },
+        ]
+        : []),
+      {
+        label: 'Upload Qualification Certificate (Verification Proof)',
+        isDone: tutorProfile?.qualifications && tutorProfile.qualifications.some((q: any) => q.certificateUrl),
+      },
+    ];
+
     return (
       <div className="space-y-8">
         {/* Hero Section */}
@@ -1034,6 +1083,31 @@ export default function DashboardPage() {
                 className="bg-[#00A453] h-full transition-all duration-500"
                 style={{ width: `${completion}%` }}
               />
+            </div>
+          </div>
+
+          {/* Completeness Checklist Steps */}
+          <div className="border border-gray-100 rounded-2xl p-5 bg-gray-50/50 space-y-3">
+            <h3 className="text-xs font-extrabold text-[#2d2d2d] uppercase tracking-wider mb-1">
+              Required Profile Checklist
+            </h3>
+            <div className="space-y-2.5">
+              {checklist.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2.5 text-xs">
+                  {item.isDone ? (
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#e6f6ee] text-[#00A453] shrink-0 border border-[#00A453]/25 mt-0.5 font-bold text-[10px]">
+                      ✓
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-50 text-amber-600 shrink-0 border border-amber-200/40 font-bold mt-0.5 text-[9px]">
+                      ●
+                    </span>
+                  )}
+                  <span className={`font-semibold ${item.isDone ? 'text-gray-400 line-through' : 'text-[#384148]'}`}>
+                    {item.label}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1247,13 +1321,12 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <span
-                  className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full ${
-                    app.status === 'ACCEPTED'
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : app.status === 'REJECTED'
-                        ? 'bg-red-50 text-red-500'
-                        : 'bg-gray-50 text-gray-500'
-                  }`}
+                  className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full ${app.status === 'ACCEPTED'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : app.status === 'REJECTED'
+                      ? 'bg-red-50 text-red-500'
+                      : 'bg-gray-50 text-gray-500'
+                    }`}
                 >
                   {app.status === 'PENDING'
                     ? 'Pending'
@@ -1392,10 +1465,8 @@ export default function DashboardPage() {
                 <Compass className="w-8 h-8" />
               </div>
               <div className="space-y-1.5 max-w-xs">
-                <h4 className="text-sm font-extrabold text-[#2d2d2d] tracking-tight">No recommendations yet</h4>
-                <p className="text-[11px] text-[#647380] leading-relaxed font-medium">
-                  We couldn&apos;t find matching student requests that fit your profile. Try updating your subjects or browse open requests to apply manually.
-                </p>
+                <h4 className="text-base font-extrabold text-[#2d2d2d] tracking-tight">No recommendations yet</h4>
+
               </div>
               <Link href="/dashboard/requirements/browse" className="pt-1">
                 <Button
@@ -1501,8 +1572,8 @@ export default function DashboardPage() {
               />
             </div>
             <p className="text-[11px] text-[#647380] leading-relaxed">
-              {getProfileCompletionPercentage()}% profile is completed. {user?.role === 'TUTOR' 
-                ? 'Get more chance of getting students.' 
+              {getProfileCompletionPercentage()}% profile is completed. {user?.role === 'TUTOR'
+                ? 'Get more chance of getting students.'
                 : 'Get more chance of getting tutors.'}
             </p>
           </div>

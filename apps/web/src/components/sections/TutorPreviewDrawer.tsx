@@ -219,6 +219,25 @@ export default function TutorPreviewDrawer({
                     {profile.availability?.join(' · ') || 'Not Configured'}
                   </span>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#647380]">Coaching Location</span>
+                  <span className="text-[#2d2d2d] font-bold flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                    {profile.location?.area || 'Not specified'}, {profile.location?.city || 'Not specified'}
+                  </span>
+                </div>
+                {profile.location?.lat && profile.location?.lng && (
+                  <div className="flex justify-end pt-1">
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${profile.location.lat},${profile.location.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-[#00A453] hover:underline flex items-center gap-1 bg-[#e6f6ee] border border-[#00A453]/15 px-3.5 py-1.5 rounded-full transition-all hover:bg-[#d8f1e5]"
+                    >
+                      <MapPin className="w-3 h-3 text-[#00A453]" /> Get Directions
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}

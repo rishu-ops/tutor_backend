@@ -38,6 +38,8 @@ interface Booking {
   rescheduleRequestedBy?: string;
   subject?: string;
   requestedBy: string;
+  offersDemo?: boolean;
+  coordinates?: { lat: number; lng: number };
   otherParty: { id: string; name: string; role: string; email?: string; phone?: string };
 }
 
@@ -364,6 +366,17 @@ export default function BookingsPage() {
                       <span className="text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200/40 rounded-full px-3 py-1.5 flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5" /> Link pending from tutor
                       </span>
+                    )}
+                    {/* Directions link (OFFLINE/HYBRID, ACCEPTED) */}
+                    {b.status === 'ACCEPTED' && b.sessionMode !== 'ONLINE' && b.coordinates && (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${b.coordinates.lat},${b.coordinates.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 rounded-full px-3.5 py-1.5 hover:bg-[#d8f1e5] transition-all shadow-xs"
+                      >
+                        <MapPin className="w-3.5 h-3.5" /> Get Directions
+                      </a>
                     )}
                   </div>
 
