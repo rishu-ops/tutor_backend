@@ -99,19 +99,19 @@ export default function MyRequirementsPage() {
 
   return (
     <>
-      <div className="max-w-[1100px] mx-auto py-6 space-y-8">
+      <div className="max-w-[1100px] mx-auto py-6 px-4 sm:px-0 space-y-6">
         {/* Header Block */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dadee2] pb-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#2d2d2d] tracking-tight">
+            <h1 className="text-2xl font-black text-[#2d2d2d] tracking-tight">
               My Tutor Requests
             </h1>
-            <p className="text-sm text-[#647380] mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-[#647380] mt-1 font-medium">
               Manage your tutoring requests and view applications from expert tutors.
             </p>
           </div>
           <Link href="/dashboard/requirements/create" className="shrink-0">
-            <Button className="bg-[#00A453] hover:bg-[#009048] text-white font-bold gap-1.5 rounded-xl shadow-sm px-5 h-11 uppercase text-xs tracking-wider">
+            <Button className="bg-[#00A453] hover:bg-[#009048] text-white font-bold gap-1.5 rounded-xl shadow-sm px-5 h-10 uppercase text-xs tracking-wider">
               <Plus className="w-4 h-4 stroke-[3]" /> Post Requirement
             </Button>
           </Link>
@@ -156,7 +156,7 @@ export default function MyRequirementsPage() {
         ) : (
           <div className="space-y-6">
             {/* Filter Tabs */}
-            <div className="flex border-b border-gray-200 gap-6">
+            <div className="flex items-center border-b border-[#dadee2] gap-6 sm:gap-8">
               {(['ALL', 'OPEN', 'MATCHED', 'CLOSED'] as const).map((filter) => {
                 const isActive = activeFilter === filter;
                 const count =
@@ -167,17 +167,19 @@ export default function MyRequirementsPage() {
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`pb-3.5 font-bold text-sm transition-all border-b-2 relative ${
+                    className={`pb-3 font-bold text-xs sm:text-sm transition-all border-b-2 relative -mb-px flex items-center gap-1.5 ${
                       isActive
                         ? 'border-[#00A453] text-[#00A453]'
                         : 'border-transparent text-[#647380] hover:text-[#2d2d2d]'
                     }`}
                   >
-                    {filter === 'ALL'
-                      ? 'All Requests'
-                      : filter.charAt(0) + filter.slice(1).toLowerCase()}
+                    <span>
+                      {filter === 'ALL'
+                        ? 'All Requests'
+                        : filter.charAt(0) + filter.slice(1).toLowerCase()}
+                    </span>
                     <span
-                      className={`ml-1.5 text-xs px-2 py-0.5 rounded-full font-bold transition-all ${
+                      className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-all ${
                         isActive ? 'bg-[#e6f6ee] text-[#00A453]' : 'bg-gray-100 text-[#647380]'
                       }`}
                     >
