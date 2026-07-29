@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { API_BASE_URL } from '@/lib/constants';
 import Link from 'next/link';
 import {
   Plus,
@@ -246,7 +247,7 @@ export default function DashboardPage() {
 
       // Fetch real featured tutors (top-rated) for student dashboard sections
       try {
-        const featRes = await fetch('/api/v1/tutors/list?sortBy=rating&limit=4', {
+        const featRes = await fetch(`${API_BASE_URL}/api/v1/tutors/list?sortBy=rating&limit=4`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const featData = await featRes.json();

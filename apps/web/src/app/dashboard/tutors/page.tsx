@@ -23,13 +23,14 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/constants';
 
 export default function FindTutorsPage() {
   const token = useAuthStore((s) => s.accessToken);
 
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [location, setLocation] = useState('Noida');
+  const [location, setLocation] = useState('');
   const [subject, setSubject] = useState('');
   const [teachingMode, setTeachingMode] = useState<string>('ALL');
   const [maxBudget, setMaxBudget] = useState<number>(3000);
@@ -82,7 +83,7 @@ export default function FindTutorsPage() {
     try {
       const params = new URLSearchParams();
       if (subject) params.set('subject', subject);
-      if (location && location !== 'Noida') params.set('city', location);
+      if (location) params.set('city', location);
       if (teachingMode !== 'ALL') params.set('teachingMode', teachingMode);
       if (maxBudget < 3000) params.set('maxBudget', String(maxBudget));
       if (minExp > 0) params.set('minExp', String(minExp));
@@ -90,7 +91,7 @@ export default function FindTutorsPage() {
       params.set('sortBy', sortBy === 'rating' ? 'rating' : sortBy === 'price_asc' ? 'price_asc' : sortBy === 'price_desc' ? 'price_desc' : 'rating');
       params.set('limit', '50');
 
-      const res = await fetch(`/api/v1/tutors/list?${params.toString()}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/tutors/list?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

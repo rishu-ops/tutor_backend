@@ -188,12 +188,14 @@ export class TutorService {
     const { subject, city, teachingMode, maxBudget, minExp, freeDemo, sortBy = 'rating', page = 1, limit = 20 } = filters;
 
     // Build MongoDB query
-    const query: Record<string, any> = {
-      profileCompleteness: { $gte: 40 }, // Only reasonably complete profiles
-    };
+    const query: Record<string, any> = {};
 
     if (subject) {
-      query['subjects.subject'] = { $regex: subject, $options: 'i' };
+      query.$or = [
+        { 'subjects.subject': { $regex: subject, $options: 'i' } },
+        { subjects: { $elemMatch: { $regex: subject, $options: 'i' } } },
+        { subjects: { $regex: subject, $options: 'i' } },
+      ];
     }
     if (city) {
       query['location.city'] = { $regex: city, $options: 'i' };
