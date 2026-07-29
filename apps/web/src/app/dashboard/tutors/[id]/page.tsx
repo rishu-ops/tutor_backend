@@ -239,12 +239,12 @@ export default function TutorProfileDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left 2 Columns */}
             <div className="md:col-span-2 space-y-6">
-              {/* Introduction Video Section */}
-              <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-4">
-                <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider flex items-center gap-1.5">
-                  <Video className="w-4 h-4 text-[#00A453]" /> Introduction Video
-                </h3>
-                {tutor.introVideoUrl ? (
+              {/* Introduction Video Section — only if tutor has uploaded introVideoUrl */}
+              {tutor.introVideoUrl ? (
+                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-[#00A453]" /> Introduction Video
+                  </h3>
                   <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-gray-200 shadow-inner">
                     <video
                       src={tutor.introVideoUrl}
@@ -253,18 +253,8 @@ export default function TutorProfileDetailPage() {
                       poster={tutor.avatarUrl}
                     />
                   </div>
-                ) : (
-                  <div className="relative aspect-video w-full rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center p-6 text-center text-white overflow-hidden">
-                    <div className="w-14 h-14 rounded-full bg-[#00A453] text-white flex items-center justify-center mb-3 shadow-lg hover:scale-105 transition-transform cursor-pointer">
-                      <Play className="w-6 h-6 fill-white ml-1" />
-                    </div>
-                    <p className="text-sm font-bold">Introduction Video Coming Soon</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-xs font-medium">
-                      Watch {tutor.name}'s teaching methodology and sample lesson introduction.
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
 
               {/* About */}
               <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-3">
@@ -424,43 +414,45 @@ export default function TutorProfileDetailPage() {
                 </div>
               </div>
 
-              {/* Location & Google Map Preview */}
-              <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-3">
-                <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider flex items-center gap-1">
-                  <MapPin className="w-4 h-4 text-[#00A453]" /> Location & Center
-                </h3>
-                <div className="text-xs space-y-1 font-medium text-[#2d2d2d]">
-                  <p className="font-bold">
-                    {tutor.location?.area ? `${tutor.location.area}, ` : ''}
-                    {tutor.location?.city || 'Noida'}
-                  </p>
-                  {tutor.location?.address && (
-                    <p className="text-[#647380]">{tutor.location.address}</p>
-                  )}
-                </div>
+              {/* Location & Google Map Preview — ONLY shown for onsite / home / offline tutors */}
+              {(tutor.teachingModes || []).some((m: string) => /home|offline|onsite|in-person/i.test(m)) && tutor.location?.city ? (
+                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-3">
+                  <h3 className="text-xs font-extrabold text-[#647380] uppercase tracking-wider flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-[#00A453]" /> Location & Center
+                  </h3>
+                  <div className="text-xs space-y-1 font-medium text-[#2d2d2d]">
+                    <p className="font-bold">
+                      {tutor.location?.area ? `${tutor.location.area}, ` : ''}
+                      {tutor.location?.city}
+                    </p>
+                    {tutor.location?.address && (
+                      <p className="text-[#647380]">{tutor.location.address}</p>
+                    )}
+                  </div>
 
-                {/* Google Map Box */}
-                <div className="w-full h-32 rounded-xl bg-emerald-50 border border-emerald-200 overflow-hidden relative flex flex-col items-center justify-center p-3 text-center">
-                  <MapPin className="w-6 h-6 text-[#00A453] animate-bounce mb-1" />
-                  <p className="text-[11px] font-extrabold text-[#2d2d2d]">
-                    {tutor.location?.city || 'Noida'} Tuition Area
-                  </p>
-                  <p className="text-[10px] text-[#647380] font-medium">Google Maps Directions Ready</p>
-                </div>
+                  {/* Google Map Box */}
+                  <div className="w-full h-32 rounded-xl bg-emerald-50 border border-emerald-200 overflow-hidden relative flex flex-col items-center justify-center p-3 text-center">
+                    <MapPin className="w-6 h-6 text-[#00A453] animate-bounce mb-1" />
+                    <p className="text-[11px] font-extrabold text-[#2d2d2d]">
+                      {tutor.location?.city} Tuition Area
+                    </p>
+                    <p className="text-[10px] text-[#647380] font-medium">Google Maps Directions Ready</p>
+                  </div>
 
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                    `${tutor.location?.area || ''} ${tutor.location?.city || 'Noida'}`
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block pt-1"
-                >
-                  <Button variant="secondary" size="sm" className="w-full text-xs font-bold gap-1 rounded-xl">
-                    Get Directions <ExternalLink className="w-3 h-3" />
-                  </Button>
-                </a>
-              </div>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                      `${tutor.location?.area || ''} ${tutor.location?.city}`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block pt-1"
+                  >
+                    <Button variant="secondary" size="sm" className="w-full text-xs font-bold gap-1 rounded-xl">
+                      Get Directions <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
