@@ -34,9 +34,11 @@ import {
   Video,
   MoreVertical,
   MessageSquareText,
+  Flag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { requirementApi, profileApi, recommendationApi, adminApi, applicationApi } from '@/lib/api';
+import ReportTutorModal from '@/components/sections/ReportTutorModal';
 
 // Recent Educational Articles for Task Dashboards
 const MOCK_ARTICLES = [
@@ -78,6 +80,8 @@ export default function DashboardPage() {
   const [featuredTutors, setFeaturedTutors] = useState<any[]>([]); // real top-rated tutors for student dashboard
   const [articles, setArticles] = useState<any[]>(MOCK_ARTICLES);
   const [nextClass, setNextClass] = useState<any>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [reportTutorTarget, setReportTutorTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -829,9 +833,27 @@ export default function DashboardPage() {
                       <div className="inline-flex items-center text-xs font-bold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full">
                         Active Match
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors">
-                        <MoreVertical className="w-4 h-4 text-gray-500" />
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuId((prev) => (prev === tutor.userId ? null : tutor.userId))}
+                          className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-500" />
+                        </button>
+                        {openMenuId === tutor.userId && (
+                          <div className="absolute right-0 top-8 bg-white border border-[#dadee2] rounded-xl shadow-lg py-1 z-20 w-36 animate-fadeIn">
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setReportTutorTarget({ id: tutor.userId || tutor._id, name: tutor.name });
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            >
+                              <Flag className="w-3.5 h-3.5" /> Report Tutor
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1588,6 +1610,14 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Report Tutor Modal */}
+      <ReportTutorModal
+        isOpen={!!reportTutorTarget}
+        onClose={() => setReportTutorTarget(null)}
+        tutorUserId={reportTutorTarget?.id || ''}
+        tutorName={reportTutorTarget?.name || 'Tutor'}
+      />
     </div>
   );
 }

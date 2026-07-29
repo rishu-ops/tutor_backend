@@ -15,7 +15,9 @@ import {
   Calendar,
   ExternalLink,
   AlertCircle,
+  Flag,
 } from 'lucide-react';
+import ReportTutorModal from '@/components/sections/ReportTutorModal';
 
 export default function TutorProfileDetailPage() {
   const params = useParams();
@@ -25,6 +27,7 @@ export default function TutorProfileDetailPage() {
   const [tutor, setTutor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
 
   const tutorId = params.id as string;
 
@@ -148,6 +151,14 @@ export default function TutorProfileDetailPage() {
                   <Calendar className="w-3.5 h-3.5" /> Book Session
                 </Button>
               </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReportOpen(true)}
+                className="w-full sm:w-auto text-xs text-red-500 hover:text-red-700 hover:bg-red-50 font-bold gap-1 rounded-xl h-8"
+              >
+                <Flag className="w-3.5 h-3.5" /> Report Tutor
+              </Button>
             </div>
           </div>
 
@@ -261,6 +272,13 @@ export default function TutorProfileDetailPage() {
           </div>
         </div>
       ) : null}
+
+      <ReportTutorModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        tutorUserId={tutor?.userId || tutor?._id || tutorId}
+        tutorName={tutor?.name || 'Tutor'}
+      />
     </div>
   );
 }

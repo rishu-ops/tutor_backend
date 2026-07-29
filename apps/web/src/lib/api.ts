@@ -427,3 +427,15 @@ export const mediaApi = {
     return json.url;
   },
 };
+
+export const reportApi = {
+  createReport: (
+    data: { targetType: string; targetId: string; reason: string; details?: string },
+    token: string
+  ) =>
+    api<any>('/api/reports', {
+      method: 'POST',
+      body: data,
+      token,
+    }),
+};
