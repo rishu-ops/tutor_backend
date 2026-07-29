@@ -142,36 +142,32 @@ export default function DashboardPage() {
     const isStartingSoon = timeDiffMinutes <= 30 && timeDiffMinutes >= -nextClass.duration;
 
     return (
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-[24px] p-6 mb-8 border border-emerald-800 shadow-md">
-        {/* Background glow patterns */}
-        <div className="absolute right-0 top-0 -mr-20 -mt-20 w-72 h-72 bg-[#00A453]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white border border-[#dadee2] rounded-2xl p-6 mb-8 shadow-xs text-[#2d2d2d]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2.5 flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] uppercase tracking-wider font-black px-2.5 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-950/80 text-emerald-400`}>
+              <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full border border-[#00A453]/30 bg-[#e6f6ee] text-[#00A453]">
                 {isStartingSoon ? '● Class Starting Soon' : 'Upcoming Session Today'}
               </span>
               {nextClass.isFirstSession && (
-                <span className="text-[9px] uppercase tracking-wider font-black px-2.5 py-0.5 rounded-full border border-purple-500/40 bg-purple-950/80 text-purple-400">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700">
                   Trial Session
                 </span>
               )}
             </div>
 
             <div>
-              <h2 className="text-lg font-black tracking-tight text-white leading-tight">
+              <h2 className="text-lg font-black tracking-tight text-[#2d2d2d] leading-tight">
                 {nextClass.subject || 'Class Session'} with {nextClass.otherParty?.name}
               </h2>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-gray-300 font-medium">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-[#647380] font-medium">
                 <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <Clock className="w-4 h-4 text-[#00A453]" />
                   {timeFormatted} ({nextClass.duration} mins)
                 </span>
-                <span className="text-gray-600 select-none hidden sm:inline">·</span>
+                <span className="text-gray-300 select-none hidden sm:inline">·</span>
                 <span className="flex items-center gap-1.5">
-                  {isOnline ? <Video className="w-4 h-4 text-emerald-400" /> : <MapPin className="w-4 h-4 text-emerald-400" />}
+                  {isOnline ? <Video className="w-4 h-4 text-[#00A453]" /> : <MapPin className="w-4 h-4 text-[#00A453]" />}
                   {nextClass.sessionMode} session {nextClass.location ? `at ${nextClass.location}` : ''}
                 </span>
               </div>
@@ -181,12 +177,12 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 shrink-0">
             {hasLink ? (
               <a href={nextClass.meetingLink} target="_blank" rel="noreferrer" className="inline-block">
-                <Button variant="primary-modern" className="text-xs font-bold px-6 h-10 rounded-2xl flex items-center gap-1.5 shadow-md">
+                <Button className="bg-[#00A453] hover:bg-[#009048] text-white text-xs font-bold px-6 h-10 rounded-xl flex items-center gap-1.5 shadow-xs">
                   Join Meeting <Video className="w-4 h-4 shrink-0" />
                 </Button>
               </a>
             ) : isOnline ? (
-              <span className="text-xs font-semibold text-gray-400 italic bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2">
+              <span className="text-xs font-semibold text-gray-400 italic bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
                 Awaiting link from tutor
               </span>
             ) : nextClass.sessionMode !== 'ONLINE' && nextClass.coordinates ? (
@@ -196,13 +192,13 @@ export default function DashboardPage() {
                 rel="noreferrer"
                 className="inline-block"
               >
-                <Button variant="primary-modern" className="text-xs font-bold px-6 h-10 rounded-2xl flex items-center gap-1.5 shadow-md">
+                <Button className="bg-[#00A453] hover:bg-[#009048] text-white text-xs font-bold px-6 h-10 rounded-xl flex items-center gap-1.5 shadow-xs">
                   Get Directions <MapPin className="w-4 h-4 shrink-0" />
                 </Button>
               </a>
             ) : null}
             <Link href="/dashboard/bookings" className="inline-block">
-              <Button variant="secondary-modern" className="bg-white/10 hover:bg-white/20 border-white/10 text-white font-bold text-xs px-5 h-10 rounded-2xl">
+              <Button className="bg-white hover:bg-gray-50 border border-[#dadee2] text-[#2d2d2d] font-bold text-xs px-5 h-10 rounded-xl">
                 View All
               </Button>
             </Link>
