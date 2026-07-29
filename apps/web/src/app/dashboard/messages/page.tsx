@@ -215,6 +215,28 @@ export default function MessagesPage() {
     }
   };
 
+  const handleUpdateBooking = async (bookingId: string, status: 'ACCEPTED' | 'DECLINED') => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (data.success && selectedConvo) {
+        fetchMessages(selectedConvo._id);
+      } else {
+        alert(data.error || 'Failed to update booking status');
+      }
+    } catch (err) {
+      console.error('Failed to update booking:', err);
+    }
+  };
+
   const fetchConversations = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -831,8 +853,81 @@ export default function MessagesPage() {
                             key={msg._id}
                             className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-0.5`}
                           >
-                            {/* Text bubble (only if there's content) */}
-                            {msg.content && (
+                            {/* Text bubble or Interactive Booking Card */}
+                            {msg.content && msg.content.startsWith('📅 BOOKING_REQUEST:') ? (
+                              (() => {
+                                const parts = msg.content.split(':');
+                                const bookingId = parts[1];
+                                const subject = parts[2] || 'Class Session';
+                                const sessionLabel = parts[3] || 'Trial Class';
+                                const timeStr = parts[4] || 'Scheduled Time';
+                                const notes = parts.slice(5).join(':') || '';
+                                return (
+                                  <div className="max-w-[340px] bg-white border border-[#dadee2] rounded-2xl p-4 shadow-sm text-[#2d2d2d] space-y-3">
+                                    <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                                      <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/20 flex items-center gap-1">
+                                        📅 {sessionLabel} Proposed
+                                      </span>
+                                      <span className="text-[10px] font-bold text-gray-400">Class Booking</span>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{subject}</h4>
+                                      <p className="text-xs text-[#647380] font-medium">🕒 {timeStr}</p>
+                                      {notes && (
+                                        <p className="text-xs text-[#384148] italic bg-gray-50 p-2 rounded-xl border border-gray-150">
+                                          "{notes}"
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {!isMine ? (
+                                      <div className="flex items-center gap-2 pt-1">
+                                        <Button
+                                          onClick={() => handleUpdateBooking(bookingId, 'ACCEPTED')}
+                                          size="sm"
+                                          className="flex-1 bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs h-8 rounded-xl shadow-xs"
+                                        >
+                                          ✓ Accept Class
+                                        </Button>
+                                        <Button
+                                          onClick={() => handleUpdateBooking(bookingId, 'DECLINED')}
+                                          size="sm"
+                                          className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs h-8 rounded-xl"
+                                        >
+                                          ✕ Decline
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="text-[11px] font-semibold text-gray-500 bg-gray-50 p-2 rounded-xl text-center border border-gray-150">
+                                        ● Booking request sent. Waiting for confirmation.
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()
+                            ) : msg.content && msg.content.startsWith('STATUS_UPDATE:') ? (
+                              (() => {
+                                const parts = msg.content.split(':');
+                                const status = parts[2];
+                                const text = parts.slice(3).join(':');
+                                const isSuccess = status === 'ACCEPTED';
+                                const isDanger = status === 'DECLINED' || status === 'CANCELLED';
+                                return (
+                                  <div
+                                    className={`max-w-[320px] rounded-2xl p-3 border text-xs font-bold shadow-xs ${
+                                      isSuccess
+                                        ? 'bg-[#e6f6ee] text-[#00A453] border-[#00A453]/30'
+                                        : isDanger
+                                          ? 'bg-red-50 text-red-700 border-red-200'
+                                          : 'bg-gray-50 text-gray-800 border-gray-200'
+                                    }`}
+                                  >
+                                    {text}
+                                  </div>
+                                );
+                              })()
+                            ) : msg.content ? (
                               <div
                                 className={`max-w-[65%] px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
                                   isMine
@@ -842,7 +937,7 @@ export default function MessagesPage() {
                               >
                                 {msg.content}
                               </div>
-                            )}
+                            ) : null}
                             {/* Attachments */}
                             {(msg.attachments || []).map((att, ai) => {
                               const isImage = att.type.startsWith('image/');

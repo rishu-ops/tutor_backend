@@ -1,4 +1,5 @@
-import { BookingModel, TutorProfileModel, prisma, NotificationModel, RequirementModel } from 'database';
+import { BookingModel, TutorProfileModel, prisma, NotificationModel, RequirementModel, MessageModel, ConversationModel } from 'database';
+import { getIO } from '../../socket/socket.gateway.js';
 
 export class BookingService {
   /**
@@ -152,7 +153,7 @@ export class BookingService {
       subject
     });
 
-    // Notify partner user
+    // Notify partner user & post interactive booking request card to chat
     try {
       const creatorName = creatorUser.name || (isTutorCreator ? 'Your tutor' : 'A student');
       const sessionLabel = data.isFirstSession ? 'Trial Class' : 'Regular Session';
@@ -165,8 +166,60 @@ export class BookingService {
         type: 'BOOKING_REQUESTED',
         data: { bookingId: booking._id, requirementId: data.requirementId },
       });
+
+      // Find or create active conversation shell
+      let convo = await ConversationModel.findOne({
+        $or: [
+          { studentUserId, tutorUserId },
+          { studentUserId: tutorUserId, tutorUserId: studentUserId },
+        ],
+      });
+
+      if (!convo) {
+        convo = await ConversationModel.create({
+          studentUserId,
+          tutorUserId,
+          requirementId: data.requirementId || 'booking-init',
+          applicationId: 'booking-' + Date.now(),
+          status: 'ACTIVE',
+        });
+      } else if (convo.status === 'LOCKED') {
+        convo.status = 'ACTIVE';
+        await convo.save();
+      }
+
+      const scheduledDateStr = new Date(data.scheduledAt).toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+      const scheduledTimeStr = new Date(data.scheduledAt).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const messageContent = `📅 BOOKING_REQUEST:${booking._id}:${subject}:${sessionLabel}:${scheduledDateStr} at ${scheduledTimeStr}:${data.notes || ''}`;
+
+      const chatMessage = await MessageModel.create({
+        conversationId: convo._id,
+        senderUserId: data.creatorUserId,
+        content: messageContent,
+        seen: false,
+      });
+
+      convo.lastMessage = `📅 Requested ${sessionLabel} on ${scheduledDateStr} at ${scheduledTimeStr}`;
+      convo.lastMessageAt = new Date();
+      await convo.save();
+
+      const io = getIO();
+      if (io) {
+        const msgObj = chatMessage.toObject();
+        io.to(`room:${convo._id}`).emit('new_message', msgObj);
+        io.to(`user:${studentUserId}`).emit('message_notification', msgObj);
+        io.to(`user:${tutorUserId}`).emit('message_notification', msgObj);
+      }
     } catch (err) {
-      console.error('Failed to create booking notification:', err);
+      console.error('Failed to create booking notification / chat message:', err);
     }
 
     return booking;
@@ -393,8 +446,57 @@ export class BookingService {
           data: { bookingId: booking._id, tutorUserId: booking.tutorUserId },
         });
       }
+
+      // Real-time chat notification update when booking status changes
+      const convo = await ConversationModel.findOne({
+        $or: [
+          { studentUserId: booking.studentUserId, tutorUserId: booking.tutorUserId },
+          { studentUserId: booking.tutorUserId, tutorUserId: booking.studentUserId },
+        ],
+      });
+
+      if (convo) {
+        const sessionLabel = booking.isFirstSession ? 'Trial Class' : 'Regular Session';
+        const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        });
+        const timeStr = new Date(booking.scheduledAt).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const statusTextMap: Record<string, string> = {
+          ACCEPTED: `✓ ${sessionLabel} on ${dateStr} at ${timeStr} was ACCEPTED`,
+          DECLINED: `✕ ${sessionLabel} on ${dateStr} at ${timeStr} was DECLINED`,
+          CANCELLED: `🚫 ${sessionLabel} on ${dateStr} at ${timeStr} was CANCELLED`,
+          COMPLETED: `🎉 ${sessionLabel} on ${dateStr} at ${timeStr} was COMPLETED`,
+        };
+
+        const contentStr = `STATUS_UPDATE:${booking._id}:${status}:${statusTextMap[status] || status}`;
+
+        const chatMessage = await MessageModel.create({
+          conversationId: convo._id,
+          senderUserId: userId,
+          content: contentStr,
+          seen: false,
+        });
+
+        convo.lastMessage = statusTextMap[status] || `Booking status: ${status}`;
+        convo.lastMessageAt = new Date();
+        await convo.save();
+
+        const io = getIO();
+        if (io) {
+          const msgObj = chatMessage.toObject();
+          io.to(`room:${convo._id}`).emit('new_message', msgObj);
+          io.to(`user:${booking.studentUserId}`).emit('message_notification', msgObj);
+          io.to(`user:${booking.tutorUserId}`).emit('message_notification', msgObj);
+        }
+      }
     } catch (err) {
-      console.error('Failed to create status notification:', err);
+      console.error('Failed to create status notification / chat message:', err);
     }
 
     return booking;

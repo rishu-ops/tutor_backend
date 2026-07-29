@@ -6,7 +6,14 @@ interface AuthSocket extends Socket {
   userId?: string;
 }
 
+let globalIo: Server | null = null;
+
+export function getIO(): Server | null {
+  return globalIo;
+}
+
 export function initSocketGateway(io: Server): void {
+  globalIo = io;
   // Broadcast general notifications in real-time
   NotificationModel.schema.post('save', (doc: any) => {
     io.to(`user:${doc.userId}`).emit('general_notification', {
