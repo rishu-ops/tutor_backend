@@ -25,6 +25,7 @@ import {
   Users,
   Star,
   CheckCircle2,
+  Check,
   FileText,
   Activity,
   Layers,
@@ -437,53 +438,92 @@ export default function RequirementDetailPage() {
                 </div>
 
                 {/* Timeline display on Overview */}
-                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-5">
-                  <h3 className="text-sm font-extrabold text-[#2d2d2d] border-b border-gray-150 pb-2.5">
-                    Tutoring Path Activity
-                  </h3>
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 select-none text-[11px] font-bold text-center">
-                    <div className="space-y-1">
-                      <span className="text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block">
-                        ✓ Post Created
-                      </span>
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">➔</span>
-                    <div className="space-y-1">
-                      <span
-                        className={
-                          requirement.applicationsCount > 0
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
-                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
-                        }
-                      >
-                        {requirement.applicationsCount > 0 ? '✓ Tutors Applied' : 'Tutors Applied'}
-                      </span>
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">➔</span>
-                    <div className="space-y-1">
-                      <span
-                        className={
-                          applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
-                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
-                        }
-                      >
-                        {applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
-                          ? '✓ Proposals Viewed'
-                          : 'Proposals Viewed'}
-                      </span>
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">➔</span>
-                    <div className="space-y-1">
-                      <span
-                        className={
-                          requirement.status === 'MATCHED'
-                            ? 'text-[#00A453] bg-[#e6f6ee] border border-[#00A453]/25 px-4 py-2 rounded-full block'
-                            : 'text-gray-400 bg-gray-50 border border-gray-150 px-4 py-2 rounded-full block'
-                        }
-                      >
-                        {requirement.status === 'MATCHED' ? '✓ Tutor Accepted' : 'Tutor Accepted'}
-                      </span>
+                <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-150 pb-3">
+                    <h3 className="text-sm font-black text-[#2d2d2d] tracking-tight">
+                      Tutoring Path Activity
+                    </h3>
+                    <span className="text-[11px] font-extrabold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/25 shadow-xs">
+                      {requirement.status === 'MATCHED'
+                        ? '✓ Tutor Hired'
+                        : requirement.applicationsCount > 0
+                        ? '● Proposals Received'
+                        : '● Requirement Live'}
+                    </span>
+                  </div>
+
+                  {/* Stepper Progress Bar */}
+                  <div className="py-3 px-2">
+                    <div className="relative flex items-center justify-between">
+                      {/* Background track line */}
+                      <div className="absolute left-6 right-6 top-4 h-0.5 bg-gray-200 -z-0" />
+                      {/* Active green progress fill */}
+                      <div
+                        className="absolute left-6 top-4 h-0.5 bg-[#00A453] transition-all duration-500 -z-0"
+                        style={{
+                          width:
+                            requirement.status === 'MATCHED'
+                              ? 'calc(100% - 3rem)'
+                              : applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
+                              ? '66%'
+                              : requirement.applicationsCount > 0
+                              ? '33%'
+                              : '0%',
+                        }}
+                      />
+
+                      {/* Steps */}
+                      {[
+                        {
+                          title: 'Post Created',
+                          desc: 'Requirement Live',
+                          isDone: true,
+                        },
+                        {
+                          title: 'Tutors Applied',
+                          desc:
+                            requirement.applicationsCount > 0
+                              ? `${requirement.applicationsCount} proposal${requirement.applicationsCount > 1 ? 's' : ''}`
+                              : 'Awaiting responses',
+                          isDone: requirement.applicationsCount > 0,
+                        },
+                        {
+                          title: 'Proposals Viewed',
+                          desc: applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED')
+                            ? 'Credentials reviewed'
+                            : 'Pending review',
+                          isDone: applications.some((a) => a.status === 'VIEWED' || a.status === 'ACCEPTED'),
+                        },
+                        {
+                          title: 'Tutor Accepted',
+                          desc: requirement.status === 'MATCHED' ? 'Match Confirmed' : 'Final Step',
+                          isDone: requirement.status === 'MATCHED',
+                        },
+                      ].map((step, index) => (
+                        <div key={index} className="relative z-10 flex flex-col items-center">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs transition-all duration-300 shadow-sm ${
+                              step.isDone
+                                ? 'bg-[#00A453] text-white ring-4 ring-[#e6f6ee]'
+                                : 'bg-white border-2 border-gray-300 text-gray-400'
+                            }`}
+                          >
+                            {step.isDone ? <Check className="w-4 h-4 stroke-[3]" /> : index + 1}
+                          </div>
+                          <div className="mt-2.5 text-center max-w-[110px]">
+                            <p
+                              className={`text-xs font-black leading-tight ${
+                                step.isDone ? 'text-[#2d2d2d]' : 'text-gray-400'
+                              }`}
+                            >
+                              {step.title}
+                            </p>
+                            <p className="text-[10px] text-[#647380] font-semibold mt-0.5 line-clamp-1">
+                              {step.desc}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
