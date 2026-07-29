@@ -142,11 +142,11 @@ export default function TutorProfileDetailPage() {
         </div>
       ) : tutor ? (
         <div className="space-y-6">
-          {/* Main Profile Section — styled like standard Edit Profile containers */}
+          {/* Main Profile Section */}
           <div className="bg-white border border-[#dadee2] rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row items-start justify-between gap-6">
             <div className="flex items-start gap-4 sm:gap-5">
               {/* Profile Photo / Avatar */}
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#e6f6ee] border border-[#00A453]/25 overflow-hidden flex items-center justify-center font-black text-2xl text-[#00A453] shrink-0 shadow-xs relative">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#e6f6ee] border border-[#00A453]/25 overflow-hidden flex items-center justify-center font-black text-xl text-[#00A453] shrink-0">
                 {tutor.avatarUrl ? (
                   <img src={tutor.avatarUrl} alt={tutor.name} className="w-full h-full object-cover" />
                 ) : (
@@ -163,7 +163,7 @@ export default function TutorProfileDetailPage() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black text-[#2d2d2d] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-black text-[#2d2d2d] tracking-tight capitalize">
                     {tutor.name}
                   </h1>
                   {tutor.verified !== false && (
@@ -173,20 +173,27 @@ export default function TutorProfileDetailPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-[#647380] font-medium flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-[#647380] font-medium flex-wrap">
                   <span className="flex items-center gap-1 text-[#2d2d2d] font-bold">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     {tutor.ratingAvg?.toFixed(1) || '5.0'}
                     <span className="text-[#647380] font-normal">
-                      ({tutor.ratingCount || reviews.length || 12} reviews)
+                      ({tutor.ratingCount || reviews.length || 2} reviews)
                     </span>
                   </span>
                   <span>·</span>
-                  <span>{tutor.experience || '5+'} Yrs Exp</span>
+                  <span>
+                    {Array.isArray(tutor.experience)
+                      ? `${tutor.experience[0]?.years || tutor.experience.length}+`
+                      : typeof tutor.experience === 'number' || typeof tutor.experience === 'string'
+                        ? tutor.experience
+                        : '5+'}{' '}
+                    Yrs Exp
+                  </span>
                   {tutor.location?.city && (
                     <>
                       <span>·</span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 capitalize">
                         <MapPin className="w-3.5 h-3.5 text-gray-400" />
                         {tutor.location.city}
                       </span>
@@ -194,16 +201,16 @@ export default function TutorProfileDetailPage() {
                   )}
                 </div>
 
-                {/* Enrolled Platform Students Metric */}
+                {/* Enrolled Platform Students & Modes */}
                 <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 bg-emerald-50 text-[#00A453] rounded-full border border-[#00A453]/20">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/20">
                     <Users className="w-3.5 h-3.5" />
-                    {tutor.enrolledStudentsCount || 8} Active Students Enrolled via findmyTutor
+                    {tutor.enrolledStudentsCount || 3} Active Students
                   </span>
                   {(tutor.teachingModes || ['Online', 'Home Tuition']).map((mode: string, idx: number) => (
                     <span
                       key={idx}
-                      className="text-[10px] font-bold px-2.5 py-1 bg-gray-100 text-[#647380] rounded-full"
+                      className="text-[10px] font-bold px-2.5 py-1 bg-gray-100 text-[#647380] rounded-full uppercase"
                     >
                       {mode}
                     </span>
@@ -213,25 +220,23 @@ export default function TutorProfileDetailPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="flex sm:flex-col items-center gap-2.5 w-full sm:w-auto shrink-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-150">
+            <div className="flex sm:flex-col items-stretch sm:items-end gap-2.5 w-full sm:w-auto shrink-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-150">
               <Link href={`/dashboard/messages?userId=${tutor.userId || tutor._id}`} className="w-full sm:w-auto">
-                <Button className="w-full bg-[#00060c] hover:bg-slate-800 text-white font-bold text-xs h-9 px-5 rounded-xl gap-1.5">
+                <Button className="w-full bg-[#00060c] hover:bg-slate-800 text-white font-bold text-xs h-9 px-5 rounded-xl gap-1.5 shadow-xs">
                   <MessageSquareText className="w-3.5 h-3.5" /> Message
                 </Button>
               </Link>
               <Link href={`/dashboard/messages?userId=${tutor.userId || tutor._id}&book=true`} className="w-full sm:w-auto">
-                <Button className="w-full bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs h-9 px-5 rounded-xl gap-1.5">
+                <Button className="w-full bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs h-9 px-5 rounded-xl gap-1.5 shadow-xs">
                   <Calendar className="w-3.5 h-3.5" /> Book Session
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setReportOpen(true)}
-                className="w-full sm:w-auto text-xs text-red-500 hover:text-red-700 hover:bg-red-50 font-bold gap-1 rounded-xl h-8"
+                className="text-xs text-red-500 hover:text-red-600 font-bold flex items-center justify-center gap-1 pt-1 hover:underline"
               >
                 <Flag className="w-3.5 h-3.5" /> Report Tutor
-              </Button>
+              </button>
             </div>
           </div>
 
