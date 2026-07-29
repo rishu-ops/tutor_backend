@@ -18,6 +18,8 @@ import {
   X,
   ChevronDown,
   BookOpen,
+  MessageSquareText,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -776,13 +778,14 @@ export default function FindTutorsPage() {
 
                 {/* Primary Action Button */}
                 <div className="flex items-center gap-3 pt-2">
-                  <Button variant="dark" size="sm" className="rounded-xl flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 text-green-400 fill-green-400" /> Book Free Demo
-                  </Button>
-
-                  <Link href={`/profile/${selectedTutor._id}`}>
-                    <Button variant="secondary" size="sm" className="rounded-xl">
-                      Full Portfolio
+                  <Link href={`/dashboard/messages?userId=${selectedTutor.userId || selectedTutor._id}`}>
+                    <Button variant="primary" size="sm" className="rounded-xl flex items-center gap-1.5 font-bold">
+                      <MessageSquareText className="w-4 h-4" /> Message
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/tutors/${selectedTutor.userId || selectedTutor._id}`}>
+                    <Button variant="dark" size="sm" className="rounded-xl flex items-center gap-1.5 font-bold">
+                      View Full Profile <ExternalLink className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 </div>

@@ -64,14 +64,18 @@ export class TutorService {
     };
   }
 
-  async getPublicProfile(userId: string) {
-    const profile = await this.repository.findByUserId(userId);
+  async getPublicProfile(idOrUserId: string) {
+    let profile = await this.repository.findByUserId(idOrUserId);
+    if (!profile) {
+      profile = await this.repository.findById(idOrUserId);
+    }
     if (!profile) {
       const err = new Error('Tutor profile not found');
       (err as any).statusCode = 404;
       throw err;
     }
 
+    const userId = profile.userId;
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, avatarUrl: true },

@@ -701,7 +701,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-150">
-                    <Link href="/dashboard/tutors" className="flex-1">
+                    <Link href={`/dashboard/tutors/${tutor.userId || tutor._id}`} className="flex-1">
                       <Button variant="primary" size="sm" className="w-full text-xs h-8">
                         View Profile
                       </Button>
@@ -873,7 +873,7 @@ export default function DashboardPage() {
                           Message
                         </Button>
                       </Link>
-                      <Link href="/dashboard/tutors">
+                      <Link href={`/dashboard/tutors/${tutor.userId || tutor._id}`}>
                         <Button variant="dark" size="sm" className="flex items-center gap-1">
                           View Profile <ArrowUpRight className="w-3.5 h-3.5" />
                         </Button>
