@@ -706,7 +706,7 @@ export default function DashboardPage() {
                         View Profile
                       </Button>
                     </Link>
-                    <Link href="/dashboard/messages" className="flex-1">
+                    <Link href={`/dashboard/messages?userId=${tutor.userId || tutor._id}`} className="flex-1">
                       <Button variant="secondary" size="sm" className="w-full text-xs h-8">
                         Message
                       </Button>
@@ -867,15 +867,17 @@ export default function DashboardPage() {
                   {/* Bottom Actions button bar */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <Link href="/dashboard/messages">
+                      <Link href={`/dashboard/messages?userId=${tutor.userId || tutor._id}`}>
                         <Button variant="secondary" size="sm" className="flex items-center gap-1.5">
                           <MessageSquareText className="w-3.5 h-3.5 shrink-0" />
                           Message
                         </Button>
                       </Link>
-                      <Button variant="dark" size="sm" className="flex items-center gap-1">
-                        Rate Tutor <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
+                      <Link href="/dashboard/tutors">
+                        <Button variant="primary" size="sm" className="flex items-center gap-1">
+                          View Profile
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>

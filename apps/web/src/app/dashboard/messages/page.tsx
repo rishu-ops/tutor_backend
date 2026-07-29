@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface MessageAttachment {
   url: string;
@@ -130,6 +131,10 @@ function playMessageSound(type: 'sent' | 'received') {
 export default function MessagesPage() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const searchParams = useSearchParams();
+
+  const targetUserId = searchParams.get('userId') || searchParams.get('tutorId');
+  const targetConvoId = searchParams.get('convoId');
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null);
@@ -383,6 +388,34 @@ export default function MessagesPage() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  // Auto-select conversation matching targetUserId or targetConvoId from URL query parameters
+  useEffect(() => {
+    if (conversations.length === 0) return;
+
+    if (targetConvoId) {
+      const match = conversations.find((c) => c._id === targetConvoId);
+      if (match) {
+        setSelectedConvo(match);
+        setShowMobileChat(true);
+        return;
+      }
+    }
+
+    if (targetUserId) {
+      const match = conversations.find((c) => c.otherParty.id === targetUserId);
+      if (match) {
+        setSelectedConvo(match);
+        setShowMobileChat(true);
+        return;
+      }
+    }
+
+    // Default: select first conversation if none selected yet
+    if (!selectedConvo && conversations.length > 0) {
+      setSelectedConvo(conversations[0]);
+    }
+  }, [conversations, targetUserId, targetConvoId]);
 
   useEffect(() => {
     if (selectedConvo) {
