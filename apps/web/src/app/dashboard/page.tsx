@@ -874,8 +874,8 @@ export default function DashboardPage() {
                         </Button>
                       </Link>
                       <Link href="/dashboard/tutors">
-                        <Button variant="primary" size="sm" className="flex items-center gap-1">
-                          View Profile
+                        <Button variant="dark" size="sm" className="flex items-center gap-1">
+                          View Profile <ArrowUpRight className="w-3.5 h-3.5" />
                         </Button>
                       </Link>
                     </div>
