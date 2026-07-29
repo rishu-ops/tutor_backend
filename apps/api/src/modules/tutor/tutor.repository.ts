@@ -6,6 +6,10 @@ export class TutorRepository {
     return TutorProfileModel.findOne({ userId });
   }
 
+  async findById(id: string) {
+    return TutorProfileModel.findById(id);
+  }
+
   async updateByUserId(userId: string, data: any) {
     return TutorProfileModel.findOneAndUpdate(
       { userId },

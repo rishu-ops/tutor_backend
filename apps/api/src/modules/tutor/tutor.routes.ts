@@ -21,5 +21,9 @@ router.get('/list', requireAuth, controller.listTutors.bind(controller));
 // Get a tutor's public profile details
 router.get('/:id/public', requireAuth, controller.getPublicProfile.bind(controller));
 
+// Tutor reviews endpoints
+router.get('/:id/reviews', requireAuth, controller.getReviews.bind(controller));
+router.post('/:id/reviews', requireAuth, controller.createReview.bind(controller));
+
 export default router;
 export { router as tutorRouter };

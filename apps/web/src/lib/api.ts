@@ -140,6 +140,19 @@ export const profileApi = {
       method: 'GET',
       token,
     }) as Promise<any>,
+
+  getTutorReviews: (tutorUserId: string, token: string) =>
+    api<any>(`/api/v1/tutor/${tutorUserId}/reviews`, {
+      method: 'GET',
+      token,
+    }) as Promise<any>,
+
+  createTutorReview: (tutorUserId: string, data: { rating: number; comment: string }, token: string) =>
+    api<any>(`/api/v1/tutor/${tutorUserId}/reviews`, {
+      method: 'POST',
+      body: data,
+      token,
+    }) as Promise<any>,
 };
 
 // Requirement-specific API calls

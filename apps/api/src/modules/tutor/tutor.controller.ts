@@ -71,6 +71,38 @@ export class TutorController {
     }
   }
 
+  // GET /:id/reviews
+  async getReviews(req: Request, res: Response): Promise<void> {
+    try {
+      const tutorUserId = req.params.id as string;
+      const reviews = await this.service.getReviews(tutorUserId);
+      res.json({ success: true, data: reviews });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Failed to fetch reviews' });
+    }
+  }
+
+  // POST /:id/reviews
+  async createReview(req: Request, res: Response): Promise<void> {
+    try {
+      const tutorUserId = req.params.id as string;
+      const studentUserId = req.user?.id;
+      if (!studentUserId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      const { rating, comment } = req.body;
+      if (!rating || !comment) {
+        res.status(400).json({ success: false, error: 'Rating and comment are required' });
+        return;
+      }
+      const review = await this.service.createReview(tutorUserId, studentUserId, Number(rating), comment);
+      res.status(201).json({ success: true, data: review });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Failed to post review' });
+    }
+  }
+
   // GET /list — paginated, filterable list of tutors for students
   async listTutors(req: Request, res: Response): Promise<void> {
     try {
