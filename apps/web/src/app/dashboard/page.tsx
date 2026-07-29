@@ -62,54 +62,6 @@ const DEFAULT_ANNOUNCEMENT = {
   createdAt: '2026-07-10T00:00:00.000Z',
 };
 
-// Fallback recommendations of Tutors
-const MOCK_RECOMMENDED_TUTORS = [
-  {
-    _id: 'rec-t-1',
-    name: 'Rahul Sharma',
-    subjects: ['Mathematics', 'Physics'],
-    ratingAvg: 4.9,
-    experience: '8 Yrs',
-    verified: true,
-    teachingMode: ['Online', 'Home'],
-    hourlyRate: 800,
-    avatarUrl: null as string | null,
-  },
-  {
-    _id: 'rec-t-2',
-    name: 'Priya Patel',
-    subjects: ['Chemistry', 'Biology'],
-    ratingAvg: 4.8,
-    experience: '5 Yrs',
-    verified: true,
-    teachingMode: ['Online'],
-    hourlyRate: 650,
-    avatarUrl: null as string | null,
-  },
-];
-
-// Active/Recently Active Tutors
-const MOCK_ACTIVE_TUTORS = [
-  {
-    _id: 'act-t-1',
-    name: "Sarah D'Souza",
-    subjects: ['English'],
-    ratingAvg: 5.0,
-    experience: '12 Yrs',
-    verified: true,
-    hourlyRate: 900,
-  },
-  {
-    _id: 'act-t-2',
-    name: 'Amit Verma',
-    subjects: ['Computer Science'],
-    ratingAvg: 4.7,
-    experience: '4 Yrs',
-    verified: false,
-    hourlyRate: 700,
-  },
-];
-
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.accessToken);
@@ -122,6 +74,7 @@ export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [hiredTutors, setHiredTutors] = useState<any[]>([]);
+  const [featuredTutors, setFeaturedTutors] = useState<any[]>([]); // real top-rated tutors for student dashboard
   const [articles, setArticles] = useState<any[]>(MOCK_ARTICLES);
   const [nextClass, setNextClass] = useState<any>(null);
 
@@ -289,6 +242,19 @@ export default function DashboardPage() {
             console.error('Failed to load matched tutors profiles:', e);
           }
         }
+      }
+
+      // Fetch real featured tutors (top-rated) for student dashboard sections
+      try {
+        const featRes = await fetch('/api/v1/tutors/list?sortBy=rating&limit=4', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const featData = await featRes.json();
+        if (featData.success && featData.tutors) {
+          setFeaturedTutors(featData.tutors);
+        }
+      } catch (e) {
+        console.error('Failed to load featured tutors:', e);
       }
 
       const postsRes = await adminApi.getPublicPosts(token);
@@ -598,7 +564,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="flex flex-col gap-3">
-            {MOCK_RECOMMENDED_TUTORS.map((tutor) => (
+            {(featuredTutors.length > 0 ? featuredTutors : []).slice(0, 3).map((tutor) => (
               <div
                 key={tutor._id}
                 className="bg-white border border-[#dadee2] p-4 rounded-2xl flex justify-between items-center hover:border-[#00A453] transition-colors"
@@ -614,7 +580,7 @@ export default function DashboardPage() {
                   <div>
                     <h4 className="text-xs font-extrabold text-[#2d2d2d]">{tutor.name}</h4>
                     <p className="text-[9px] text-[#647380] mt-0.5">
-                      {tutor.subjects.join(', ')} · {tutor.experience} Exp
+                      {(tutor.subjects || []).join(', ')} · {tutor.experience || 'N/A'} Exp
                     </p>
                   </div>
                 </div>
@@ -629,6 +595,11 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ))}
+            {featuredTutors.length === 0 && (
+              <div className="text-center text-xs text-gray-400 py-6">
+                No tutors available yet. <Link href="/dashboard/tutors" className="text-[#00A453] font-bold hover:underline">Browse all</Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -680,12 +651,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* AI Recommended Matches */}
         <div className="space-y-4">
           <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
-            AI Recommended Matches
+            Recommended Verified Tutors
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {MOCK_RECOMMENDED_TUTORS.map((tutor) => (
+            {(featuredTutors.length > 0 ? featuredTutors : []).slice(0, 4).map((tutor) => (
               <div
                 key={tutor._id}
                 className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-5 space-y-4 flex flex-col justify-between transition-all duration-200"
@@ -693,11 +665,11 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full">
-                      98% Match
+                      {tutor.verified ? '✓ Verified' : 'Active'}
                     </span>
                     <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 fill-[#b28b00] text-[#b28b00]" />
-                      {tutor.ratingAvg}
+                      {tutor.ratingAvg?.toFixed(1) || '5.0'}
                     </span>
                   </div>
 
@@ -708,11 +680,11 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 text-[10px] text-[#647380] flex-wrap">
                       <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
                         <Layers className="w-3 h-3 text-gray-400" />
-                        {tutor.subjects[0]}
+                        {(tutor.subjects || [])[0] || 'General'}
                       </span>
                       <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
                         <Clock className="w-3 h-3 text-gray-400" />
-                        {tutor.experience} Experience
+                        {tutor.experience || 'N/A'} Experience
                       </span>
                     </div>
                   </div>
@@ -722,13 +694,11 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <div className="text-[10px] text-[#647380] font-bold uppercase tracking-wider">
-                        Proposed Rate
+                        Hourly Rate
                       </div>
                       <div className="text-sm font-black text-[#2d2d2d]">
-                        ₹{tutor.hourlyRate}{' '}
-                        <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">
-                          per hour
-                        </span>
+                        {tutor.hourlyRate > 0 ? `₹${tutor.hourlyRate}` : 'Negotiable'}{' '}
+                        {tutor.hourlyRate > 0 && <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">per hour</span>}
                       </div>
                     </div>
                   </div>
@@ -748,82 +718,17 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-xs font-extrabold text-[#647380] tracking-wider px-1">
-            Recently Active Tutors
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {MOCK_ACTIVE_TUTORS.map((tutor) => (
-              <div
-                key={tutor._id}
-                className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-5 space-y-4 flex flex-col justify-between transition-all duration-200"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full">
-                      Active Now
-                    </span>
-                    <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-[#b28b00] text-[#b28b00]" />
-                      {tutor.ratingAvg}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-base font-extrabold text-[#2d2d2d] leading-snug">
-                      {tutor.name}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[10px] text-[#647380] flex-wrap">
-                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
-                        <Layers className="w-3 h-3 text-gray-400" />
-                        {tutor.subjects[0]}
-                      </span>
-                      <span className="flex items-center gap-1 font-bold bg-gray-50 border border-gray-150 rounded-full px-2.5 py-0.5">
-                        <Clock className="w-3 h-3 text-gray-400" />
-                        {tutor.experience} Experience
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-150 pt-4 mt-1 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] text-[#647380] font-bold uppercase tracking-wider">
-                        Starting from
-                      </div>
-                      <div className="text-sm font-black text-[#2d2d2d]">
-                        ₹{tutor.hourlyRate}{' '}
-                        <span className="text-[10px] text-[#647380] font-bold inline-block ml-0.5">
-                          per hour
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-150">
-                    <Link href="/dashboard/tutors" className="flex-1">
-                      <Button variant="primary" size="sm" className="w-full text-xs h-8">
-                        View Profile
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/messages" className="flex-1">
-                      <Button variant="secondary" size="sm" className="w-full text-xs h-8">
-                        Message
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+            {featuredTutors.length === 0 && (
+              <div className="col-span-2 text-center text-xs text-gray-400 py-8">
+                Loading tutor matches… <Link href="/dashboard/tutors" className="text-[#00A453] font-bold hover:underline">Browse all tutors</Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
     );
   };
+
 
   // State 3 — Tutor Accepted
   const renderStudentAccepted = () => {

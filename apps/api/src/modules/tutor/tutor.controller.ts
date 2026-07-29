@@ -70,4 +70,38 @@ export class TutorController {
       res.status(status).json({ success: false, error: error.message || 'Internal server error' });
     }
   }
+
+  // GET /list — paginated, filterable list of tutors for students
+  async listTutors(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        subject,
+        city,
+        teachingMode,
+        maxBudget,
+        minExp,
+        freeDemo,
+        sortBy,
+        page,
+        limit,
+      } = req.query as Record<string, string>;
+
+      const result = await this.service.listTutors({
+        subject: subject || undefined,
+        city: city || undefined,
+        teachingMode: teachingMode || undefined,
+        maxBudget: maxBudget ? parseInt(maxBudget) : undefined,
+        minExp: minExp ? parseInt(minExp) : undefined,
+        freeDemo: freeDemo === 'true' ? true : undefined,
+        sortBy: (sortBy as any) || 'rating',
+        page: page ? parseInt(page) : 1,
+        limit: limit ? parseInt(limit) : 20,
+      });
+
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
 }

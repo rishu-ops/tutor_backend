@@ -15,6 +15,9 @@ router.patch(
   controller.updateProfile.bind(controller)
 );
 
+// GET /tutors/list — paginated, searchable tutor list for students
+router.get('/list', requireAuth, controller.listTutors.bind(controller));
+
 // Get a tutor's public profile details
 router.get('/:id/public', requireAuth, controller.getPublicProfile.bind(controller));
 

@@ -16,15 +16,28 @@ import {
   Check,
   CheckCheck,
   Search,
+  Paperclip,
+  FileText,
+  Download,
+  X,
+  ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+interface MessageAttachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
 
 interface Message {
   _id: string;
   conversationId: string;
   senderUserId: string;
   content: string;
+  attachments?: MessageAttachment[];
   seen: boolean;
   createdAt: string;
 }
@@ -149,6 +162,14 @@ export default function MessagesPage() {
   const receiverTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Always keep a ref to the latest selectedConvo to avoid stale closures in socket handlers
   const selectedConvoRef = useRef<Conversation | null>(null);
+
+  // File sharing
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<MessageAttachment[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [fileError, setFileError] = useState('');
+  const DAILY_FILE_LIMIT = 5;
+  const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
   useEffect(() => {
     selectedConvoRef.current = selectedConvo;
   }, [selectedConvo]);
@@ -395,7 +416,7 @@ export default function MessagesPage() {
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (!inputValue.trim() || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    if ((!inputValue.trim() && pendingFiles.length === 0) || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
     // Clear sender-side typing state immediately
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     if (isTypingRef.current) {
@@ -408,6 +429,7 @@ export default function MessagesPage() {
       conversationId: selectedConvo._id,
       senderUserId: user?.id || '',
       content: inputValue.trim(),
+      attachments: pendingFiles,
       seen: false,
       createdAt: new Date().toISOString(),
     };
@@ -415,8 +437,50 @@ export default function MessagesPage() {
     socketRef.current?.emit('send_message', {
       conversationId: selectedConvo._id,
       content: inputValue.trim(),
+      attachments: pendingFiles,
     });
     setInputValue('');
+    setPendingFiles([]);
+  };
+
+  // Upload a file to /api/v1/media/upload-chat-file and stage it as a pending attachment
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !token) return;
+    setFileError('');
+
+    if (pendingFiles.length >= DAILY_FILE_LIMIT) {
+      setFileError(`Max ${DAILY_FILE_LIMIT} files per session.`);
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError('File too large. Max 5 MB.');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/v1/media/upload-chat-file', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPendingFiles((prev) => [
+          ...prev,
+          { url: data.url, name: data.name, type: data.type, size: data.size },
+        ]);
+      } else {
+        setFileError(data.error || 'Upload failed.');
+      }
+    } catch {
+      setFileError('Upload failed. Try again.');
+    }
+    setUploadingFile(false);
   };
 
   const handleInputChange = (val: string) => {
@@ -734,15 +798,56 @@ export default function MessagesPage() {
                             key={msg._id}
                             className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-0.5`}
                           >
-                            <div
-                              className={`max-w-[65%] px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
-                                isMine
-                                  ? 'bg-[#00A453] text-white rounded-2xl rounded-br-sm'
-                                  : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'
-                              }`}
-                            >
-                              {msg.content}
-                            </div>
+                            {/* Text bubble (only if there's content) */}
+                            {msg.content && (
+                              <div
+                                className={`max-w-[65%] px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
+                                  isMine
+                                    ? 'bg-[#00A453] text-white rounded-2xl rounded-br-sm'
+                                    : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'
+                                }`}
+                              >
+                                {msg.content}
+                              </div>
+                            )}
+                            {/* Attachments */}
+                            {(msg.attachments || []).map((att, ai) => {
+                              const isImage = att.type.startsWith('image/');
+                              return (
+                                <div
+                                  key={ai}
+                                  className={`mt-1 max-w-[65%] ${
+                                    isMine ? 'items-end' : 'items-start'
+                                  }`}
+                                >
+                                  {isImage ? (
+                                    <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                      <img
+                                        src={att.url}
+                                        alt={att.name}
+                                        className="max-w-[220px] max-h-[200px] object-cover rounded-xl border border-gray-200 shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      href={att.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      download={att.name}
+                                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors ${
+                                        isMine
+                                          ? 'bg-[#008A45] text-white border-[#007a3c] hover:bg-[#007a3c]'
+                                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      <FileText className="w-4 h-4 shrink-0" />
+                                      <span className="truncate max-w-[140px]">{att.name}</span>
+                                      <Download className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
                             {showTime && (
                               <div
                                 className={`flex items-center gap-1 mt-0.5 ${isMine ? 'flex-row-reverse' : ''}`}
@@ -790,27 +895,81 @@ export default function MessagesPage() {
             </div>
 
             {/* Input bar */}
-            <div className="p-3 border-t border-[#dadee2] bg-white flex gap-2 items-center shrink-0">
-              <input
-                type="text"
-                disabled={selectedConvo.status === 'LOCKED'}
-                placeholder={
-                  selectedConvo.status === 'LOCKED'
-                    ? 'Accept proposal to unlock chat...'
-                    : 'Type a message...'
-                }
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-[#f0f2f5] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={selectedConvo.status === 'LOCKED' || !inputValue.trim()}
-                className="w-10 h-10 rounded-full bg-[#00A453] flex items-center justify-center disabled:opacity-40 hover:bg-[#008A45] transition-colors shrink-0"
-              >
-                <Send className="w-4 h-4 text-white" />
-              </button>
+            <div className="p-3 border-t border-[#dadee2] bg-white flex flex-col gap-2 shrink-0">
+              {/* Pending file attachments preview */}
+              {pendingFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-1">
+                  {pendingFiles.map((f, i) => {
+                    const isImage = f.type.startsWith('image/');
+                    return (
+                      <div
+                        key={i}
+                        className="relative flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 max-w-[160px]"
+                      >
+                        {isImage ? (
+                          <ImageIcon className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                        )}
+                        <span className="truncate">{f.name}</span>
+                        <button
+                          onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="ml-0.5 text-gray-400 hover:text-red-500 shrink-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {/* File error message */}
+              {fileError && (
+                <p className="text-[10px] text-red-500 font-semibold px-1">{fileError}</p>
+              )}
+              <div className="flex gap-2 items-center">
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                {/* Attachment button */}
+                <button
+                  onClick={() => { setFileError(''); fileInputRef.current?.click(); }}
+                  disabled={selectedConvo.status === 'LOCKED' || uploadingFile || pendingFiles.length >= DAILY_FILE_LIMIT}
+                  title={`Attach file (max 5 MB, ${DAILY_FILE_LIMIT}/day)`}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:text-[#00A453] hover:bg-[#f0fbf6] border border-[#dadee2] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                >
+                  {uploadingFile ? (
+                    <span className="w-4 h-4 border-2 border-[#00A453] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Paperclip className="w-4 h-4" />
+                  )}
+                </button>
+                <input
+                  type="text"
+                  disabled={selectedConvo.status === 'LOCKED'}
+                  placeholder={
+                    selectedConvo.status === 'LOCKED'
+                      ? 'Accept proposal to unlock chat...'
+                      : 'Type a message...'
+                  }
+                  value={inputValue}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-[#f0f2f5] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={selectedConvo.status === 'LOCKED' || (!inputValue.trim() && pendingFiles.length === 0)}
+                  className="w-10 h-10 rounded-full bg-[#00A453] flex items-center justify-center disabled:opacity-40 hover:bg-[#008A45] transition-colors shrink-0"
+                >
+                  <Send className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
           </div>
         ) : (

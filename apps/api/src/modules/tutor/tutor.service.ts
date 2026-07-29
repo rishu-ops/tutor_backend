@@ -168,4 +168,122 @@ export class TutorService {
       avatarUrl: user?.avatarUrl || null,
     };
   }
+
+  /**
+   * List all tutor profiles for student browse / find-tutors page
+   * Supports filtering by subject, city, teachingMode, budget, experience, freeDemo, verified
+   * Returns real data joined with Prisma user table for name/avatar
+   */
+  async listTutors(filters: {
+    subject?: string;
+    city?: string;
+    teachingMode?: string;
+    maxBudget?: number;
+    minExp?: number;
+    freeDemo?: boolean;
+    sortBy?: 'rating' | 'price_asc' | 'price_desc' | 'newest';
+    page?: number;
+    limit?: number;
+  } = {}) {
+    const { subject, city, teachingMode, maxBudget, minExp, freeDemo, sortBy = 'rating', page = 1, limit = 20 } = filters;
+
+    // Build MongoDB query
+    const query: Record<string, any> = {
+      profileCompleteness: { $gte: 40 }, // Only reasonably complete profiles
+    };
+
+    if (subject) {
+      query['subjects.subject'] = { $regex: subject, $options: 'i' };
+    }
+    if (city) {
+      query['location.city'] = { $regex: city, $options: 'i' };
+    }
+    if (teachingMode && teachingMode !== 'ALL') {
+      query['teachingModes'] = teachingMode;
+    }
+    if (maxBudget) {
+      query['pricing.min'] = { $lte: maxBudget };
+    }
+    if (freeDemo) {
+      query['freeDemo'] = true;
+    }
+
+    // Sort options
+    let sortQuery: Record<string, 1 | -1> = { ratingAvg: -1 };
+    if (sortBy === 'price_asc') sortQuery = { 'pricing.min': 1 };
+    else if (sortBy === 'price_desc') sortQuery = { 'pricing.min': -1 };
+    else if (sortBy === 'newest') sortQuery = { createdAt: -1 };
+
+    const skip = (page - 1) * limit;
+    const { TutorProfileModel } = await import('database');
+
+    const [profiles, total] = await Promise.all([
+      TutorProfileModel.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
+      TutorProfileModel.countDocuments(query),
+    ]);
+
+    // Filter by minExp in memory (experience is stored as string like "3 years")
+    let filtered = profiles;
+    if (minExp && minExp > 0) {
+      filtered = profiles.filter((p) => {
+        const expYears = Array.isArray(p.experience)
+          ? p.experience.reduce((acc: number, e: any) => {
+              const years = parseInt(e.years || e.duration || '0');
+              return acc + (isNaN(years) ? 0 : years);
+            }, 0)
+          : parseInt((p as any).experience || '0');
+        return expYears >= minExp;
+      });
+    }
+
+    // Enrich with Prisma user data (name, avatar)
+    const enriched = await Promise.all(
+      filtered.map(async (profile: any) => {
+        const user = await prisma.user.findUnique({
+          where: { id: profile.userId },
+          select: { name: true, avatarUrl: true },
+        });
+
+        // Compute total experience years
+        let experienceYears = 0;
+        if (Array.isArray(profile.experience)) {
+          experienceYears = profile.experience.reduce((acc: number, e: any) => {
+            const y = parseInt(e.years || e.duration || '0');
+            return acc + (isNaN(y) ? 0 : y);
+          }, 0);
+        }
+
+        return {
+          _id: profile._id,
+          userId: profile.userId,
+          name: user?.name || 'Anonymous Tutor',
+          avatarUrl: user?.avatarUrl || profile.avatarUrl || null,
+          bio: profile.bio || '',
+          subjects: (profile.subjects || []).map((s: any) => s.subject || s),
+          qualifications: (profile.qualifications || []).map((q: any) => q.degree || q.title || q),
+          teachingMode: profile.teachingModes || [],
+          pricing: profile.pricing || { min: 0, max: 0 },
+          hourlyRate: profile.pricing?.min || 0,
+          location: profile.location || { city: '', area: '' },
+          ratingAvg: profile.ratingAvg || 5.0,
+          reviewsCount: profile.reviewsCount || 0,
+          profileCompleteness: profile.profileCompleteness || 0,
+          freeDemo: profile.freeDemo || false,
+          verified: (profile.profileCompleteness || 0) >= 70,
+          experience: experienceYears > 0 ? `${experienceYears} Yrs` : 'N/A',
+          languages: profile.languages || [],
+        };
+      })
+    );
+
+    return {
+      tutors: enriched,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

@@ -76,99 +76,42 @@ export default function FindTutorsPage() {
   const [tutors, setTutors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch verified tutors list
+  // Fetch verified tutors list from real API
   const fetchTutors = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/recommendations/home', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const params = new URLSearchParams();
+      if (subject) params.set('subject', subject);
+      if (location && location !== 'Noida') params.set('city', location);
+      if (teachingMode !== 'ALL') params.set('teachingMode', teachingMode);
+      if (maxBudget < 3000) params.set('maxBudget', String(maxBudget));
+      if (minExp > 0) params.set('minExp', String(minExp));
+      if (demoOnly) params.set('freeDemo', 'true');
+      params.set('sortBy', sortBy === 'rating' ? 'rating' : sortBy === 'price_asc' ? 'price_asc' : sortBy === 'price_desc' ? 'price_desc' : 'rating');
+      params.set('limit', '50');
+
+      const res = await fetch(`/api/v1/tutors/list?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success && data.recommended) {
-        setTutors(data.recommended);
-        if (data.recommended.length > 0) {
-          setSelectedTutorId(data.recommended[0]._id);
+      if (data.success && data.tutors) {
+        setTutors(data.tutors);
+        if (data.tutors.length > 0) {
+          setSelectedTutorId(data.tutors[0]._id);
+        } else {
+          setSelectedTutorId(null);
         }
       } else {
-        throw new Error();
+        setTutors([]);
+        setSelectedTutorId(null);
       }
     } catch {
-      const fallbackTutors = [
-        {
-          _id: 'tutor-1',
-          name: 'Dr. Rahul Sharma',
-          subjects: ['Mathematics', 'Physics'],
-          experience: '8 Years',
-          ratingAvg: 4.9,
-          reviewsCount: 32,
-          qualifications: ['MSc in Mathematics', 'PhD in Applied Physics'],
-          hourlyRate: 800,
-          teachingMode: ['Online', 'Home'],
-          freeDemo: true,
-          verified: true,
-          bio: 'Passionate educator specializing in preparing students for competitive boards exams. Over 8 years of mentoring students in advanced physics and calculus. Known for breaking down complex concepts into simple interactive visualizations.',
-          location: { city: 'Noida', area: 'Sector 62' },
-          postedDaysAgo: '2d',
-        },
-        {
-          _id: 'tutor-2',
-          name: 'Priya Patel',
-          subjects: ['Chemistry', 'Biology'],
-          experience: '5 Years',
-          ratingAvg: 4.8,
-          reviewsCount: 18,
-          qualifications: ['BTech in Biotechnology', 'UGC NET Qualified'],
-          hourlyRate: 650,
-          teachingMode: ['Online'],
-          freeDemo: true,
-          verified: true,
-          bio: 'Specialist in making chemistry concepts interactive and easy to understand. Helping high school and college students achieve stellar scores in board exams and pre-medical entrances.',
-          location: { city: 'Noida', area: 'Dwarka' },
-          postedDaysAgo: '3d',
-        },
-        {
-          _id: 'tutor-3',
-          name: 'Amit Verma',
-          subjects: ['Web Development', 'Computer Science'],
-          experience: '4 Years',
-          ratingAvg: 4.7,
-          reviewsCount: 12,
-          qualifications: ['BCA', 'Full Stack Developer'],
-          hourlyRate: 1000,
-          teachingMode: ['Online', 'Home'],
-          freeDemo: false,
-          verified: true,
-          bio: 'Industry software engineer teaching programming fundamentals, frontend engineering, database architectures, and high-school computer science curriculum.',
-          location: { city: 'Noida', area: 'Sector 15' },
-          postedDaysAgo: '5d',
-        },
-        {
-          _id: 'tutor-4',
-          name: "Sarah D'Souza",
-          subjects: ['English', 'Literature'],
-          experience: '12 Years',
-          ratingAvg: 5.0,
-          reviewsCount: 45,
-          qualifications: ['MA in English Literature', 'TESOL Certified'],
-          hourlyRate: 900,
-          teachingMode: ['Home'],
-          freeDemo: true,
-          verified: false,
-          bio: 'Experienced educator focusing on english communication skills, creative writing, high-school grammar curriculum, and public speaking coaching for children.',
-          location: { city: 'Delhi', area: 'DLF Phase 3' },
-          postedDaysAgo: '1w',
-        },
-      ];
-      setTutors(fallbackTutors);
-      if (fallbackTutors.length > 0) {
-        setSelectedTutorId(fallbackTutors[0]._id);
-      }
+      setTutors([]);
+      setSelectedTutorId(null);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, subject, location, teachingMode, maxBudget, minExp, demoOnly, sortBy]);
 
   useEffect(() => {
     fetchTutors();
