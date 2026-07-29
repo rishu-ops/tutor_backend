@@ -79,6 +79,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
+  // Maps a notification type to the correct deep-link URL
+  const getNotifDeepLink = (notif: any): string | null => {
+    const type: string = notif.type || '';
+    const data = notif.data || {};
+    if (type.startsWith('BOOKING') || type === 'CLASS_REMINDER') return '/dashboard/bookings';
+    if (type === 'TUTOR_APPLIED') return data.requirementId ? `/dashboard/requirements?highlight=${data.requirementId}` : '/dashboard/requirements';
+    if (type === 'APPLICATION_ACCEPTED' || type === 'CHAT_REMINDER' || type === 'MATCHED_CHAT_REMINDER') return '/dashboard/messages';
+    if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS') return '/dashboard/requirements/browse';
+    if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH') return '/dashboard/tutors';
+    if (type.includes('PROFILE')) return '/profile';
+    return null;
+  };
+
+  // Click a notification in the bell dropdown: mark read + navigate
+  const handleNotifItemClick = async (notif: any) => {
+    setNotifDropdownOpen(false);
+    if (!notif.read) {
+      await handleMarkRead(notif._id);
+    }
+    const link = getNotifDeepLink(notif);
+    if (link) router.push(link);
+  };
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -230,34 +253,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         No new notifications.
                       </div>
                     ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif._id}
-                          className={`p-3 space-y-1 hover:bg-gray-50 transition-colors flex items-start justify-between gap-2 ${!notif.read ? 'bg-gray-50/50' : ''
-                            }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="font-bold text-[#2d2d2d] block">{notif.title}</span>
-                            <span className="text-[#647380] block mt-0.5 leading-relaxed">
-                              {notif.content}
-                            </span>
-                            <span className="text-[9px] text-[#b0b8c1] block mt-1">
-                              {new Date(notif.createdAt).toLocaleDateString([], {
-                                month: 'short',
-                                day: 'numeric',
-                              })}
-                            </span>
+                      notifications.map((notif) => {
+                        const deepLink = getNotifDeepLink(notif);
+                        return (
+                          <div
+                            key={notif._id}
+                            onClick={() => handleNotifItemClick(notif)}
+                            className={`p-3 space-y-1 transition-colors flex items-start justify-between gap-2 ${
+                              !notif.read ? 'bg-green-50/40' : ''
+                            } ${deepLink ? 'cursor-pointer hover:bg-gray-100' : 'hover:bg-gray-50'}`}
+                          >
+                            <div className="min-w-0">
+                              <span className="font-bold text-[#2d2d2d] block flex items-center gap-1">
+                                {!notif.read && <span className="inline-block w-1.5 h-1.5 bg-[#00A453] rounded-full shrink-0" />}
+                                {notif.title}
+                              </span>
+                              <span className="text-[#647380] block mt-0.5 leading-relaxed">
+                                {notif.content}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] text-[#b0b8c1] block">
+                                  {new Date(notif.createdAt).toLocaleDateString([], {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                                {deepLink && (
+                                  <span className="text-[9px] text-[#00A453] font-bold">
+                                    Tap to open →
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {!notif.read && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMarkRead(notif._id); }}
+                                className="text-[10px] font-bold text-[#00A453] hover:underline shrink-0"
+                              >
+                                Mark Read
+                              </button>
+                            )}
                           </div>
-                          {!notif.read && (
-                            <button
-                              onClick={() => handleMarkRead(notif._id)}
-                              className="text-[10px] font-bold text-[#00A453] hover:underline shrink-0"
-                            >
-                              Mark Read
-                            </button>
-                          )}
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                   <div className="p-2 border-t border-gray-100 flex items-center justify-center shrink-0 bg-gray-50/50">

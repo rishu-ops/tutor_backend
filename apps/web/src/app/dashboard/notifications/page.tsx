@@ -15,12 +15,17 @@ import {
   AlertCircle,
   XCircle,
   X,
+  MessageSquare,
+  MapPin,
+  UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function NotificationsCenterPage() {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const router = useRouter();
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -150,28 +155,86 @@ export default function NotificationsCenterPage() {
       case 'BOOKING_DECLINED':
       case 'BOOKING_CANCELLED':
         return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'CLASS_REMINDER':
+        return <Clock className="w-5 h-5 text-blue-500" />;
       case 'TUTOR_APPLIED':
         return <FileText className="w-5 h-5 text-blue-500" />;
       case 'APPLICATION_ACCEPTED':
         return <UserCheck className="w-5 h-5 text-green-500" />;
+      case 'CHAT_REMINDER':
+        return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      case 'NEW_REQUIREMENTS_MATCH':
+      case 'NEW_REQUIREMENTS':
+        return <FileText className="w-5 h-5 text-orange-500" />;
+      case 'NEW_TUTOR_MATCH':
+      case 'NEW_TUTOR_REGISTERED_MATCH':
+        return <UserPlus className="w-5 h-5 text-cyan-500" />;
+      case 'PROFILE_COMPLETENESS':
+      case 'PROFILE_COMPLETENESS_REMINDER':
+        return <AlertCircle className="w-5 h-5 text-amber-500" />;
       default:
         return <Bell className="w-5 h-5 text-[#00A453]" />;
     }
   };
 
-  const getActionLink = (notif: any) => {
-    const type = notif.type;
+  // Returns the deep-link destination for a given notification
+  const getActionLink = (notif: any): string | null => {
+    const type: string = notif.type || '';
     const data = notif.data || {};
-    if (type && type.startsWith('BOOKING')) {
+
+    // Booking-related → bookings page
+    if (type.startsWith('BOOKING') || type === 'CLASS_REMINDER') {
       return '/dashboard/bookings';
     }
+    // Tutor applied to a requirement → student's requirements page
     if (type === 'TUTOR_APPLIED') {
-      return '/dashboard/requirements';
+      return data.requirementId
+        ? `/dashboard/requirements?highlight=${data.requirementId}`
+        : '/dashboard/requirements';
     }
-    if (type === 'APPLICATION_ACCEPTED') {
+    // Student accepted the tutor → open chat
+    if (type === 'APPLICATION_ACCEPTED' || type === 'MATCHED_CHAT_REMINDER') {
       return '/dashboard/messages';
     }
+    // Unread chat reminder → messages
+    if (type === 'CHAT_REMINDER') {
+      return '/dashboard/messages';
+    }
+    // New requirement posted matching tutor → browse requirements
+    if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS') {
+      return '/dashboard/requirements/browse';
+    }
+    // New tutor match for a student requirement → tutors list
+    if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH') {
+      return '/dashboard/tutors';
+    }
+    // Profile completeness → profile settings
+    if (type === 'PROFILE_COMPLETENESS' || type === 'PROFILE_COMPLETENESS_REMINDER') {
+      return '/profile';
+    }
     return null;
+  };
+
+  // Returns human-readable CTA label
+  const getActionLabel = (type?: string): string => {
+    if (!type) return 'View';
+    if (type.startsWith('BOOKING')) return 'View Booking';
+    if (type === 'CLASS_REMINDER') return 'View Session';
+    if (type === 'TUTOR_APPLIED') return 'See Proposals';
+    if (type === 'APPLICATION_ACCEPTED' || type === 'CHAT_REMINDER' || type === 'MATCHED_CHAT_REMINDER') return 'Open Chat';
+    if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS') return 'Browse Requests';
+    if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH') return 'Find Tutors';
+    if (type.includes('PROFILE')) return 'Complete Profile';
+    return 'View';
+  };
+
+  // Click handler: marks read + navigates in one step
+  const handleNotifClick = async (notif: any) => {
+    const link = getActionLink(notif);
+    if (!notif.read) {
+      await handleMarkRead(notif._id);
+    }
+    if (link) router.push(link);
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -250,13 +313,14 @@ export default function NotificationsCenterPage() {
       ) : (
         <div className="space-y-3">
           {notifications.map((notif) => {
-            const hasLink = getActionLink(notif);
+            const actionLink = getActionLink(notif);
             return (
               <div
                 key={notif._id}
+                onClick={() => handleNotifClick(notif)}
                 className={`p-5 bg-white border border-[#dadee2] rounded-3xl shadow-xs hover:border-gray-300 transition-all flex items-start gap-4 relative group ${
                   !notif.read ? 'border-l-[3.5px] border-l-[#00A453]' : ''
-                }`}
+                } ${actionLink ? 'cursor-pointer hover:bg-gray-50/50' : ''}`}
               >
                 <div className="p-2.5 bg-gray-50 rounded-2xl border border-gray-100 shrink-0 flex items-center justify-center">
                   {getNotifIcon(notif.type)}
@@ -283,25 +347,19 @@ export default function NotificationsCenterPage() {
                         minute: '2-digit',
                       })}
                     </span>
-                    {hasLink && (
-                      <Link
-                        href={hasLink}
-                        className="text-xs text-[#00A453] font-extrabold hover:underline flex items-center gap-0.5"
-                      >
-                        {notif.type?.startsWith('BOOKING')
-                          ? 'View Session'
-                          : notif.type === 'APPLICATION_ACCEPTED'
-                            ? 'Open Chat'
-                            : notif.type === 'TUTOR_APPLIED'
-                              ? 'See Proposals'
-                              : 'View'}
+                    {actionLink && (
+                      <span className="text-xs text-[#00A453] font-extrabold flex items-center gap-0.5">
+                        {getActionLabel(notif.type)}
                         <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
-                      </Link>
+                      </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  className="flex items-center gap-1.5 absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {!notif.read && (
                     <button
                       onClick={() => handleMarkRead(notif._id)}
