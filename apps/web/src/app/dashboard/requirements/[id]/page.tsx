@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { requirementApi, applicationApi } from '@/lib/api';
 import ApplyModal from '@/components/sections/ApplyModal';
@@ -33,6 +33,7 @@ import {
 export default function RequirementDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
 
@@ -42,6 +43,8 @@ export default function RequirementDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const id = params.id as string;
+  const urlTab = searchParams.get('tab');
+  const urlAppId = searchParams.get('appId');
 
   // Tutor states
   const [isApplyOpen, setIsApplyOpen] = useState(false);
@@ -49,7 +52,7 @@ export default function RequirementDetailPage() {
 
   // Student Evaluation states
   const [activeTab, setActiveTab] = useState<'overview' | 'applications' | 'details' | 'timeline'>(
-    'overview'
+    urlTab === 'applications' || urlAppId ? 'applications' : 'overview'
   );
   const [applications, setApplications] = useState<any[]>([]);
   const [selectedTutors, setSelectedTutors] = useState<string[]>([]);
@@ -58,6 +61,13 @@ export default function RequirementDetailPage() {
   const [selectedAppStatus, setSelectedAppStatus] = useState<string>('');
   const [selectedAppId, setSelectedAppId] = useState<string>('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Auto-switch to applications tab if tab/appId is specified in URL
+  useEffect(() => {
+    if (urlTab === 'applications' || urlAppId) {
+      setActiveTab('applications');
+    }
+  }, [urlTab, urlAppId]);
 
   const checkApplication = useCallback(async () => {
     if (!token || user?.role !== 'TUTOR' || !id) return;
@@ -112,6 +122,16 @@ export default function RequirementDetailPage() {
       fetchApplications();
     }
   }, [requirement, fetchApplications]);
+
+  // Automatically open the drawer for target appId if passed in URL query
+  useEffect(() => {
+    if (urlAppId && applications.length > 0) {
+      const targetApp = applications.find((a) => a._id === urlAppId);
+      if (targetApp) {
+        handleOpenDrawer(targetApp.tutorUserId, targetApp._id, targetApp.status);
+      }
+    }
+  }, [urlAppId, applications]);
 
   const handleOpenDrawer = async (tutorUserId: string, appId: string, currentStatus: string) => {
     if (!token) return;

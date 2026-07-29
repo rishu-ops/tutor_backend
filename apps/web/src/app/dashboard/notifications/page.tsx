@@ -189,7 +189,7 @@ export default function NotificationsCenterPage() {
     // Tutor applied to a requirement → student's requirements page
     if (type === 'TUTOR_APPLIED') {
       return data.requirementId
-        ? `/dashboard/requirements?highlight=${data.requirementId}`
+        ? `/dashboard/requirements/${data.requirementId}?tab=applications${data.applicationId ? `&appId=${data.applicationId}` : ''}`
         : '/dashboard/requirements';
     }
     // Student accepted the tutor → open chat

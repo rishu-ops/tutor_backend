@@ -84,7 +84,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const type: string = notif.type || '';
     const data = notif.data || {};
     if (type.startsWith('BOOKING') || type === 'CLASS_REMINDER') return '/dashboard/bookings';
-    if (type === 'TUTOR_APPLIED') return data.requirementId ? `/dashboard/requirements?highlight=${data.requirementId}` : '/dashboard/requirements';
+    if (type === 'TUTOR_APPLIED') {
+      return data.requirementId
+        ? `/dashboard/requirements/${data.requirementId}?tab=applications${data.applicationId ? `&appId=${data.applicationId}` : ''}`
+        : '/dashboard/requirements';
+    }
     if (type === 'APPLICATION_ACCEPTED' || type === 'CHAT_REMINDER' || type === 'MATCHED_CHAT_REMINDER') return '/dashboard/messages';
     if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS') return '/dashboard/requirements/browse';
     if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH') return '/dashboard/tutors';

@@ -94,8 +94,14 @@ export class ApplicationService {
     const subjectName = requirement.curriculum?.subject || requirement.category;
     await NotificationModel.create({
       userId: requirement.studentUserId,
+      type: 'TUTOR_APPLIED',
       title: 'New Tutor Applied',
-      content: `A tutor has applied to your requirement for ${subjectName}.`,
+      content: `A tutor has applied to your requirement for ${subjectName}. Click to review and accept/reject.`,
+      data: {
+        requirementId: requirementId.toString(),
+        applicationId: application._id.toString(),
+        tutorUserId: tutorUserId.toString(),
+      },
     });
 
     return application;

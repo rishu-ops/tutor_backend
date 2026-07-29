@@ -203,9 +203,16 @@ export default function MyRequirementsPage() {
                       className="bg-white border border-[#dadee2] hover:border-[#00A453] hover:shadow-md rounded-2xl p-6 space-y-4 flex flex-col justify-between transition-all duration-200"
                     >
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          {getStatusBadge(req.status)}
-                          <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {getStatusBadge(req.status)}
+                            {req.newApplicationsCount > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-black px-2.5 py-0.5 bg-[#00A453] text-white rounded-full animate-pulse shadow-xs">
+                                +{req.newApplicationsCount} New Tutor{req.newApplicationsCount > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-[#647380] font-semibold flex items-center gap-1.5 shrink-0">
                             <Calendar className="w-3.5 h-3.5 text-gray-400" />
                             {new Date(req.createdAt).toLocaleDateString(undefined, {
                               month: 'short',
@@ -263,17 +270,30 @@ export default function MyRequirementsPage() {
                             </div>
                           </div>
 
-                          <span className="text-xs text-[#647380] font-bold bg-gray-50 border border-gray-150 px-2.5 py-1 rounded-full shadow-xs">
-                            {req.applicationsCount || 0}{' '}
-                            {req.applicationsCount === 1 ? 'proposal' : 'proposals'}
-                          </span>
+                          <Link href={`/dashboard/requirements/${req._id}?tab=applications`}>
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5 cursor-pointer hover:border-[#00A453] transition-colors ${
+                              req.newApplicationsCount > 0
+                                ? 'bg-[#e6f6ee] text-[#00A453] border border-[#00A453]/40 font-extrabold'
+                                : 'bg-gray-50 text-[#647380] border border-gray-150'
+                            }`}>
+                              {req.applicationsCount || 0}{' '}
+                              {req.applicationsCount === 1 ? 'proposal' : 'proposals'}
+                              {req.newApplicationsCount > 0 && (
+                                <span className="bg-[#00A453] text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                                  +{req.newApplicationsCount} new
+                                </span>
+                              )}
+                            </span>
+                          </Link>
                         </div>
 
                         {/* Separate line with flex wrap for details, edit, and close buttons */}
                         <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-dashed border-gray-150">
-                          <Link href={`/dashboard/requirements/${req._id}`}>
-                            <Button variant="primary" size="sm">
-                              View Details
+                          <Link href={`/dashboard/requirements/${req._id}${req.newApplicationsCount > 0 ? '?tab=applications' : ''}`}>
+                            <Button variant="primary" size="sm" className="relative">
+                              {req.newApplicationsCount > 0
+                                ? `Review Applications (+${req.newApplicationsCount})`
+                                : 'View Details'}
                             </Button>
                           </Link>
                           {req.status === 'OPEN' && (

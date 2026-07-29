@@ -42,7 +42,24 @@ export class RequirementService {
   }
 
   async getMyRequirements(studentUserId: string) {
-    return this.repository.findByStudentId(studentUserId);
+    const requirements = await this.repository.findByStudentId(studentUserId);
+    const { ApplicationModel } = await import('database');
+
+    const enriched = await Promise.all(
+      requirements.map(async (req) => {
+        const reqObj = req.toObject();
+        const newCount = await ApplicationModel.countDocuments({
+          requirementId: req._id,
+          status: 'SENT',
+        });
+        return {
+          ...reqObj,
+          newApplicationsCount: newCount,
+        };
+      })
+    );
+
+    return enriched;
   }
 
   async getRequirementDetail(id: string, viewerUserId?: string) {
