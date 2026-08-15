@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   AlertCircle,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -443,6 +444,11 @@ export default function BookingsPage() {
                             {isActing ? '...' : 'Mark Complete'}
                           </Button>
                         )}
+                        <Link href={`/dashboard/messages?userId=${b.otherParty.id}`}>
+                          <Button size="sm" className="bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs rounded-xl h-8 gap-1.5 shadow-xs">
+                            <FileText className="w-3.5 h-3.5" /> Propose Agreement
+                          </Button>
+                        </Link>
                         <Button
                           onClick={() => setShowRescheduleModal(b._id)}
                           variant="secondary"

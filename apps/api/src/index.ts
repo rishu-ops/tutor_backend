@@ -23,6 +23,7 @@ import notificationRouter from './modules/notifications/notification.routes.js';
 import conversationRouter from './modules/conversations/conversation.routes.js';
 import bookingRouter from './modules/bookings/booking.routes.js';
 import matchingRouter from './modules/matching/matching.routes.js';
+import contractRouter from './modules/contracts/contract.routes.js';
 import { initSocketGateway } from './socket/socket.gateway.js';
 import {
   adminAuthRouter,
@@ -115,6 +116,7 @@ app.use('/api/v1/onboarding', onboardingRouter);
 app.use('/api/v1/media', mediaRouter);
 app.use('/api/v1/student', studentRouter);
 app.use('/api/v1/tutor', tutorRouter);
+app.use('/api/v1/tutors', tutorRouter);
 app.use('/api/v1/requirements', requirementRouter);
 app.use('/api/v1/recommendations', recommendationRouter);
 app.use('/api/v1/applications', applicationRouter);
@@ -122,6 +124,7 @@ app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/conversations', conversationRouter);
 app.use('/api/v1/bookings', bookingRouter);
 app.use('/api/v1/matching', matchingRouter);
+app.use('/api/v1/contracts', contractRouter);
 
 // Admin Module Routes
 app.use('/api/admin', adminAuthRouter);

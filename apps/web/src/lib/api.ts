@@ -452,3 +452,31 @@ export const reportApi = {
       token,
     }),
 };
+
+export const contractApi = {
+  createContract: (data: any, token: string) =>
+    api<any>('/api/v1/contracts', {
+      method: 'POST',
+      body: data,
+      token,
+    }),
+
+  signContract: (contractId: string, signerName: string, token: string) =>
+    api<any>(`/api/v1/contracts/${contractId}/sign`, {
+      method: 'POST',
+      body: { signerName },
+      token,
+    }),
+
+  getContract: (contractId: string, token: string) =>
+    api<any>(`/api/v1/contracts/${contractId}`, {
+      method: 'GET',
+      token,
+    }),
+
+  getUserContracts: (token: string) =>
+    api<any>('/api/v1/contracts', {
+      method: 'GET',
+      token,
+    }),
+};

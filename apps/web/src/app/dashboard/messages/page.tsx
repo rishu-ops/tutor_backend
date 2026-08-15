@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { ContractSigningModal } from '@/components/sections/ContractSigningModal';
 
 interface MessageAttachment {
   url: string;
@@ -148,7 +149,7 @@ export default function MessagesPage() {
   // Real-time presence: set of userIds currently online
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  // Booking states
+  // Booking & Contract states
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
@@ -156,6 +157,10 @@ export default function MessagesPage() {
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingMsg, setBookingMsg] = useState('');
   const [bookingError, setBookingError] = useState('');
+
+  // Contract state
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+  const [selectedContractId, setSelectedContractId] = useState('');
 
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -853,8 +858,51 @@ export default function MessagesPage() {
                             key={msg._id}
                             className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-0.5`}
                           >
-                            {/* Text bubble or Interactive Booking Card */}
-                            {msg.content && msg.content.startsWith('📅 BOOKING_REQUEST:') ? (
+                            {/* Text bubble or Interactive Cards */}
+                            {msg.content && msg.content.startsWith('📜 CONTRACT_PROPOSAL:') ? (
+                              (() => {
+                                const parts = msg.content.split(':');
+                                const contractId = parts[1];
+                                const subject = parts[2] || 'Tuition Engagement';
+                                const billingType = parts[3] || 'MONTHLY';
+                                const agreedRate = parts[4] || '0';
+                                const classesPerWeek = parts[5] || '3';
+                                const scheduleNotes = parts.slice(6).join(':') || '';
+                                return (
+                                  <div className="max-w-[340px] bg-white border border-[#dadee2] rounded-2xl p-4 shadow-sm text-[#2d2d2d] space-y-3">
+                                    <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                                      <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/20 flex items-center gap-1">
+                                        📜 Tutoring Agreement
+                                      </span>
+                                      <span className="text-[10px] font-bold text-gray-400">Official Contract</span>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{subject}</h4>
+                                      <div className="text-xs font-black text-[#00A453]">
+                                        ₹{agreedRate} / {billingType.toLowerCase()} ({classesPerWeek} sessions/wk)
+                                      </div>
+                                      {scheduleNotes && (
+                                        <p className="text-xs text-[#384148] italic bg-gray-50 p-2 rounded-xl border border-gray-150">
+                                          "{scheduleNotes}"
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <Button
+                                      onClick={() => {
+                                        setSelectedContractId(contractId);
+                                        setIsContractModalOpen(true);
+                                      }}
+                                      size="sm"
+                                      className="w-full bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs h-8 rounded-xl shadow-xs gap-1.5"
+                                    >
+                                      ✍ Review & Sign Agreement
+                                    </Button>
+                                  </div>
+                                );
+                              })()
+                            ) : msg.content && msg.content.startsWith('📅 BOOKING_REQUEST:') ? (
                               (() => {
                                 const parts = msg.content.split(':');
                                 const bookingId = parts[1];
@@ -1225,6 +1273,16 @@ export default function MessagesPage() {
           </div>
         </div>
       )}
+
+      {/* Contract Signing Modal */}
+      <ContractSigningModal
+        isOpen={isContractModalOpen}
+        onClose={() => setIsContractModalOpen(false)}
+        contractId={selectedContractId}
+        onContractSigned={() => {
+          if (selectedConvo) fetchMessages(selectedConvo._id);
+        }}
+      />
     </div>
   );
 }
