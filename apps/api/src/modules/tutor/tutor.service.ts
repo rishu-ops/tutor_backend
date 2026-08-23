@@ -18,7 +18,8 @@ export class TutorService {
     if (profile.location && profile.location.city && profile.location.area) completeness += 10;
     if (profile.avatarUrl) completeness += 5;
     if (profile.introVideoUrl) completeness += 5;
-    if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl)) completeness += 5;
+    if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl))
+      completeness += 5;
     return Math.min(100, completeness);
   }
 
@@ -47,7 +48,8 @@ export class TutorService {
       if (profile.location && profile.location.city && profile.location.area) completeness += 10;
       if (user?.avatarUrl || profile.avatarUrl) completeness += 5;
       if (profile.introVideoUrl) completeness += 5;
-      if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl)) completeness += 5;
+      if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl))
+        completeness += 5;
       if (profile.qa && profile.qa.length >= 2) completeness += 10;
       completeness = Math.min(100, completeness);
 
@@ -130,7 +132,8 @@ export class TutorService {
     });
 
     const allReviews = await ReviewModel.find({ tutorUserId });
-    const avg = allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / (allReviews.length || 1);
+    const avg =
+      allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / (allReviews.length || 1);
     await this.repository.updateByUserId(tutorUserId, {
       ratingAvg: Math.round(avg * 10) / 10,
       ratingCount: allReviews.length,
@@ -193,16 +196,24 @@ export class TutorService {
       throw err;
     }
 
-    profileCompletenessQueue.add('calculate-completeness', { userId, role: 'TUTOR' }).catch(err => {
-      console.error('Failed to queue tutor completeness task on update:', err);
-    });
+    profileCompletenessQueue
+      .add('calculate-completeness', { userId, role: 'TUTOR' })
+      .catch((err) => {
+        console.error('Failed to queue tutor completeness task on update:', err);
+      });
 
-    notificationQueue.add('profile-completeness-reminder', {
-      type: 'PROFILE_COMPLETENESS_REMINDER',
-      data: { userId, role: 'TUTOR' }
-    }, { delay: 15000 }).catch(err => {
-      console.error('Failed to queue tutor completeness reminder on update:', err);
-    });
+    notificationQueue
+      .add(
+        'profile-completeness-reminder',
+        {
+          type: 'PROFILE_COMPLETENESS_REMINDER',
+          data: { userId, role: 'TUTOR' },
+        },
+        { delay: 15000 }
+      )
+      .catch((err) => {
+        console.error('Failed to queue tutor completeness reminder on update:', err);
+      });
 
     return {
       ...profile.toObject(),
@@ -217,18 +228,30 @@ export class TutorService {
    * Supports filtering by subject, city, teachingMode, budget, experience, freeDemo, verified
    * Returns real data joined with Prisma user table for name/avatar
    */
-  async listTutors(filters: {
-    subject?: string;
-    city?: string;
-    teachingMode?: string;
-    maxBudget?: number;
-    minExp?: number;
-    freeDemo?: boolean;
-    sortBy?: 'rating' | 'price_asc' | 'price_desc' | 'newest';
-    page?: number;
-    limit?: number;
-  } = {}) {
-    const { subject, city, teachingMode, maxBudget, minExp, freeDemo, sortBy = 'rating', page = 1, limit = 20 } = filters;
+  async listTutors(
+    filters: {
+      subject?: string;
+      city?: string;
+      teachingMode?: string;
+      maxBudget?: number;
+      minExp?: number;
+      freeDemo?: boolean;
+      sortBy?: 'rating' | 'price_asc' | 'price_desc' | 'newest';
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
+    const {
+      subject,
+      city,
+      teachingMode,
+      maxBudget,
+      minExp,
+      freeDemo,
+      sortBy = 'rating',
+      page = 1,
+      limit = 20,
+    } = filters;
 
     // Build MongoDB query
     const query: Record<string, any> = {};

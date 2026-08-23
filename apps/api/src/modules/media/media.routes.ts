@@ -59,7 +59,10 @@ const uploadChatFile = multer({
   },
   fileFilter: (_req, file, cb) => {
     const ALLOWED = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -76,10 +79,30 @@ const uploadChatFile = multer({
 });
 
 // Route mappings
-router.post('/upload', requireAuth, uploadImage.single('image'), controller.uploadImage.bind(controller));
-router.post('/upload-document', requireAuth, uploadDocument.single('document'), controller.uploadDocument.bind(controller));
-router.post('/upload-video', requireAuth, uploadVideo.single('video'), controller.uploadVideo.bind(controller));
-router.post('/upload-chat-file', requireAuth, uploadChatFile.single('file'), controller.uploadChatFile.bind(controller));
+router.post(
+  '/upload',
+  requireAuth,
+  uploadImage.single('image'),
+  controller.uploadImage.bind(controller)
+);
+router.post(
+  '/upload-document',
+  requireAuth,
+  uploadDocument.single('document'),
+  controller.uploadDocument.bind(controller)
+);
+router.post(
+  '/upload-video',
+  requireAuth,
+  uploadVideo.single('video'),
+  controller.uploadVideo.bind(controller)
+);
+router.post(
+  '/upload-chat-file',
+  requireAuth,
+  uploadChatFile.single('file'),
+  controller.uploadChatFile.bind(controller)
+);
 
 export default router;
 export { router as mediaRouter };

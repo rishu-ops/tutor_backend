@@ -96,7 +96,12 @@ export class TutorController {
         res.status(400).json({ success: false, error: 'Rating and comment are required' });
         return;
       }
-      const review = await this.service.createReview(tutorUserId, studentUserId, Number(rating), comment);
+      const review = await this.service.createReview(
+        tutorUserId,
+        studentUserId,
+        Number(rating),
+        comment
+      );
       res.status(201).json({ success: true, data: review });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message || 'Failed to post review' });
@@ -106,17 +111,8 @@ export class TutorController {
   // GET /list — paginated, filterable list of tutors for students
   async listTutors(req: Request, res: Response): Promise<void> {
     try {
-      const {
-        subject,
-        city,
-        teachingMode,
-        maxBudget,
-        minExp,
-        freeDemo,
-        sortBy,
-        page,
-        limit,
-      } = req.query as Record<string, string>;
+      const { subject, city, teachingMode, maxBudget, minExp, freeDemo, sortBy, page, limit } =
+        req.query as Record<string, string>;
 
       const result = await this.service.listTutors({
         subject: subject || undefined,

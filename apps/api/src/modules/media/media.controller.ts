@@ -24,7 +24,6 @@ if (isCloudinaryConfigured) {
   });
 }
 
-
 export class MediaController {
   // 1. Upload Profile Image / General Image
   async uploadImage(req: Request, res: Response): Promise<void> {

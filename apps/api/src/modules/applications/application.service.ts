@@ -279,16 +279,22 @@ export class ApplicationService {
     });
 
     // 5. Schedule Chat Reminder in background (15 seconds delay for immediate verification/demo)
-    notificationQueue.add('matched-chat-reminder', {
-      type: 'MATCHED_CHAT_REMINDER',
-      data: {
-        requirementId: requirement._id.toString(),
-        studentUserId: requirement.studentUserId,
-        tutorUserId: application.tutorUserId,
-      }
-    }, { delay: 15000 }).catch(err => {
-      console.error('Failed to schedule matched chat reminder:', err);
-    });
+    notificationQueue
+      .add(
+        'matched-chat-reminder',
+        {
+          type: 'MATCHED_CHAT_REMINDER',
+          data: {
+            requirementId: requirement._id.toString(),
+            studentUserId: requirement.studentUserId,
+            tutorUserId: application.tutorUserId,
+          },
+        },
+        { delay: 15000 }
+      )
+      .catch((err) => {
+        console.error('Failed to schedule matched chat reminder:', err);
+      });
 
     return application;
   }

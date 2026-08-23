@@ -20,11 +20,12 @@ function calculateTutorCompleteness(profile: any, user: any): number {
   if (profile.languages && profile.languages.length > 0) score += 10;
   if (profile.pricing && profile.pricing.min > 0) score += 10;
   if (profile.location && profile.location.city && profile.location.area) score += 10;
-  
+
   // Optional/Bonus items (can boost/cap at 100)
   if (user?.avatarUrl || profile.avatarUrl) score += 5;
   if (profile.introVideoUrl) score += 5;
-  if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl)) score += 5;
+  if (profile.qualifications && profile.qualifications.some((q: any) => q.certificateUrl))
+    score += 5;
   if (profile.qa && profile.qa.length >= 2) score += 10;
 
   return Math.min(100, score);
@@ -38,7 +39,7 @@ function calculateStudentCompleteness(profile: any, user: any): number {
   if (profile.preferredLanguage && profile.preferredLanguage.trim()) score += 20;
   if (profile.learningMode) score += 20;
   if (profile.city && profile.city.trim()) score += 15;
-  
+
   // Optional/Bonus items
   if (user?.avatarUrl || profile.avatarUrl) score += 5;
 

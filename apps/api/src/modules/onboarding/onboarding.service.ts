@@ -17,7 +17,8 @@ export class OnboardingService {
     if (input.location && input.location.city && input.location.area) completeness += 10;
     if (input.avatarUrl) completeness += 5;
     if (input.introVideoUrl) completeness += 5;
-    if (input.qualifications && input.qualifications.some((q: any) => q.certificateUrl)) completeness += 5;
+    if (input.qualifications && input.qualifications.some((q: any) => q.certificateUrl))
+      completeness += 5;
     return Math.min(100, completeness);
   }
 
@@ -70,16 +71,24 @@ export class OnboardingService {
         },
       });
 
-      profileCompletenessQueue.add('calculate-completeness', { userId, role: 'STUDENT' }).catch(err => {
-        console.error('Failed to queue student completeness task:', err);
-      });
+      profileCompletenessQueue
+        .add('calculate-completeness', { userId, role: 'STUDENT' })
+        .catch((err) => {
+          console.error('Failed to queue student completeness task:', err);
+        });
 
-      notificationQueue.add('profile-completeness-reminder', {
-        type: 'PROFILE_COMPLETENESS_REMINDER',
-        data: { userId, role: 'STUDENT' }
-      }, { delay: 15000 }).catch(err => {
-        console.error('Failed to queue student completeness reminder:', err);
-      });
+      notificationQueue
+        .add(
+          'profile-completeness-reminder',
+          {
+            type: 'PROFILE_COMPLETENESS_REMINDER',
+            data: { userId, role: 'STUDENT' },
+          },
+          { delay: 15000 }
+        )
+        .catch((err) => {
+          console.error('Failed to queue student completeness reminder:', err);
+        });
 
       return { profile };
     } else if (input.role === 'TUTOR') {
@@ -125,30 +134,50 @@ export class OnboardingService {
         },
       });
 
-      profileCompletenessQueue.add('calculate-completeness', { userId, role: 'TUTOR' }).catch(err => {
-        console.error('Failed to queue tutor completeness task:', err);
-      });
+      profileCompletenessQueue
+        .add('calculate-completeness', { userId, role: 'TUTOR' })
+        .catch((err) => {
+          console.error('Failed to queue tutor completeness task:', err);
+        });
 
-      notificationQueue.add('profile-completeness-reminder', {
-        type: 'PROFILE_COMPLETENESS_REMINDER',
-        data: { userId, role: 'TUTOR' }
-      }, { delay: 15000 }).catch(err => {
-        console.error('Failed to queue tutor completeness reminder:', err);
-      });
+      notificationQueue
+        .add(
+          'profile-completeness-reminder',
+          {
+            type: 'PROFILE_COMPLETENESS_REMINDER',
+            data: { userId, role: 'TUTOR' },
+          },
+          { delay: 15000 }
+        )
+        .catch((err) => {
+          console.error('Failed to queue tutor completeness reminder:', err);
+        });
 
-      notificationQueue.add('new-requirements-match', {
-        type: 'NEW_REQUIREMENTS_MATCH',
-        data: { tutorUserId: userId }
-      }, { delay: 10000 }).catch(err => {
-        console.error('Failed to enqueue matched requirements check:', err);
-      });
+      notificationQueue
+        .add(
+          'new-requirements-match',
+          {
+            type: 'NEW_REQUIREMENTS_MATCH',
+            data: { tutorUserId: userId },
+          },
+          { delay: 10000 }
+        )
+        .catch((err) => {
+          console.error('Failed to enqueue matched requirements check:', err);
+        });
 
-      notificationQueue.add('new-tutor-registered-match', {
-        type: 'NEW_TUTOR_REGISTERED_MATCH',
-        data: { tutorUserId: userId }
-      }, { delay: 10000 }).catch(err => {
-        console.error('Failed to enqueue new tutor matched check:', err);
-      });
+      notificationQueue
+        .add(
+          'new-tutor-registered-match',
+          {
+            type: 'NEW_TUTOR_REGISTERED_MATCH',
+            data: { tutorUserId: userId },
+          },
+          { delay: 10000 }
+        )
+        .catch((err) => {
+          console.error('Failed to enqueue new tutor matched check:', err);
+        });
 
       return { profile };
     } else {

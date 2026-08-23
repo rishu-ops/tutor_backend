@@ -116,16 +116,24 @@ export class StudentService {
       throw err;
     }
 
-    profileCompletenessQueue.add('calculate-completeness', { userId, role: 'STUDENT' }).catch(err => {
-      console.error('Failed to queue student completeness task on update:', err);
-    });
+    profileCompletenessQueue
+      .add('calculate-completeness', { userId, role: 'STUDENT' })
+      .catch((err) => {
+        console.error('Failed to queue student completeness task on update:', err);
+      });
 
-    notificationQueue.add('profile-completeness-reminder', {
-      type: 'PROFILE_COMPLETENESS_REMINDER',
-      data: { userId, role: 'STUDENT' }
-    }, { delay: 15000 }).catch(err => {
-      console.error('Failed to queue student completeness reminder on update:', err);
-    });
+    notificationQueue
+      .add(
+        'profile-completeness-reminder',
+        {
+          type: 'PROFILE_COMPLETENESS_REMINDER',
+          data: { userId, role: 'STUDENT' },
+        },
+        { delay: 15000 }
+      )
+      .catch((err) => {
+        console.error('Failed to queue student completeness reminder on update:', err);
+      });
 
     // Return merged profile
     const user = await prisma.user.findUnique({
