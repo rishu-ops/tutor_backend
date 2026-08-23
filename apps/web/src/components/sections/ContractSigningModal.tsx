@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, FileText, CheckCircle2, AlertCircle, Award, PenTool } from 'lucide-react';
+import {
+  X,
+  ShieldCheck,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Award,
+  PenTool,
+  Ban,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { API_BASE_URL } from '@/lib/constants';
@@ -28,6 +37,9 @@ export function ContractSigningModal({
   const [error, setError] = useState('');
   const [signerName, setSignerName] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTerminateForm, setShowTerminateForm] = useState(false);
+  const [terminationReason, setTerminationReason] = useState('');
+  const [terminating, setTerminating] = useState(false);
 
   useEffect(() => {
     if (currentUser?.name) {
@@ -96,6 +108,32 @@ export function ContractSigningModal({
     }
   };
 
+  const handleTerminate = async () => {
+    setTerminating(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/contracts/${contractId}/terminate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: terminationReason.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setContract(data.data);
+        setShowTerminateForm(false);
+      } else {
+        setError(data.error || 'Failed to terminate contract');
+      }
+    } catch {
+      setError('Failed to process termination request');
+    } finally {
+      setTerminating(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const isStudent = contract?.studentUserId === currentUser?.id;
@@ -103,6 +141,8 @@ export function ContractSigningModal({
   const mySignature = isStudent ? contract?.studentSignature : contract?.tutorSignature;
   const alreadySigned = mySignature?.signed;
   const isFullyActive = contract?.status === 'ACTIVE';
+  const isTerminating = contract?.status === 'TERMINATING';
+  const isTerminated = contract?.status === 'TERMINATED';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -121,9 +161,20 @@ export function ContractSigningModal({
                     ✓ ACTIVE
                   </span>
                 )}
+                {isTerminating && (
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                    ENDING SOON
+                  </span>
+                )}
+                {isTerminated && (
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full border border-gray-200">
+                    TERMINATED
+                  </span>
+                )}
               </h2>
               <p className="text-xs text-[#647380] font-medium flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#00A453]" /> Protected by findmyTutor Platform Guarantee
+                <ShieldCheck className="w-3.5 h-3.5 text-[#00A453]" /> Payments are tracked here,
+                but sent directly between you and the other party
               </p>
             </div>
           </div>
@@ -151,14 +202,21 @@ export function ContractSigningModal({
               <div className="bg-[#f8fafc] border border-[#dadee2] rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-[#dadee2] pb-3">
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase text-[#647380]">Subject / Program</span>
+                    <span className="text-[10px] font-extrabold uppercase text-[#647380]">
+                      Subject / Program
+                    </span>
                     <h3 className="text-base font-black text-[#2d2d2d]">{contract.subject}</h3>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-extrabold uppercase text-[#647380]">Agreed Tuition Fee</span>
+                    <span className="text-[10px] font-extrabold uppercase text-[#647380]">
+                      Agreed Tuition Fee
+                    </span>
                     <div className="text-lg font-black text-[#00A453]">
                       ₹{contract.agreedRate}
-                      <span className="text-xs text-[#647380] font-bold"> / {contract.billingType.toLowerCase()}</span>
+                      <span className="text-xs text-[#647380] font-bold">
+                        {' '}
+                        / {contract.billingType.toLowerCase()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -290,7 +348,8 @@ export function ContractSigningModal({
                       className="w-4 h-4 rounded border-gray-300 text-[#00A453] focus:ring-[#00A453] mt-0.5 cursor-pointer"
                     />
                     <span>
-                      I confirm that I have read and agree to all contract terms, fees, and the findmyTutor platform terms of service.
+                      I confirm that I have read and agree to all contract terms, fees, and the
+                      findmyTutor platform terms of service.
                     </span>
                   </label>
 
@@ -312,6 +371,76 @@ export function ContractSigningModal({
                       ? 'Both parties have signed! Your tutoring engagement is officially active.'
                       : 'Waiting for the other party to complete their signature.'}
                   </p>
+                </div>
+              )}
+
+              {/* Termination status / action */}
+              {isTerminating && (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-1">
+                  <p className="text-xs font-black text-amber-800 flex items-center gap-1.5">
+                    <Ban className="w-4 h-4" /> Termination Notice Given
+                  </p>
+                  <p className="text-[11px] text-amber-700 font-semibold">
+                    {contract.terminationRequestedBy === currentUser?.id
+                      ? 'You gave'
+                      : 'The other party gave'}{' '}
+                    notice to end this agreement on{' '}
+                    {new Date(contract.terminationNoticeAt).toLocaleDateString()}. It will end on{' '}
+                    <strong>
+                      {new Date(contract.terminationEffectiveAt).toLocaleDateString()}
+                    </strong>
+                    .{contract.terminationReason ? ` Reason: "${contract.terminationReason}"` : ''}
+                  </p>
+                </div>
+              )}
+              {isTerminated && (
+                <div className="p-4 rounded-2xl bg-gray-100 border border-gray-200 text-center">
+                  <p className="text-xs font-black text-gray-700 flex items-center justify-center gap-1.5">
+                    <Ban className="w-4 h-4" /> This agreement has been terminated
+                  </p>
+                </div>
+              )}
+              {isFullyActive && (isStudent || isTutor) && (
+                <div className="border-t border-dashed border-gray-200 pt-4">
+                  {!showTerminateForm ? (
+                    <button
+                      onClick={() => setShowTerminateForm(true)}
+                      className="text-[11px] font-bold text-red-500 hover:text-red-600 hover:underline"
+                    >
+                      End this agreement
+                    </button>
+                  ) : (
+                    <div className="space-y-3 bg-red-50 border border-red-200 rounded-2xl p-4">
+                      <h4 className="text-xs font-black text-red-700 flex items-center gap-1.5">
+                        <Ban className="w-4 h-4" /> Give Termination Notice
+                      </h4>
+                      <p className="text-[11px] text-red-600 font-medium">
+                        Per the agreement terms, this takes effect 7 days from now. The other party
+                        will be notified immediately.
+                      </p>
+                      <textarea
+                        value={terminationReason}
+                        onChange={(e) => setTerminationReason(e.target.value)}
+                        placeholder="Reason (optional)"
+                        className="w-full h-16 px-3 py-2 rounded-xl border border-red-200 text-xs resize-none focus:outline-none focus:border-red-400"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleTerminate}
+                          disabled={terminating}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold text-xs h-9 rounded-xl"
+                        >
+                          {terminating ? 'Submitting...' : 'Confirm Termination Notice'}
+                        </Button>
+                        <button
+                          onClick={() => setShowTerminateForm(false)}
+                          className="px-4 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

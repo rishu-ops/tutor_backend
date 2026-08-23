@@ -30,7 +30,7 @@ interface Booking {
   duration: number;
   sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID';
   isFirstSession: boolean;
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
   notes?: string;
   meetingLink?: string;
   location?: string;
@@ -41,6 +41,8 @@ interface Booking {
   requestedBy: string;
   offersDemo?: boolean;
   coordinates?: { lat: number; lng: number };
+  noShowParty?: 'STUDENT' | 'TUTOR';
+  noShowNote?: string;
   otherParty: { id: string; name: string; role: string; email?: string; phone?: string };
 }
 
@@ -72,6 +74,7 @@ const STATUS_STYLES: Record<string, string> = {
   DECLINED: 'bg-red-50 text-red-600 border-red-200',
   CANCELLED: 'bg-gray-100 text-gray-500 border-gray-200',
   COMPLETED: 'bg-blue-50 text-blue-700 border-blue-200',
+  NO_SHOW: 'bg-red-50 text-red-600 border-red-200',
 };
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Awaiting Confirmation',
@@ -79,6 +82,7 @@ const STATUS_LABELS: Record<string, string> = {
   DECLINED: 'Declined',
   CANCELLED: 'Cancelled',
   COMPLETED: 'Completed',
+  NO_SHOW: 'No-Show Reported',
 };
 
 export default function BookingsPage() {
@@ -140,6 +144,30 @@ export default function BookingsPage() {
     setShowAcceptModal(null);
     setDeclineReason('');
     setMeetingLink('');
+  };
+
+  const [showNoShowModal, setShowNoShowModal] = useState<string | null>(null);
+  const [noShowNote, setNoShowNote] = useState('');
+
+  const reportNoShow = async (id: string) => {
+    if (!token) return;
+    setActingId(id);
+    try {
+      const res = await fetch(`/api/v1/bookings/${id}/no-show`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ note: noShowNote || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBookings((prev) => prev.map((b) => (b._id === id ? { ...b, ...data.data } : b)));
+      } else {
+        alert(data.error || 'Failed to report no-show');
+      }
+    } catch {}
+    setActingId(null);
+    setShowNoShowModal(null);
+    setNoShowNote('');
   };
 
   const reschedule = async (id: string) => {
@@ -288,7 +316,8 @@ export default function BookingsPage() {
                         {b.subject || 'Class Session'}
                       </h3>
                       <p className="text-xs text-[#647380] font-semibold mt-1">
-                        {b.otherParty.role === 'TUTOR' ? 'Tutor' : 'Student'}: <span className="font-extrabold text-gray-900">{b.otherParty.name}</span>
+                        {b.otherParty.role === 'TUTOR' ? 'Tutor' : 'Student'}:{' '}
+                        <span className="font-extrabold text-gray-900">{b.otherParty.name}</span>
                       </p>
                     </div>
                   </div>
@@ -315,6 +344,20 @@ export default function BookingsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* No-show report */}
+                {b.status === 'NO_SHOW' && (
+                  <div className="p-4 bg-red-50 border border-red-150 rounded-xl space-y-1">
+                    <span className="text-[10px] text-red-700 font-bold uppercase tracking-wider block">
+                      No-Show Reported
+                    </span>
+                    <p className="text-xs text-red-600 leading-relaxed font-semibold">
+                      {b.noShowParty === 'TUTOR' ? 'The tutor' : 'The student'} was reported as not
+                      showing up for this session.
+                      {b.noShowNote ? ` "${b.noShowNote}"` : ''}
+                    </p>
+                  </div>
+                )}
 
                 {/* Decline reason */}
                 {b.status === 'DECLINED' && b.declineReason && (
@@ -432,7 +475,7 @@ export default function BookingsPage() {
                     {/* ACCEPTED ACTIONS */}
                     {b.status === 'ACCEPTED' && (
                       <>
-                        {isTutor && (
+                        {new Date(b.scheduledAt) <= now && (
                           <Button
                             onClick={() => action(b._id, 'COMPLETED')}
                             disabled={isActing}
@@ -444,8 +487,24 @@ export default function BookingsPage() {
                             {isActing ? '...' : 'Mark Complete'}
                           </Button>
                         )}
+                        {new Date(b.scheduledAt).getTime() + b.duration * 60 * 1000 <
+                          now.getTime() && (
+                          <Button
+                            onClick={() => setShowNoShowModal(b._id)}
+                            disabled={isActing}
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50/50"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Report No-Show
+                          </Button>
+                        )}
                         <Link href={`/dashboard/messages?userId=${b.otherParty.id}`}>
-                          <Button size="sm" className="bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs rounded-xl h-8 gap-1.5 shadow-xs">
+                          <Button
+                            size="sm"
+                            className="bg-[#00A453] hover:bg-[#009048] text-white font-bold text-xs rounded-xl h-8 gap-1.5 shadow-xs"
+                          >
                             <FileText className="w-3.5 h-3.5" /> Propose Agreement
                           </Button>
                         </Link>
@@ -558,6 +617,48 @@ export default function BookingsPage() {
                 className="px-4 border border-gray-200 text-gray-500 text-xs font-bold py-2 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report No-Show */}
+      {showNoShowModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl space-y-4">
+            <h3 className="text-sm font-extrabold text-gray-900">Report No-Show</h3>
+            <p className="text-xs text-gray-500">
+              Only report this if the other party did not show up for the scheduled session. This is
+              logged and sent to our moderation team.
+            </p>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-500 uppercase">
+                What happened? (optional)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Waited 20 minutes, no message, no join."
+                value={noShowNote}
+                onChange={(e) => setNoShowNote(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-300 resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => reportNoShow(showNoShowModal)}
+                className="flex-1 bg-red-500 text-white text-xs font-bold py-2 rounded-xl hover:bg-red-600 transition-colors"
+              >
+                Report No-Show
+              </button>
+              <button
+                onClick={() => {
+                  setShowNoShowModal(null);
+                  setNoShowNote('');
+                }}
+                className="px-4 border border-gray-200 text-gray-500 text-xs font-bold py-2 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>

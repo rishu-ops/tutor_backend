@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -24,6 +25,7 @@ import conversationRouter from './modules/conversations/conversation.routes.js';
 import bookingRouter from './modules/bookings/booking.routes.js';
 import matchingRouter from './modules/matching/matching.routes.js';
 import contractRouter from './modules/contracts/contract.routes.js';
+import paymentRouter from './modules/payments/payment.routes.js';
 import { initSocketGateway } from './socket/socket.gateway.js';
 import {
   adminAuthRouter,
@@ -45,11 +47,15 @@ const app = express();
 const httpServer = http.createServer(app);
 const port = process.env.PORT || 3000;
 
-// CORS - allow frontend to access API
-const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
+// CORS - allow frontend to access API. Comma-separate CORS_ORIGIN to allow
+// more than one (e.g. the production Vercel URL plus a preview-deployment URL).
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: corsOrigins,
     credentials: true,
   })
 );
@@ -57,7 +63,7 @@ app.use(
 // Initialize Socket.IO with CORS
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: corsOrigin,
+    origin: corsOrigins,
     credentials: true,
   },
 });
@@ -69,6 +75,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.json());
+app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Swagger Configuration
@@ -125,6 +132,7 @@ app.use('/api/v1/conversations', conversationRouter);
 app.use('/api/v1/bookings', bookingRouter);
 app.use('/api/v1/matching', matchingRouter);
 app.use('/api/v1/contracts', contractRouter);
+app.use('/api/v1/payments', paymentRouter);
 
 // Admin Module Routes
 app.use('/api/admin', adminAuthRouter);
@@ -166,7 +174,9 @@ async function startServer() {
     if (process.env.REDIS_URL) {
       connectRedis(process.env.REDIS_URL);
       logger.info('Connected to Redis successfully.');
-      logger.info(`BullMQ Workers initialized: ${notificationWorker.name}, ${profileCompletenessWorker.name}`);
+      logger.info(
+        `BullMQ Workers initialized: ${notificationWorker.name}, ${profileCompletenessWorker.name}`
+      );
     } else {
       logger.warn('REDIS_URL is not defined in environment variables.');
     }

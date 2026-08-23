@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAdminAuthStore } from '@/stores/admin-auth-store';
+import { adminApi } from '@/lib/api';
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -29,25 +30,52 @@ const NAV_ITEMS = [
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { admin, isAuthenticated, logoutAdmin } = useAdminAuthStore();
+  const { admin, isAuthenticated, accessToken, logoutAdmin, setAdminTokens } = useAdminAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [refreshChecked, setRefreshChecked] = useState(false);
+  const refreshAttempted = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // A hard page reload clears the in-memory access token — it's deliberately
+  // never persisted to localStorage (see admin-auth-store.ts). Before treating
+  // this as a real logout, try to silently redeem a fresh one from the httpOnly
+  // refresh cookie the server set at login.
   useEffect(() => {
-    if (mounted && !isAuthenticated) {
+    if (!mounted) return;
+    if (!isAuthenticated || accessToken || refreshAttempted.current) {
+      setRefreshChecked(true);
+      return;
+    }
+    refreshAttempted.current = true;
+    adminApi
+      .refresh()
+      .then((res: any) => {
+        if (res?.success && res.accessToken && res.refreshToken) {
+          setAdminTokens(res.accessToken, res.refreshToken);
+        } else {
+          logoutAdmin();
+        }
+      })
+      .catch(() => logoutAdmin())
+      .finally(() => setRefreshChecked(true));
+  }, [mounted, isAuthenticated, accessToken, logoutAdmin, setAdminTokens]);
+
+  useEffect(() => {
+    if (mounted && refreshChecked && !isAuthenticated) {
       router.replace('/admin/login');
     }
-  }, [mounted, isAuthenticated, router]);
+  }, [mounted, refreshChecked, isAuthenticated, router]);
 
   const handleLogout = () => {
+    adminApi.logout().catch(() => {});
     logoutAdmin();
     router.replace('/admin/login');
   };
 
-  if (!mounted || !isAuthenticated) {
+  if (!mounted || !refreshChecked || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#0A0D18] flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-4 border-[#10B981] border-t-transparent animate-spin" />

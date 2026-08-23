@@ -19,7 +19,11 @@ export interface IContract extends Document {
   terms: string[];
   studentSignature: ISignatureInfo;
   tutorSignature: ISignatureInfo;
-  status: 'DRAFT' | 'PENDING_SIGNATURES' | 'ACTIVE' | 'TERMINATED';
+  status: 'DRAFT' | 'PENDING_SIGNATURES' | 'ACTIVE' | 'TERMINATING' | 'TERMINATED';
+  terminationRequestedBy?: string; // userId who gave notice
+  terminationReason?: string;
+  terminationNoticeAt?: Date; // when notice was given
+  terminationEffectiveAt?: Date; // noticeAt + notice period; contract flips to TERMINATED at this point
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,9 +53,13 @@ const ContractSchema = new Schema<IContract>(
     tutorSignature: { type: SignatureSchema, default: { signed: false } },
     status: {
       type: String,
-      enum: ['DRAFT', 'PENDING_SIGNATURES', 'ACTIVE', 'TERMINATED'],
+      enum: ['DRAFT', 'PENDING_SIGNATURES', 'ACTIVE', 'TERMINATING', 'TERMINATED'],
       default: 'PENDING_SIGNATURES',
     },
+    terminationRequestedBy: { type: String },
+    terminationReason: { type: String },
+    terminationNoticeAt: { type: Date },
+    terminationEffectiveAt: { type: Date },
   },
   { timestamps: true }
 );

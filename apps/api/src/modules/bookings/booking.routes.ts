@@ -20,4 +20,7 @@ router.patch('/:id/status', requireAuth, controller.updateBookingStatus.bind(con
 // Reschedule booking
 router.patch('/:id/reschedule', requireAuth, controller.rescheduleBooking.bind(controller));
 
+// Report that the other party never showed up
+router.post('/:id/no-show', requireAuth, controller.reportNoShow.bind(controller));
+
 export default router;

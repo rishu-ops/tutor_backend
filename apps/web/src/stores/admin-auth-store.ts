@@ -55,12 +55,18 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     }),
     {
       name: STORAGE_KEYS.ADMIN_AUTH_STORE,
+      // Tokens are excluded from persistence on purpose — see auth-store.ts for why.
       partialize: (state) => ({
         admin: state.admin,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Blank out any stale token already on disk from before this fix — see auth-store.ts.
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.accessToken = null;
+          state.refreshToken = null;
+        }
+      },
     }
   )
 );

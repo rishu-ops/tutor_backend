@@ -34,8 +34,8 @@ export class ContractService {
       throw err;
     }
 
-    let studentUserId = '';
-    let tutorUserId = '';
+    let studentUserId: string;
+    let tutorUserId: string;
 
     if (creatorUser.role === 'TUTOR') {
       tutorUserId = creatorUserId;
@@ -47,7 +47,7 @@ export class ContractService {
 
     const defaultTerms = [
       'Both student and tutor agree to conduct sessions professionally and on time.',
-      'Tutoring fee will be paid per agreed billing frequency via findmyTutor platform guarantee.',
+      'Tutoring fees are paid directly between student and tutor per the agreed billing frequency. The platform does not process or hold payments — it keeps a payment log both parties can confirm and dispute.',
       'Sessions can be rescheduled with at least 12 hours advance notice.',
       'Either party can terminate this agreement with 7 days written notice.',
     ];
@@ -238,6 +238,93 @@ export class ContractService {
   }
 
   /**
+   * Give notice to end an active contract. Every generated contract already promises
+   * "either party can terminate this agreement with 7 days written notice" — this is
+   * what actually makes that promise real. The contract moves to TERMINATING now and
+   * a queued job (see notification.queue.ts) flips it to TERMINATED once the notice
+   * period elapses.
+   */
+  async terminateContract(contractId: string, userId: string, reason?: string) {
+    const contract = await ContractModel.findById(contractId);
+    if (!contract) {
+      const err = new Error('Contract not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+    if (contract.studentUserId !== userId && contract.tutorUserId !== userId) {
+      const err = new Error('Forbidden: You are not a party to this contract');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+    if (contract.status !== 'ACTIVE') {
+      const err = new Error(`Cannot terminate a contract with status: ${contract.status}`);
+      (err as any).statusCode = 400;
+      throw err;
+    }
+
+    const NOTICE_PERIOD_DAYS = 7;
+    const now = new Date();
+    const effectiveAt = new Date(now.getTime() + NOTICE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
+    contract.status = 'TERMINATING';
+    contract.terminationRequestedBy = userId;
+    contract.terminationReason = reason || '';
+    contract.terminationNoticeAt = now;
+    contract.terminationEffectiveAt = effectiveAt;
+    await contract.save();
+
+    try {
+      const isStudent = contract.studentUserId === userId;
+      const otherUserId = isStudent ? contract.tutorUserId : contract.studentUserId;
+      const actor = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+      const effectiveDateStr = effectiveAt.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+
+      await NotificationModel.create({
+        userId: otherUserId,
+        title: 'Contract Termination Notice',
+        content: `${actor?.name || 'The other party'} has given notice to end the tutoring agreement for ${contract.subject}. It will end on ${effectiveDateStr} (${NOTICE_PERIOD_DAYS}-day notice period) unless withdrawn.${reason ? ` Reason given: "${reason}"` : ''}`,
+        type: 'CONTRACT_TERMINATION_NOTICE',
+        data: { contractId: contract._id, effectiveAt },
+      });
+
+      const convo = await ConversationModel.findOne({
+        $or: [
+          { studentUserId: contract.studentUserId, tutorUserId: contract.tutorUserId },
+          { studentUserId: contract.tutorUserId, tutorUserId: contract.studentUserId },
+        ],
+      });
+      if (convo) {
+        const msgContent = `STATUS_UPDATE:${contract._id}:CONTRACT_TERMINATING:⚠ ${actor?.name || 'A party'} gave notice to end the Tutoring Agreement — effective ${effectiveDateStr}`;
+        const chatMessage = await MessageModel.create({
+          conversationId: convo._id,
+          senderUserId: userId,
+          content: msgContent,
+          seen: false,
+        });
+        convo.lastMessage = `⚠ Termination notice given (${contract.subject})`;
+        convo.lastMessageAt = new Date();
+        await convo.save();
+
+        const io = getIO();
+        if (io) {
+          const msgObj = chatMessage.toObject();
+          io.to(`room:${convo._id}`).emit('new_message', msgObj);
+          io.to(`user:${contract.studentUserId}`).emit('message_notification', msgObj);
+          io.to(`user:${contract.tutorUserId}`).emit('message_notification', msgObj);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to notify contract termination:', err);
+    }
+
+    return contract;
+  }
+
+  /**
    * Get single contract details
    */
   async getContract(contractId: string, userId: string) {
@@ -254,16 +341,33 @@ export class ContractService {
       throw err;
     }
 
-    const otherUserId = contract.studentUserId === userId ? contract.tutorUserId : contract.studentUserId;
+    const otherUserId =
+      contract.studentUserId === userId ? contract.tutorUserId : contract.studentUserId;
     const [studentUser, tutorUser] = await Promise.all([
-      prisma.user.findUnique({ where: { id: contract.studentUserId }, select: { name: true, email: true, phone: true } }),
-      prisma.user.findUnique({ where: { id: contract.tutorUserId }, select: { name: true, email: true, phone: true } }),
+      prisma.user.findUnique({
+        where: { id: contract.studentUserId },
+        select: { name: true, email: true, phone: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: contract.tutorUserId },
+        select: { name: true, email: true, phone: true },
+      }),
     ]);
 
     return {
       ...contract.toObject(),
-      studentParty: { id: contract.studentUserId, name: studentUser?.name || 'Student', email: studentUser?.email, phone: studentUser?.phone },
-      tutorParty: { id: contract.tutorUserId, name: tutorUser?.name || 'Tutor', email: tutorUser?.email, phone: tutorUser?.phone },
+      studentParty: {
+        id: contract.studentUserId,
+        name: studentUser?.name || 'Student',
+        email: studentUser?.email,
+        phone: studentUser?.phone,
+      },
+      tutorParty: {
+        id: contract.tutorUserId,
+        name: tutorUser?.name || 'Tutor',
+        email: tutorUser?.email,
+        phone: tutorUser?.phone,
+      },
     };
   }
 

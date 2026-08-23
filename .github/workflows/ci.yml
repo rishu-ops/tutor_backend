@@ -11,6 +11,52 @@ jobs:
     name: Lint, Type Check & Test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: project_tutor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: example
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.runCommand('ping').ok\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/project_tutor?schema=public
+      MONGODB_URI: mongodb://root:example@localhost:27017/project_tutor?authSource=admin
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-jwt-secret-not-for-real-use
+      JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-not-for-real-use
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,6 +77,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter database prisma:generate
+
+      - name: Apply Database Migrations
+        run: pnpm --filter database migrate:deploy
 
       - name: Build Workspace Packages
         run: pnpm --filter database --filter logger build

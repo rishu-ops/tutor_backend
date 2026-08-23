@@ -154,6 +154,7 @@ export default function MessagesPage() {
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [isFirstSession, setIsFirstSession] = useState(true);
+  const [sessionMode, setSessionMode] = useState<'ONLINE' | 'ONSITE'>('ONLINE');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingMsg, setBookingMsg] = useState('');
   const [bookingError, setBookingError] = useState('');
@@ -198,6 +199,7 @@ export default function MessagesPage() {
           tutorUserId: selectedConvo.otherParty.id,
           scheduledAt: new Date(`${bookingDate}T${bookingTime}`).toISOString(),
           isFirstSession,
+          sessionMode,
           notes: bookingNotes,
         }),
       });
@@ -476,7 +478,12 @@ export default function MessagesPage() {
   }, [messages]);
 
   const handleSendMessage = () => {
-    if ((!inputValue.trim() && pendingFiles.length === 0) || !selectedConvo || selectedConvo.status !== 'ACTIVE') return;
+    if (
+      (!inputValue.trim() && pendingFiles.length === 0) ||
+      !selectedConvo ||
+      selectedConvo.status !== 'ACTIVE'
+    )
+      return;
     // Clear sender-side typing state immediately
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     if (isTypingRef.current) {
@@ -874,13 +881,18 @@ export default function MessagesPage() {
                                       <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/20 flex items-center gap-1">
                                         📜 Tutoring Agreement
                                       </span>
-                                      <span className="text-[10px] font-bold text-gray-400">Official Contract</span>
+                                      <span className="text-[10px] font-bold text-gray-400">
+                                        Official Contract
+                                      </span>
                                     </div>
 
                                     <div className="space-y-1">
-                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{subject}</h4>
+                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">
+                                        {subject}
+                                      </h4>
                                       <div className="text-xs font-black text-[#00A453]">
-                                        ₹{agreedRate} / {billingType.toLowerCase()} ({classesPerWeek} sessions/wk)
+                                        ₹{agreedRate} / {billingType.toLowerCase()} (
+                                        {classesPerWeek} sessions/wk)
                                       </div>
                                       {scheduleNotes && (
                                         <p className="text-xs text-[#384148] italic bg-gray-50 p-2 rounded-xl border border-gray-150">
@@ -916,12 +928,18 @@ export default function MessagesPage() {
                                       <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 bg-[#e6f6ee] text-[#00A453] rounded-full border border-[#00A453]/20 flex items-center gap-1">
                                         📅 {sessionLabel} Proposed
                                       </span>
-                                      <span className="text-[10px] font-bold text-gray-400">Class Booking</span>
+                                      <span className="text-[10px] font-bold text-gray-400">
+                                        Class Booking
+                                      </span>
                                     </div>
 
                                     <div className="space-y-1">
-                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">{subject}</h4>
-                                      <p className="text-xs text-[#647380] font-medium">🕒 {timeStr}</p>
+                                      <h4 className="text-sm font-extrabold text-[#2d2d2d]">
+                                        {subject}
+                                      </h4>
+                                      <p className="text-xs text-[#647380] font-medium">
+                                        🕒 {timeStr}
+                                      </p>
                                       {notes && (
                                         <p className="text-xs text-[#384148] italic bg-gray-50 p-2 rounded-xl border border-gray-150">
                                           "{notes}"
@@ -1089,7 +1107,9 @@ export default function MessagesPage() {
                         )}
                         <span className="truncate">{f.name}</span>
                         <button
-                          onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          onClick={() =>
+                            setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))
+                          }
                           className="ml-0.5 text-gray-400 hover:text-red-500 shrink-0"
                         >
                           <X className="w-3 h-3" />
@@ -1114,8 +1134,15 @@ export default function MessagesPage() {
                 />
                 {/* Attachment button */}
                 <button
-                  onClick={() => { setFileError(''); fileInputRef.current?.click(); }}
-                  disabled={selectedConvo.status === 'LOCKED' || uploadingFile || pendingFiles.length >= DAILY_FILE_LIMIT}
+                  onClick={() => {
+                    setFileError('');
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={
+                    selectedConvo.status === 'LOCKED' ||
+                    uploadingFile ||
+                    pendingFiles.length >= DAILY_FILE_LIMIT
+                  }
                   title={`Attach file (max 5 MB, ${DAILY_FILE_LIMIT}/day)`}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:text-[#00A453] hover:bg-[#f0fbf6] border border-[#dadee2] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                 >
@@ -1140,7 +1167,10 @@ export default function MessagesPage() {
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={selectedConvo.status === 'LOCKED' || (!inputValue.trim() && pendingFiles.length === 0)}
+                  disabled={
+                    selectedConvo.status === 'LOCKED' ||
+                    (!inputValue.trim() && pendingFiles.length === 0)
+                  }
                   className="w-10 h-10 rounded-full bg-[#00A453] flex items-center justify-center disabled:opacity-40 hover:bg-[#008A45] transition-colors shrink-0"
                 >
                   <Send className="w-4 h-4 text-white" />
@@ -1205,6 +1235,38 @@ export default function MessagesPage() {
                 <p className="text-xs font-extrabold">Regular Session</p>
                 <p className="text-[10px] mt-0.5 opacity-70">Ongoing tutoring session</p>
               </button>
+            </div>
+
+            {/* Delivery mode selector — this is what the session actually gets booked as */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-500 uppercase">Session Mode</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSessionMode('ONLINE')}
+                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    sessionMode === 'ONLINE'
+                      ? 'border-[#00A453] bg-[#e6f6ee] text-[#00A453]'
+                      : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                  }`}
+                >
+                  💻 Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSessionMode('ONSITE')}
+                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    sessionMode === 'ONSITE'
+                      ? 'border-[#00A453] bg-[#e6f6ee] text-[#00A453]'
+                      : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                  }`}
+                >
+                  🏠 Onsite / In-person
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400">
+                The request will be rejected if the tutor doesn't offer this mode.
+              </p>
             </div>
 
             {bookingError && (

@@ -61,4 +61,5 @@ export * from './models/tutor-requirement-match.schema.js';
 export * from './models/review.schema.js';
 export * from './models/contract.schema.js';
 export * from './models/message.schema.js';
+export * from './models/payment.schema.js';
 export * from './utils/hash.js';

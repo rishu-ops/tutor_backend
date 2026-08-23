@@ -8,7 +8,9 @@
   "scripts": {
     "build": "tsc",
     "prisma:generate": "prisma generate",
-    "test": "echo \"No database tests specified yet\""
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +19,8 @@
   "devDependencies": {
     "@types/node": "^26.1.0",
     "prisma": "^6.19.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

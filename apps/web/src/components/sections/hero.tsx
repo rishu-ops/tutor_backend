@@ -102,7 +102,7 @@ export function Hero() {
             <div className="mt-8 space-y-3">
               <Link href="/auth/login" className="block w-full">
                 <Button
-                  variant="primary"
+                  variant="primary-modern"
                   size="lg"
                   className="w-full text-sm font-bold justify-center rounded-[12px]"
                   onClick={() => sessionStorage.setItem('onboarding-role-intent', 'STUDENT')}
@@ -113,7 +113,7 @@ export function Hero() {
 
               <Link href="/auth/login" className="block w-full">
                 <Button
-                  variant="secondary"
+                  variant="secondary-modern"
                   size="lg"
                   className="w-full text-sm font-bold justify-center rounded-[12px]"
                   onClick={() => sessionStorage.setItem('onboarding-role-intent', 'TUTOR')}

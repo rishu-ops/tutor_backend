@@ -1,10 +1,29 @@
-import { BookingModel, TutorProfileModel, prisma, NotificationModel, RequirementModel, MessageModel, ConversationModel } from 'database';
+import {
+  BookingModel,
+  TutorProfileModel,
+  prisma,
+  NotificationModel,
+  RequirementModel,
+  MessageModel,
+  ConversationModel,
+  ReportModel,
+} from 'database';
 import { getIO } from '../../socket/socket.gateway.js';
+
+// TutorProfile.teachingModes is stored as one of these three codes (see onboarding mapping).
+// Booking.sessionMode uses 'ONSITE' rather than 'OFFLINE' for the same concept.
+function tutorCapabilities(teachingModes: string[]): { online: boolean; onsite: boolean } {
+  const modes = teachingModes || [];
+  return {
+    online: modes.includes('ONLINE') || modes.includes('HYBRID'),
+    onsite: modes.includes('OFFLINE') || modes.includes('HYBRID'),
+  };
+}
 
 export class BookingService {
   /**
    * Request a new session.
-   * - Detects sessionMode from tutor profile teachingModes
+   * - sessionMode is explicit per-booking, validated against the tutor's actual capabilities
    * - Guards regular sessions behind a completed trial
    */
   async checkTimeConflict(
@@ -24,11 +43,8 @@ export class BookingService {
     const overlappingBookings = await BookingModel.find({
       _id: excludeBookingId ? { $ne: excludeBookingId } : { $exists: true },
       status: 'ACCEPTED',
-      $or: [
-        { tutorUserId },
-        { studentUserId }
-      ],
-      scheduledAt: { $gte: rangeStart, $lte: rangeEnd }
+      $or: [{ tutorUserId }, { studentUserId }],
+      scheduledAt: { $gte: rangeStart, $lte: rangeEnd },
     });
 
     for (const b of overlappingBookings) {
@@ -44,7 +60,7 @@ export class BookingService {
         const targetName = isSelfTutor ? 'tutor' : 'student';
         const formattedTime = new Date(b.scheduledAt).toLocaleTimeString('en-IN', {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
         });
         const err = new Error(
           `Schedule Conflict: The ${targetName} already has an accepted class at this time (${formattedTime}). Please choose another time.`
@@ -64,6 +80,7 @@ export class BookingService {
     isFirstSession: boolean;
     notes?: string;
     studentNeedsDemo?: boolean;
+    sessionMode?: 'ONLINE' | 'ONSITE';
   }) {
     const creatorUser = await prisma.user.findUnique({ where: { id: data.creatorUserId } });
     if (!creatorUser) {
@@ -72,8 +89,8 @@ export class BookingService {
       throw err;
     }
 
-    let studentUserId = '';
-    let tutorUserId = '';
+    let studentUserId: string;
+    let tutorUserId: string;
     let isTutorCreator = false;
 
     if (creatorUser.role === 'TUTOR') {
@@ -85,20 +102,66 @@ export class BookingService {
       tutorUserId = data.partnerUserId;
     }
 
+    // --- Guard: partner must be a real user with the complementary role ---
+    const partnerUser = await prisma.user.findUnique({ where: { id: data.partnerUserId } });
+    const expectedPartnerRole = isTutorCreator ? 'STUDENT' : 'TUTOR';
+    if (!partnerUser || partnerUser.role !== expectedPartnerRole) {
+      const err = new Error('Partner user not found or has the wrong role for this booking.');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    // --- Guard: the two parties must already have a conversation together ---
+    // Without this, any authenticated user could create a booking against a total
+    // stranger just by guessing their user ID. Bookings should only ever follow an
+    // existing chat relationship (matching/application, or a prior booking/contract).
+    const existingConvo = await ConversationModel.findOne({
+      $or: [
+        { studentUserId, tutorUserId },
+        { studentUserId: tutorUserId, tutorUserId: studentUserId },
+      ],
+    });
+    if (!existingConvo) {
+      const err = new Error(
+        'You can only request a session with someone you already have a conversation with.'
+      );
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
     // Check for schedule conflicts (block booking request if slot is already occupied)
     const duration = data.duration || 60;
     await this.checkTimeConflict(tutorUserId, studentUserId, new Date(data.scheduledAt), duration);
 
     // --- Resolve session mode from tutor profile ---
+    // TutorProfile.teachingModes stores 'ONLINE' | 'OFFLINE' | 'HYBRID' (see onboarding mapping) —
+    // this must NOT be compared against 'Online'/'Onsite', which were only ever raw checkbox
+    // labels on the requirement-creation form and never match what's actually stored here.
     const tutorProfile = await TutorProfileModel.findOne({ userId: tutorUserId });
-    const modes: string[] = tutorProfile?.teachingModes || [];
+    const capable = tutorCapabilities(tutorProfile?.teachingModes || []);
 
-    const sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID' =
-      modes.includes('Online') && modes.includes('Onsite')
-        ? 'HYBRID'
-        : modes.includes('Onsite')
-          ? 'ONSITE'
-          : 'ONLINE';
+    let sessionMode: 'ONLINE' | 'ONSITE';
+    if (data.sessionMode) {
+      if (data.sessionMode === 'ONLINE' && !capable.online) {
+        const err = new Error('This tutor does not offer online sessions.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      if (data.sessionMode === 'ONSITE' && !capable.onsite) {
+        const err = new Error('This tutor does not offer onsite/in-person sessions.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      sessionMode = data.sessionMode;
+    } else if (capable.online && capable.onsite) {
+      const err = new Error(
+        'This tutor offers both online and onsite sessions — please specify which one this session is for.'
+      );
+      (err as any).statusCode = 400;
+      throw err;
+    } else {
+      sessionMode = capable.onsite ? 'ONSITE' : 'ONLINE';
+    }
 
     // --- Guard: cannot request regular session without completed trial ---
     const offersDemo = tutorProfile?.offersDemo !== false;
@@ -135,7 +198,9 @@ export class BookingService {
         ? `${tutorProfile.location.area}, ${tutorProfile.location.city}`
         : '';
 
-    const requirement = await RequirementModel.findById(data.requirementId);
+    // requirementId is frequently not a real Requirement _id in practice (see L11 on
+    // the bug sheet) — a malformed id must fall back to the generic label, not crash.
+    const requirement = await RequirementModel.findById(data.requirementId).catch(() => null);
     const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
 
     const booking = await BookingModel.create({
@@ -150,7 +215,7 @@ export class BookingService {
       notes: data.notes || '',
       location: locationNote,
       requestedBy: data.creatorUserId,
-      subject
+      subject,
     });
 
     // Notify partner user & post interactive booking request card to chat
@@ -158,7 +223,7 @@ export class BookingService {
       const creatorName = creatorUser.name || (isTutorCreator ? 'Your tutor' : 'A student');
       const sessionLabel = data.isFirstSession ? 'Trial Class' : 'Regular Session';
       const recipientId = isTutorCreator ? studentUserId : tutorUserId;
-      
+
       await NotificationModel.create({
         userId: recipientId,
         title: `New ${sessionLabel} Proposed`,
@@ -252,9 +317,10 @@ export class BookingService {
     const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
 
     const tutorProfile = await TutorProfileModel.findOne({ userId: booking.tutorUserId });
-    const coordinates = tutorProfile?.location?.lat && tutorProfile?.location?.lng
-      ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
-      : undefined;
+    const coordinates =
+      tutorProfile?.location?.lat && tutorProfile?.location?.lng
+        ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
+        : undefined;
     const offersDemo = tutorProfile?.offersDemo !== false;
 
     return {
@@ -293,9 +359,10 @@ export class BookingService {
       const subject = requirement?.curriculum?.subject || requirement?.category || 'Class Session';
 
       const tutorProfile = await TutorProfileModel.findOne({ userId: booking.tutorUserId });
-      const coordinates = tutorProfile?.location?.lat && tutorProfile?.location?.lng
-        ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
-        : undefined;
+      const coordinates =
+        tutorProfile?.location?.lat && tutorProfile?.location?.lng
+          ? { lat: tutorProfile.location.lat, lng: tutorProfile.location.lng }
+          : undefined;
       const offersDemo = tutorProfile?.offersDemo !== false;
 
       enriched.push({
@@ -317,9 +384,10 @@ export class BookingService {
 
   /**
    * Update booking status — enforces the state machine:
-   * - Only TUTOR can ACCEPT or DECLINE
+   * - Only the non-requesting party can ACCEPT or DECLINE, and only from PENDING
    * - Either party can CANCEL (if PENDING or ACCEPTED, and not yet started)
-   * - Only TUTOR can COMPLETE
+   * - Either party can mark COMPLETE, but only from ACCEPTED and once the session's start time has passed
+   * - NO_SHOW is handled separately via reportNoShow(), since it records who is reporting whom
    */
   async updateBookingStatus(
     id: string,
@@ -339,11 +407,15 @@ export class BookingService {
       throw err;
     }
 
-    const isTutor = booking.tutorUserId === userId;
-    const isStudent = booking.studentUserId === userId;
-
     // State machine enforcement
     if (status === 'ACCEPTED' || status === 'DECLINED') {
+      if (booking.status !== 'PENDING') {
+        const err = new Error(
+          `Cannot ${status.toLowerCase()} a booking with status: ${booking.status}`
+        );
+        (err as any).statusCode = 400;
+        throw err;
+      }
       // The accepting party must NOT be the one who requested it
       if (booking.requestedBy === userId) {
         const err = new Error('You cannot accept or decline a booking request that you initiated.');
@@ -351,10 +423,17 @@ export class BookingService {
         throw err;
       }
     }
-    if (status === 'COMPLETED' && !isTutor) {
-      const err = new Error('Only the tutor can mark a session as completed.');
-      (err as any).statusCode = 403;
-      throw err;
+    if (status === 'COMPLETED') {
+      if (booking.status !== 'ACCEPTED') {
+        const err = new Error(`Cannot complete a booking with status: ${booking.status}`);
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      if (new Date() < booking.scheduledAt) {
+        const err = new Error('Cannot mark a session complete before its scheduled start time.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
     }
     if (status === 'CANCELLED') {
       if (!['PENDING', 'ACCEPTED'].includes(booking.status)) {
@@ -398,6 +477,9 @@ export class BookingService {
     if (status === 'DECLINED' && options?.declineReason) {
       booking.declineReason = options.declineReason;
     }
+    if (status === 'COMPLETED') {
+      booking.completedBy = userId;
+    }
 
     await booking.save();
 
@@ -434,7 +516,7 @@ export class BookingService {
         },
         COMPLETED: {
           title: `${sessionLabel} Completed`,
-          content: `Your ${sessionLabel} with ${actor?.name || 'the tutor'} is marked complete. How did it go?`,
+          content: `${actor?.name || 'The other party'} marked your ${sessionLabel} on ${dateStr} as complete.`,
           type: 'BOOKING_COMPLETED',
         },
       };
@@ -497,6 +579,107 @@ export class BookingService {
       }
     } catch (err) {
       console.error('Failed to create status notification / chat message:', err);
+    }
+
+    return booking;
+  }
+
+  /**
+   * Report that the other party never showed up for an accepted session.
+   * Only reachable once the session's end time has passed, and only from ACCEPTED —
+   * this is the accountability path a ghosted demo/session currently has none of.
+   */
+  async reportNoShow(id: string, userId: string, note?: string) {
+    const booking = await BookingModel.findById(id);
+    if (!booking) {
+      const err = new Error('Booking not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+    if (booking.studentUserId !== userId && booking.tutorUserId !== userId) {
+      const err = new Error('Forbidden: Access denied');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+    if (booking.status !== 'ACCEPTED') {
+      const err = new Error(`Cannot report a no-show for a booking with status: ${booking.status}`);
+      (err as any).statusCode = 400;
+      throw err;
+    }
+    const sessionEnd = new Date(
+      booking.scheduledAt.getTime() + (booking.duration || 60) * 60 * 1000
+    );
+    if (new Date() < sessionEnd) {
+      const err = new Error(
+        'You can only report a no-show after the session was scheduled to end.'
+      );
+      (err as any).statusCode = 400;
+      throw err;
+    }
+
+    const isStudent = booking.studentUserId === userId;
+    const reportedParty: 'STUDENT' | 'TUTOR' = isStudent ? 'TUTOR' : 'STUDENT';
+    const otherUserId = isStudent ? booking.tutorUserId : booking.studentUserId;
+
+    booking.status = 'NO_SHOW';
+    booking.noShowReportedBy = userId;
+    booking.noShowParty = reportedParty;
+    booking.noShowNote = note || '';
+    await booking.save();
+
+    try {
+      const reporter = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      const sessionLabel = booking.isFirstSession ? 'Trial Class' : 'Regular Session';
+
+      await NotificationModel.create({
+        userId: otherUserId,
+        title: 'No-Show Reported',
+        content: `${reporter?.name || 'The other party'} reported that you did not show up for the ${sessionLabel} scheduled on ${new Date(booking.scheduledAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}.`,
+        type: 'BOOKING_NO_SHOW',
+        data: { bookingId: booking._id },
+      });
+
+      // Escalate to admin moderation so it's actually actionable, not just a private flag
+      await ReportModel.create({
+        reporterId: userId,
+        targetType: 'BOOKING',
+        targetId: booking._id.toString(),
+        reason: 'NO_SHOW',
+        description: note || `${reportedParty} did not show up for a scheduled session.`,
+        status: 'PENDING',
+      });
+
+      const convo = await ConversationModel.findOne({
+        $or: [
+          { studentUserId: booking.studentUserId, tutorUserId: booking.tutorUserId },
+          { studentUserId: booking.tutorUserId, tutorUserId: booking.studentUserId },
+        ],
+      });
+      if (convo) {
+        const contentStr = `STATUS_UPDATE:${booking._id}:NO_SHOW:🚫 No-show reported for the session scheduled on ${new Date(booking.scheduledAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+        const chatMessage = await MessageModel.create({
+          conversationId: convo._id,
+          senderUserId: userId,
+          content: contentStr,
+          seen: false,
+        });
+        convo.lastMessage = '🚫 No-show reported';
+        convo.lastMessageAt = new Date();
+        await convo.save();
+
+        const io = getIO();
+        if (io) {
+          const msgObj = chatMessage.toObject();
+          io.to(`room:${convo._id}`).emit('new_message', msgObj);
+          io.to(`user:${booking.studentUserId}`).emit('message_notification', msgObj);
+          io.to(`user:${booking.tutorUserId}`).emit('message_notification', msgObj);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to notify / escalate no-show report:', err);
     }
 
     return booking;

@@ -3,12 +3,46 @@ import { RequirementRepository } from './requirement.repository.js';
 import { prisma, TutorProfileModel } from 'database';
 import { notificationQueue } from '../notifications/notification.queue.js';
 
+// The requirement-creation form submits raw checkbox labels, while TutorProfile.teachingModes
+// stores the normalized 'ONLINE' | 'OFFLINE' | 'HYBRID' codes (see tutor onboarding mapping).
+// Without normalizing here, Requirement.teachingMode and TutorProfile.teachingModes never share
+// a single common value, so every mode-based match/filter between them silently returns nothing.
+const TEACHING_MODE_MAP: Record<string, string> = {
+  'Home Tuition': 'OFFLINE',
+  Online: 'ONLINE',
+  'Group Classes': 'HYBRID',
+  'Coaching Center': 'HYBRID',
+};
+
+function normalizeTeachingModes(modes: unknown): string[] | undefined {
+  if (!Array.isArray(modes)) return undefined;
+  const normalized = modes.map((m) => TEACHING_MODE_MAP[m] || m);
+  return Array.from(new Set(normalized));
+}
+
+// Equivalence classes covering both the legacy raw-label values already saved on older
+// Requirement documents and the normalized codes new ones are written with, so matching/
+// filtering works across both without needing a one-time data migration.
+const TEACHING_MODE_CLASSES: Record<string, string[]> = {
+  OFFLINE: ['OFFLINE', 'Home Tuition'],
+  ONLINE: ['ONLINE', 'Online'],
+  HYBRID: ['HYBRID', 'Group Classes', 'Coaching Center'],
+};
+function canonicalModeKey(mode: string): string {
+  return TEACHING_MODE_MAP[mode] || mode;
+}
+function expandTeachingModes(modes: string[]): string[] {
+  const expanded = modes.flatMap((m) => TEACHING_MODE_CLASSES[canonicalModeKey(m)] || [m]);
+  return Array.from(new Set(expanded));
+}
+
 export class RequirementService {
   private repository = new RequirementRepository();
 
   async createRequirement(studentUserId: string, data: any) {
     const requirementData = {
       ...data,
+      teachingMode: normalizeTeachingModes(data.teachingMode) || data.teachingMode,
       studentUserId,
       status: 'OPEN',
       applicationsCount: 0,
@@ -21,17 +55,23 @@ export class RequirementService {
       if (subject) {
         const matchingTutors = await TutorProfileModel.find({
           subjects: subject,
-          userId: { $ne: studentUserId }
+          userId: { $ne: studentUserId },
         });
         for (const tutor of matchingTutors) {
-          notificationQueue.add('new-requirements-match', {
-            type: 'NEW_REQUIREMENTS_MATCH',
-            data: {
-              tutorUserId: tutor.userId,
-            }
-          }, { delay: 10000 }).catch(err => {
-            console.error('Failed to enqueue matched requirement notification:', err);
-          });
+          notificationQueue
+            .add(
+              'new-requirements-match',
+              {
+                type: 'NEW_REQUIREMENTS_MATCH',
+                data: {
+                  tutorUserId: tutor.userId,
+                },
+              },
+              { delay: 10000 }
+            )
+            .catch((err) => {
+              console.error('Failed to enqueue matched requirement notification:', err);
+            });
         }
       }
     } catch (err) {
@@ -105,7 +145,10 @@ export class RequirementService {
       query['curriculum.subject'] = filters.subject;
     }
     if (filters.teachingMode) {
-      query.teachingMode = filters.teachingMode;
+      const requested = Array.isArray(filters.teachingMode)
+        ? filters.teachingMode
+        : [filters.teachingMode];
+      query.teachingMode = { $in: expandTeachingModes(requested) };
     }
     if (filters.city) {
       query['location.city'] = { $regex: new RegExp(filters.city, 'i') };
@@ -167,18 +210,19 @@ export class RequirementService {
       query['curriculum.subject'] = { $in: subjectNames };
     }
 
-    // Teaching modes match rule
+    // Teaching modes match rule — expanded so this also matches Requirement documents
+    // still holding pre-normalization raw labels (e.g. 'Home Tuition' instead of 'OFFLINE').
     if (tutor.teachingModes && tutor.teachingModes.length > 0) {
-      query.teachingMode = { $in: tutor.teachingModes };
+      query.teachingMode = { $in: expandTeachingModes(tutor.teachingModes) };
     }
 
-    // Location/City match rule for offline/Home Tuition modes
+    // Location/City match rule for tutors who teach in person (OFFLINE or HYBRID)
     const needsLocationMatch = tutor.teachingModes.some(
-      (m: string) => m === 'Home Tuition' || m === 'Group Classes'
+      (m: string) => m === 'OFFLINE' || m === 'HYBRID'
     );
     if (needsLocationMatch && tutor.location?.city) {
       query.$or = [
-        { teachingMode: 'Online' },
+        { teachingMode: { $in: expandTeachingModes(['ONLINE']) } },
         { 'location.city': { $regex: new RegExp(`^${tutor.location.city}$`, 'i') } },
       ];
     }
@@ -215,7 +259,10 @@ export class RequirementService {
       throw err;
     }
 
-    return this.repository.update(id, data);
+    const normalizedModes = normalizeTeachingModes(data.teachingMode);
+    const updateData = normalizedModes ? { ...data, teachingMode: normalizedModes } : data;
+
+    return this.repository.update(id, updateData);
   }
 
   async closeRequirement(id: string, studentUserId: string) {

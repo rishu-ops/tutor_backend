@@ -28,6 +28,7 @@ export interface IRequirement extends Document {
   closedAt?: Date;
   isDeleted?: boolean;
   deletedAt?: Date;
+  seedTag?: string; // marks rows inserted by a seed script, so seeds can safely clean up only their own data
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +71,7 @@ const RequirementSchema = new Schema<IRequirement>(
     closedAt: { type: Date, default: null },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
+    seedTag: { type: String },
   },
   {
     timestamps: true,

@@ -8,7 +8,7 @@ export interface IBooking extends Document {
   duration: number; // minutes
   sessionMode: 'ONLINE' | 'ONSITE' | 'HYBRID';
   isFirstSession: boolean; // true = trial/demo, false = regular
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
   notes?: string;
   meetingLink?: string; // ONLINE only
   location?: string; // ONSITE only — tutor area / address note
@@ -17,6 +17,10 @@ export interface IBooking extends Document {
   rescheduleRequestedBy?: string; // userId who proposed new time
   requestedBy: string; // userId who requested/created the booking
   subject?: string; // cached subject title from requirement
+  completedBy?: string; // userId who confirmed the session happened
+  noShowReportedBy?: string; // userId who reported the other party as a no-show
+  noShowParty?: 'STUDENT' | 'TUTOR'; // which party was reported absent
+  noShowNote?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +41,7 @@ const BookingSchema = new Schema<IBooking>(
     isFirstSession: { type: Boolean, default: true },
     status: {
       type: String,
-      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED'],
+      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'],
       default: 'PENDING',
       required: true,
       index: true,
@@ -50,6 +54,10 @@ const BookingSchema = new Schema<IBooking>(
     rescheduleRequestedBy: { type: String },
     requestedBy: { type: String, required: true, index: true },
     subject: { type: String, default: '' },
+    completedBy: { type: String },
+    noShowReportedBy: { type: String },
+    noShowParty: { type: String, enum: ['STUDENT', 'TUTOR'] },
+    noShowNote: { type: String, default: '' },
   },
   {
     timestamps: true,

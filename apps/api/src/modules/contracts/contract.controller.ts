@@ -13,9 +13,22 @@ export class ContractController {
         return;
       }
 
-      const { partnerUserId, requirementId, bookingId, subject, billingType, agreedRate, classesPerWeek, scheduleNotes, terms, signerName } = req.body;
+      const {
+        partnerUserId,
+        requirementId,
+        bookingId,
+        subject,
+        billingType,
+        agreedRate,
+        classesPerWeek,
+        scheduleNotes,
+        terms,
+        signerName,
+      } = req.body;
       if (!partnerUserId || !agreedRate) {
-        res.status(400).json({ success: false, error: 'partnerUserId and agreedRate are required' });
+        res
+          .status(400)
+          .json({ success: false, error: 'partnerUserId and agreedRate are required' });
         return;
       }
 
@@ -35,7 +48,9 @@ export class ContractController {
       res.status(201).json({ success: true, data: contract });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      res.status(status).json({ success: false, error: error.message || 'Failed to create contract' });
+      res
+        .status(status)
+        .json({ success: false, error: error.message || 'Failed to create contract' });
     }
   }
 
@@ -54,7 +69,30 @@ export class ContractController {
       res.json({ success: true, data: contract });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      res.status(status).json({ success: false, error: error.message || 'Failed to sign contract' });
+      res
+        .status(status)
+        .json({ success: false, error: error.message || 'Failed to sign contract' });
+    }
+  }
+
+  // POST /api/v1/contracts/:id/terminate — give notice to end an active contract
+  async terminateContract(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      const contractId = req.params.id as string;
+      const { reason } = req.body;
+
+      const contract = await this.service.terminateContract(contractId, userId, reason);
+      res.json({ success: true, data: contract });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ success: false, error: error.message || 'Failed to terminate contract' });
     }
   }
 
@@ -71,7 +109,9 @@ export class ContractController {
       res.json({ success: true, data: contract });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      res.status(status).json({ success: false, error: error.message || 'Failed to fetch contract' });
+      res
+        .status(status)
+        .json({ success: false, error: error.message || 'Failed to fetch contract' });
     }
   }
 
@@ -87,7 +127,9 @@ export class ContractController {
       res.json({ success: true, data: contracts });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      res.status(status).json({ success: false, error: error.message || 'Failed to list contracts' });
+      res
+        .status(status)
+        .json({ success: false, error: error.message || 'Failed to list contracts' });
     }
   }
 }

@@ -213,29 +213,38 @@ async function main() {
 
   console.log('Seeding initial Super Admin user...');
   const adminPhone = '+919999999999';
-  const superAdminUser = await prisma.user.upsert({
-    where: { phone: adminPhone },
-    update: {
-      email: 'superadmin@tutor.com',
-      role: 'ADMIN',
-      roleId: superAdminRole.id,
-      passwordHash: hashPassword('SuperAdminSecurePassword123!'),
-      isActive: true,
-      isPhoneVerified: true,
-    },
-    create: {
-      phone: adminPhone,
-      email: 'superadmin@tutor.com',
-      name: 'Super Admin',
-      role: 'ADMIN',
-      roleId: superAdminRole.id,
-      passwordHash: hashPassword('SuperAdminSecurePassword123!'),
-      isActive: true,
-      isPhoneVerified: true,
-    },
-  });
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
 
-  console.log('Super Admin user created successfully:', superAdminUser.email);
+  if (!superAdminPassword) {
+    console.warn(
+      'SUPER_ADMIN_PASSWORD is not set — skipping super admin seed. Set it in your .env (see .env.example) to create or reset the super admin account.'
+    );
+  } else {
+    const superAdminUser = await prisma.user.upsert({
+      where: { phone: adminPhone },
+      update: {
+        email: 'superadmin@tutor.com',
+        role: 'ADMIN',
+        roleId: superAdminRole.id,
+        passwordHash: hashPassword(superAdminPassword),
+        isActive: true,
+        isPhoneVerified: true,
+      },
+      create: {
+        phone: adminPhone,
+        email: 'superadmin@tutor.com',
+        name: 'Super Admin',
+        role: 'ADMIN',
+        roleId: superAdminRole.id,
+        passwordHash: hashPassword(superAdminPassword),
+        isActive: true,
+        isPhoneVerified: true,
+      },
+    });
+
+    console.log('Super Admin user created/updated successfully:', superAdminUser.email);
+  }
+
   console.log('Database seeding completed successfully.');
 }
 

@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { sendOtpSchema, verifyOtpSchema, refreshSchema } from './auth.validation.js';
+import { setRefreshCookie, clearRefreshCookie } from '../../common/utils/cookie.util.js';
+
+const REFRESH_COOKIE = 'pt_refresh_token';
 
 export class AuthController {
   private service = new AuthService();
@@ -60,6 +63,7 @@ export class AuthController {
       const meta = this.getRequestMeta(req);
 
       const result = await this.service.verifyOtp(phone, otp, meta);
+      setRefreshCookie(res, REFRESH_COOKIE, result.refreshToken);
       res.json({
         success: true,
         data: result,
@@ -74,7 +78,10 @@ export class AuthController {
   // POST /refresh
   async refresh(req: Request, res: Response): Promise<void> {
     try {
-      const parseResult = refreshSchema.safeParse(req.body);
+      const cookieToken = req.cookies?.[REFRESH_COOKIE];
+      const parseResult = refreshSchema.safeParse({
+        refreshToken: cookieToken || req.body?.refreshToken,
+      });
       if (!parseResult.success) {
         res.status(400).json({ success: false, errors: parseResult.error.format() });
         return;
@@ -84,6 +91,7 @@ export class AuthController {
       const meta = this.getRequestMeta(req);
 
       const tokens = await this.service.refreshSession(refreshToken, meta);
+      setRefreshCookie(res, REFRESH_COOKIE, tokens.refreshToken);
       res.json({
         success: true,
         data: tokens,
@@ -98,16 +106,14 @@ export class AuthController {
   // POST /logout
   async logout(req: Request, res: Response): Promise<void> {
     try {
-      const parseResult = refreshSchema.safeParse(req.body);
-      if (!parseResult.success) {
-        res.status(400).json({ success: false, errors: parseResult.error.format() });
-        return;
+      const refreshToken = req.cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
+      if (refreshToken) {
+        await this.service.logout(refreshToken);
       }
-
-      const { refreshToken } = parseResult.data;
-      await this.service.logout(refreshToken);
+      clearRefreshCookie(res, REFRESH_COOKIE);
       res.json({ success: true, message: 'Logged out successfully' });
     } catch {
+      clearRefreshCookie(res, REFRESH_COOKIE);
       res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }

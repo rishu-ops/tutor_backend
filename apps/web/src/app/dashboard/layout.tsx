@@ -14,7 +14,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
-  const refreshToken = useAuthStore((s) => s.refreshToken);
   const logoutStore = useAuthStore((s) => s.logout);
   const token = useAuthStore((s) => s.accessToken);
 
@@ -60,7 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     try {
-      if (refreshToken) await authApi.logout(refreshToken);
+      await authApi.logout();
     } catch (e) {
       console.error('Logout request failed:', e);
     } finally {
@@ -89,9 +88,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/requirements/${data.requirementId}?tab=applications${data.applicationId ? `&appId=${data.applicationId}` : ''}`
         : '/dashboard/requirements';
     }
-    if (type === 'APPLICATION_ACCEPTED' || type === 'CHAT_REMINDER' || type === 'MATCHED_CHAT_REMINDER') return '/dashboard/messages';
-    if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS') return '/dashboard/requirements/browse';
-    if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH') return '/dashboard/tutors';
+    if (
+      type === 'APPLICATION_ACCEPTED' ||
+      type === 'CHAT_REMINDER' ||
+      type === 'MATCHED_CHAT_REMINDER'
+    )
+      return '/dashboard/messages';
+    if (type === 'NEW_REQUIREMENTS_MATCH' || type === 'NEW_REQUIREMENTS')
+      return '/dashboard/requirements/browse';
+    if (type === 'NEW_TUTOR_MATCH' || type === 'NEW_TUTOR_REGISTERED_MATCH')
+      return '/dashboard/tutors';
     if (type.includes('PROFILE')) return '/profile';
     return null;
   };
@@ -154,10 +160,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <nav className="hidden md:flex items-center gap-8  ml-10">
               <Link
                 href="/dashboard"
-                className={`text-sm font-semibold transition-colors ${pathname === '/dashboard'
-                  ? 'text-[#00A453]'
-                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                  }`}
+                className={`text-sm font-semibold transition-colors ${
+                  pathname === '/dashboard'
+                    ? 'text-[#00A453]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                }`}
               >
                 Home
               </Link>
@@ -165,19 +172,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <Link
                     href="/dashboard/tutors"
-                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/tutors')
-                      ? 'text-[#00A453]'
-                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                      }`}
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.startsWith('/dashboard/tutors')
+                        ? 'text-[#00A453]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                    }`}
                   >
                     Find Tutors
                   </Link>
                   <Link
                     href="/dashboard/requirements"
-                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/requirements')
-                      ? 'text-[#00A453]'
-                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                      }`}
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.startsWith('/dashboard/requirements')
+                        ? 'text-[#00A453]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                    }`}
                   >
                     My Requirements
                   </Link>
@@ -187,19 +196,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <Link
                     href="/dashboard/requirements/browse"
-                    className={`text-sm font-semibold transition-colors ${pathname.includes('/browse')
-                      ? 'text-[#00A453]'
-                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                      }`}
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.includes('/browse')
+                        ? 'text-[#00A453]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                    }`}
                   >
                     Find Students
                   </Link>
                   <Link
                     href="/dashboard/applications"
-                    className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/applications')
-                      ? 'text-[#00A453]'
-                      : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                      }`}
+                    className={`text-sm font-semibold transition-colors ${
+                      pathname.startsWith('/dashboard/applications')
+                        ? 'text-[#00A453]'
+                        : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                    }`}
                   >
                     My Applications
                   </Link>
@@ -207,19 +218,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
               <Link
                 href="/dashboard/messages"
-                className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/messages')
-                  ? 'text-[#00A453]'
-                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                  }`}
+                className={`text-sm font-semibold transition-colors ${
+                  pathname.startsWith('/dashboard/messages')
+                    ? 'text-[#00A453]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                }`}
               >
                 Messages
               </Link>
               <Link
                 href="/dashboard/bookings"
-                className={`text-sm font-semibold transition-colors ${pathname.startsWith('/dashboard/bookings')
-                  ? 'text-[#00A453]'
-                  : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
-                  }`}
+                className={`text-sm font-semibold transition-colors ${
+                  pathname.startsWith('/dashboard/bookings')
+                    ? 'text-[#00A453]'
+                    : 'text-[#2d2d2d] hover:text-[#2d2d2d]'
+                }`}
               >
                 Bookings
               </Link>
@@ -269,7 +282,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           >
                             <div className="min-w-0">
                               <span className="font-bold text-[#2d2d2d] block flex items-center gap-1">
-                                {!notif.read && <span className="inline-block w-1.5 h-1.5 bg-[#00A453] rounded-full shrink-0" />}
+                                {!notif.read && (
+                                  <span className="inline-block w-1.5 h-1.5 bg-[#00A453] rounded-full shrink-0" />
+                                )}
                                 {notif.title}
                               </span>
                               <span className="text-[#647380] block mt-0.5 leading-relaxed">
@@ -291,7 +306,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </div>
                             {!notif.read && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleMarkRead(notif._id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkRead(notif._id);
+                                }}
                                 className="text-[10px] font-bold text-[#00A453] hover:underline shrink-0"
                               >
                                 Mark Read
@@ -339,7 +357,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="flex items-center gap-3 px-4 py-3 border-b border-[#dadee2]">
                     <div className="h-9 w-9 rounded-full bg-[#e6f6ee] border border-[#00A453]/20 overflow-hidden flex items-center justify-center shrink-0">
                       {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        <img
+                          src={user.avatarUrl}
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <span className="text-sm font-bold text-[#00A453]">{getInitials()}</span>
                       )}

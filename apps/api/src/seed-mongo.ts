@@ -3,7 +3,16 @@ import { prisma, connectMongoDB, connectPostgres, RequirementModel } from 'datab
 
 dotenv.config();
 
+const SEED_TAG = 'seed-mongo-dummy';
+
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error(
+      'Refusing to run seed-mongo.ts with NODE_ENV=production — this script deletes data.'
+    );
+    process.exit(1);
+  }
+
   console.log('Starting MongoDB requirement seeding...');
 
   const mongoUri =
@@ -37,9 +46,9 @@ async function main() {
     console.log(`Using existing student user with ID: ${studentUser.id}`);
   }
 
-  // Clear existing requirements first to avoid duplication
-  const deleteResult = await RequirementModel.deleteMany({});
-  console.log(`Cleared ${deleteResult.deletedCount} existing requirements.`);
+  // Only ever clear rows this script itself created — never touch real user data.
+  const deleteResult = await RequirementModel.deleteMany({ seedTag: SEED_TAG });
+  console.log(`Cleared ${deleteResult.deletedCount} previously-seeded dummy requirements.`);
 
   const dummyRequirements = [
     {
@@ -162,7 +171,9 @@ async function main() {
     },
   ];
 
-  const created = await RequirementModel.insertMany(dummyRequirements);
+  const created = await RequirementModel.insertMany(
+    dummyRequirements.map((r) => ({ ...r, seedTag: SEED_TAG }))
+  );
   console.log(`Successfully seeded ${created.length} MongoDB requirements.`);
 
   process.exit(0);

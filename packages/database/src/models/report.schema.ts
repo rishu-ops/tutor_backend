@@ -2,9 +2,19 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IReport extends Document {
   reporterId: string; // User ID (Postgres UUID string)
-  targetType: 'TUTOR' | 'REQUIREMENT';
-  targetId: string; // ID of the tutor profile or requirement
-  reason: 'FAKE_TUTOR' | 'FAKE_REQUIREMENT' | 'SPAM' | 'ABUSE' | 'SCAM' | 'HARASSMENT';
+  targetType: 'USER' | 'TUTOR' | 'REQUIREMENT' | 'BOOKING' | 'CONTRACT';
+  targetId: string; // ID of the user, tutor profile, requirement, booking, or contract
+  reason:
+    | 'FAKE_TUTOR'
+    | 'FAKE_REQUIREMENT'
+    | 'SPAM'
+    | 'ABUSE'
+    | 'SCAM'
+    | 'HARASSMENT'
+    | 'NO_SHOW'
+    | 'SERVICE_NOT_DELIVERED'
+    | 'PAYMENT_DISPUTE'
+    | 'OTHER';
   description?: string;
   status: 'PENDING' | 'RESOLVED' | 'IGNORED';
   resolution?: string;
@@ -16,14 +26,29 @@ export interface IReport extends Document {
 const ReportSchema = new Schema<IReport>(
   {
     reporterId: { type: String, required: true },
-    targetType: { type: String, enum: ['TUTOR', 'REQUIREMENT'], required: true },
+    targetType: {
+      type: String,
+      enum: ['USER', 'TUTOR', 'REQUIREMENT', 'BOOKING', 'CONTRACT'],
+      required: true,
+    },
     targetId: { type: String, required: true },
     reason: {
       type: String,
-      enum: ['FAKE_TUTOR', 'FAKE_REQUIREMENT', 'SPAM', 'ABUSE', 'SCAM', 'HARASSMENT'],
+      enum: [
+        'FAKE_TUTOR',
+        'FAKE_REQUIREMENT',
+        'SPAM',
+        'ABUSE',
+        'SCAM',
+        'HARASSMENT',
+        'NO_SHOW',
+        'SERVICE_NOT_DELIVERED',
+        'PAYMENT_DISPUTE',
+        'OTHER',
+      ],
       required: true,
     },
-    description: { type: String },
+    description: { type: String, maxlength: 2000 },
     status: {
       type: String,
       enum: ['PENDING', 'RESOLVED', 'IGNORED'],

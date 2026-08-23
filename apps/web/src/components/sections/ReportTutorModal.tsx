@@ -14,12 +14,12 @@ interface ReportTutorModalProps {
 }
 
 const REPORT_REASONS = [
-  'Unprofessional behavior or inappropriate conduct',
-  'Did not show up for scheduled session / No-show',
-  'Misleading qualifications or profile information',
-  'Asked for off-platform payment or suspicious requests',
-  'Spam, harassment, or unwanted communication',
-  'Other issue',
+  { code: 'ABUSE', label: 'Unprofessional behavior or inappropriate conduct' },
+  { code: 'NO_SHOW', label: 'Did not show up for scheduled session / No-show' },
+  { code: 'FAKE_TUTOR', label: 'Misleading qualifications or profile information' },
+  { code: 'SCAM', label: 'Asked for off-platform payment or suspicious requests' },
+  { code: 'HARASSMENT', label: 'Spam, harassment, or unwanted communication' },
+  { code: 'OTHER', label: 'Other issue' },
 ];
 
 export default function ReportTutorModal({
@@ -29,7 +29,7 @@ export default function ReportTutorModal({
   tutorName = 'Tutor',
 }: ReportTutorModalProps) {
   const token = useAuthStore((s) => s.accessToken);
-  const [selectedReason, setSelectedReason] = useState(REPORT_REASONS[0]);
+  const [selectedReason, setSelectedReason] = useState(REPORT_REASONS[0].code);
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,7 +49,7 @@ export default function ReportTutorModal({
           targetType: 'USER',
           targetId: tutorUserId,
           reason: selectedReason,
-          details: details.trim(),
+          description: details.trim(),
         },
         token
       );
@@ -88,7 +88,8 @@ export default function ReportTutorModal({
             <CheckCircle2 className="w-12 h-12 text-[#00A453] mx-auto" />
             <h3 className="text-lg font-black text-[#2d2d2d]">Report Submitted</h3>
             <p className="text-xs text-[#647380] font-medium">
-              Thank you for keeping our community safe. Our trust & safety team will review this report.
+              Thank you for keeping our community safe. Our trust & safety team will review this
+              report.
             </p>
           </div>
         ) : (
@@ -96,9 +97,7 @@ export default function ReportTutorModal({
             <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
               <Flag className="w-5 h-5 text-red-500" />
               <div>
-                <h3 className="text-base font-extrabold text-[#2d2d2d]">
-                  Report {tutorName}
-                </h3>
+                <h3 className="text-base font-extrabold text-[#2d2d2d]">Report {tutorName}</h3>
                 <p className="text-xs text-[#647380] font-medium">
                   Help us investigate inappropriate behavior or policy violations.
                 </p>
@@ -117,11 +116,11 @@ export default function ReportTutorModal({
                 Select Reason for Report
               </label>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {REPORT_REASONS.map((reason, idx) => (
+                {REPORT_REASONS.map((reason) => (
                   <label
-                    key={idx}
+                    key={reason.code}
                     className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                      selectedReason === reason
+                      selectedReason === reason.code
                         ? 'border-[#00A453] bg-[#e6f6ee]/60 text-[#2d2d2d]'
                         : 'border-gray-150 bg-gray-50/50 hover:bg-gray-100 text-[#384148]'
                     }`}
@@ -129,12 +128,12 @@ export default function ReportTutorModal({
                     <input
                       type="radio"
                       name="reportReason"
-                      value={reason}
-                      checked={selectedReason === reason}
-                      onChange={() => setSelectedReason(reason)}
+                      value={reason.code}
+                      checked={selectedReason === reason.code}
+                      onChange={() => setSelectedReason(reason.code)}
                       className="text-[#00A453] focus:ring-[#00A453]"
                     />
-                    <span>{reason}</span>
+                    <span>{reason.label}</span>
                   </label>
                 ))}
               </div>

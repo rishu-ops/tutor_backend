@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { AdminService } from './admin.service.js';
+import { setRefreshCookie, clearRefreshCookie } from '../../common/utils/cookie.util.js';
+
+const ADMIN_REFRESH_COOKIE = 'pt_admin_refresh_token';
 
 export class AdminController {
   private service = new AdminService();
@@ -17,6 +20,7 @@ export class AdminController {
   async login(req: Request, res: Response): Promise<void> {
     try {
       const result = await this.service.login(req.body, this.getMeta(req));
+      setRefreshCookie(res, ADMIN_REFRESH_COOKIE, result.refreshToken);
       res.json({ success: true, ...result });
     } catch (error: any) {
       const status = error.statusCode || 500;
@@ -26,12 +30,13 @@ export class AdminController {
 
   async refresh(req: Request, res: Response): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.cookies?.[ADMIN_REFRESH_COOKIE] || req.body?.refreshToken;
       if (!refreshToken) {
         res.status(400).json({ success: false, error: 'Refresh token is required' });
         return;
       }
       const result = await this.service.refresh(refreshToken, this.getMeta(req));
+      setRefreshCookie(res, ADMIN_REFRESH_COOKIE, result.refreshToken);
       res.json({ success: true, ...result });
     } catch (error: any) {
       const status = error.statusCode || 500;
@@ -41,12 +46,14 @@ export class AdminController {
 
   async logout(req: Request, res: Response): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.cookies?.[ADMIN_REFRESH_COOKIE] || req.body?.refreshToken;
       if (refreshToken) {
         await this.service.logout(refreshToken);
       }
+      clearRefreshCookie(res, ADMIN_REFRESH_COOKIE);
       res.json({ success: true, message: 'Logged out successfully' });
     } catch (error: any) {
+      clearRefreshCookie(res, ADMIN_REFRESH_COOKIE);
       res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
   }

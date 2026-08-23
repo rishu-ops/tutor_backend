@@ -32,6 +32,7 @@ export async function api<T = unknown>(
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     method,
     headers,
+    credentials: 'include', // send the httpOnly refresh-token cookie along with every request
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -84,16 +85,16 @@ export const authApi = {
       body: { phone, otp },
     }),
 
-  refreshToken: (refreshToken: string) =>
+  // No refreshToken argument needed — it travels in the httpOnly cookie the
+  // server set at login, sent automatically because api() uses credentials: 'include'.
+  refreshToken: () =>
     api<{ accessToken: string; refreshToken: string }>('/api/auth/refresh', {
       method: 'POST',
-      body: { refreshToken },
     }),
 
-  logout: (refreshToken: string) =>
+  logout: () =>
     api('/api/auth/logout', {
       method: 'POST',
-      body: { refreshToken },
     }),
 };
 
@@ -147,7 +148,11 @@ export const profileApi = {
       token,
     }) as Promise<any>,
 
-  createTutorReview: (tutorUserId: string, data: { rating: number; comment: string }, token: string) =>
+  createTutorReview: (
+    tutorUserId: string,
+    data: { rating: number; comment: string },
+    token: string
+  ) =>
     api<any>(`/api/v1/tutor/${tutorUserId}/reviews`, {
       method: 'POST',
       body: data,
@@ -303,6 +308,12 @@ export const adminApi = {
       body,
     }) as Promise<any>,
 
+  // No refreshToken argument needed — it travels in the httpOnly admin cookie.
+  // Response fields are flat (accessToken/refreshToken at top level), matching login().
+  refresh: () => api<any>('/api/admin/refresh', { method: 'POST' }) as Promise<any>,
+
+  logout: () => api('/api/admin/logout', { method: 'POST' }),
+
   getAdmins: (token: string) => api<any>('/api/admins', { method: 'GET', token }) as Promise<any>,
 
   createAdmin: (body: any, token: string) =>
@@ -390,7 +401,7 @@ export const mediaApi = {
     const res = await fetch(`${API_BASE_URL}/api/v1/media/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
@@ -409,7 +420,7 @@ export const mediaApi = {
     const res = await fetch(`${API_BASE_URL}/api/v1/media/upload-document`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
@@ -428,7 +439,7 @@ export const mediaApi = {
     const res = await fetch(`${API_BASE_URL}/api/v1/media/upload-video`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
@@ -443,7 +454,7 @@ export const mediaApi = {
 
 export const reportApi = {
   createReport: (
-    data: { targetType: string; targetId: string; reason: string; details?: string },
+    data: { targetType: string; targetId: string; reason: string; description?: string },
     token: string
   ) =>
     api<any>('/api/reports', {

@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { MessageModel, ConversationModel, NotificationModel } from 'database';
 import jwt from 'jsonwebtoken';
+import config from '../config/index.js';
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -37,8 +38,7 @@ export function initSocketGateway(io: Server): void {
     }
 
     try {
-      const secret = process.env.JWT_SECRET || 'secret';
-      const payload = jwt.verify(token, secret) as { sub?: string; userId?: string };
+      const payload = jwt.verify(token, config.jwt.secret) as { sub?: string; userId?: string };
       socket.userId = payload.sub || payload.userId;
       next();
     } catch {
@@ -106,55 +106,64 @@ export function initSocketGateway(io: Server): void {
     });
 
     // ── Send a message ────────────────────────────────────────────────────
-    socket.on('send_message', async (data: { conversationId: string; content: string; attachments?: Array<{ url: string; name: string; type: string; size: number }> }) => {
-      try {
-        const { conversationId, content, attachments } = data;
-        if (!conversationId || (!content?.trim() && (!attachments || attachments.length === 0))) return;
+    socket.on(
+      'send_message',
+      async (data: {
+        conversationId: string;
+        content: string;
+        attachments?: Array<{ url: string; name: string; type: string; size: number }>;
+      }) => {
+        try {
+          const { conversationId, content, attachments } = data;
+          if (!conversationId || (!content?.trim() && (!attachments || attachments.length === 0)))
+            return;
 
-        const convo = await ConversationModel.findById(conversationId);
-        if (!convo || convo.status !== 'ACTIVE') return;
-        if (convo.studentUserId !== userId && convo.tutorUserId !== userId) return;
+          const convo = await ConversationModel.findById(conversationId);
+          if (!convo || convo.status !== 'ACTIVE') return;
+          if (convo.studentUserId !== userId && convo.tutorUserId !== userId) return;
 
-        const message = await MessageModel.create({
-          conversationId,
-          senderUserId: userId,
-          content: content?.trim() || '',
-          attachments: attachments || [],
-        });
+          const message = await MessageModel.create({
+            conversationId,
+            senderUserId: userId,
+            content: content?.trim() || '',
+            attachments: attachments || [],
+          });
 
-        const msgData = {
-          _id: message._id.toString(),
-          conversationId,
-          senderUserId: userId,
-          content: message.content,
-          attachments: message.attachments || [],
-          seen: false,
-          createdAt: message.createdAt,
-        };
+          const msgData = {
+            _id: message._id.toString(),
+            conversationId,
+            senderUserId: userId,
+            content: message.content,
+            attachments: message.attachments || [],
+            seen: false,
+            createdAt: message.createdAt,
+          };
 
-        // Broadcast to both parties in the room
-        io.to(`room:${conversationId}`).emit('new_message', msgData);
+          // Broadcast to both parties in the room
+          io.to(`room:${conversationId}`).emit('new_message', msgData);
 
-        // Also notify the other party's personal room (for floating widget)
-        const otherUserId =
-          convo.studentUserId === userId ? convo.tutorUserId : convo.studentUserId;
-        io.to(`user:${otherUserId}`).emit('message_notification', {
-          ...msgData,
-          senderName: '', // Will be enriched on frontend from conversation data
-          conversationId,
-        });
+          // Also notify the other party's personal room (for floating widget)
+          const otherUserId =
+            convo.studentUserId === userId ? convo.tutorUserId : convo.studentUserId;
+          io.to(`user:${otherUserId}`).emit('message_notification', {
+            ...msgData,
+            senderName: '', // Will be enriched on frontend from conversation data
+            conversationId,
+          });
 
-        // Update conversation updatedAt for sorting
-        const lastMsg = content?.trim() || (attachments?.[0]?.name ? `📎 ${attachments[0].name}` : 'File');
-        await ConversationModel.findByIdAndUpdate(conversationId, {
-          updatedAt: new Date(),
-          lastMessage: lastMsg,
-          lastMessageAt: new Date(),
-        });
-      } catch (err) {
-        console.error('[Socket] send_message error:', err);
+          // Update conversation updatedAt for sorting
+          const lastMsg =
+            content?.trim() || (attachments?.[0]?.name ? `📎 ${attachments[0].name}` : 'File');
+          await ConversationModel.findByIdAndUpdate(conversationId, {
+            updatedAt: new Date(),
+            lastMessage: lastMsg,
+            lastMessageAt: new Date(),
+          });
+        } catch (err) {
+          console.error('[Socket] send_message error:', err);
+        }
       }
-    });
+    );
 
     // ── Typing indicators ─────────────────────────────────────────────────
     socket.on('typing_start', async (conversationId: string) => {

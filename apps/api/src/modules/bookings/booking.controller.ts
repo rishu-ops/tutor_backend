@@ -22,6 +22,7 @@ export class BookingController {
         isFirstSession,
         notes,
         studentNeedsDemo,
+        sessionMode,
       } = req.body;
 
       const partnerUserId = tutorUserId || studentUserId;
@@ -29,8 +30,13 @@ export class BookingController {
       if (!requirementId || !partnerUserId || !scheduledAt) {
         res.status(400).json({
           success: false,
-          error: 'Missing required parameters (requirementId, partner (tutorUserId/studentUserId), scheduledAt)',
+          error:
+            'Missing required parameters (requirementId, partner (tutorUserId/studentUserId), scheduledAt)',
         });
+        return;
+      }
+      if (sessionMode && !['ONLINE', 'ONSITE'].includes(sessionMode)) {
+        res.status(400).json({ success: false, error: 'sessionMode must be ONLINE or ONSITE' });
         return;
       }
 
@@ -43,6 +49,7 @@ export class BookingController {
         isFirstSession: isFirstSession !== false, // default true
         notes,
         studentNeedsDemo,
+        sessionMode,
       });
 
       res.status(201).json({ success: true, data: booking });
@@ -107,6 +114,25 @@ export class BookingController {
         meetingLink,
         declineReason,
       });
+      res.json({ success: true, data: booking });
+    } catch (error: any) {
+      res
+        .status(error.statusCode || 500)
+        .json({ success: false, error: error.message || 'Internal server error' });
+    }
+  }
+
+  // POST /api/v1/bookings/:id/no-show
+  async reportNoShow(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const id = req.params.id as string;
+      const { note } = req.body;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      const booking = await this.service.reportNoShow(id, userId, note);
       res.json({ success: true, data: booking });
     } catch (error: any) {
       res

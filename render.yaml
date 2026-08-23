@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: project-tutor-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: >-
+      pnpm install --frozen-lockfile &&
+      pnpm --filter database prisma:generate &&
+      pnpm --filter database migrate:deploy &&
+      pnpm --filter database build &&
+      pnpm --filter logger build &&
+      pnpm --filter api build
+    startCommand: pnpm --filter api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

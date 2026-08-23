@@ -1,7 +1,15 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'primary' | 'secondary' | 'dark' | 'ghost' | 'danger' | 'primary-modern' | 'secondary-modern' | 'dark-modern';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'dark'
+  | 'ghost'
+  | 'danger'
+  | 'primary-modern'
+  | 'secondary-modern'
+  | 'dark-modern';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -48,7 +56,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'inline-flex items-center justify-center gap-2 font-semibold',
           'transition-colors duration-150 cursor-pointer',
           'rounded-[var(--radius-btn)]',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004fcb] focus-visible:ring-offset-2',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A453] focus-visible:ring-offset-2',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variantStyles[variant],
           sizeStyles[size],

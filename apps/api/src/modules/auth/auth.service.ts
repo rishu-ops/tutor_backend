@@ -4,12 +4,12 @@ import { redis } from 'database';
 import config from '../../config/index.js';
 import { AuthRepository } from './auth.repository.js';
 import { generateOtp } from '../../common/utils/otp.util.js';
-import { MockSmsProvider } from '../../providers/sms/mock-sms.provider.js';
+import { createSmsProvider } from '../../providers/sms/index.js';
 import { AuthError } from './auth.errors.js';
 
 export class AuthService {
   private repository = new AuthRepository();
-  private smsProvider = new MockSmsProvider();
+  private smsProvider = createSmsProvider();
 
   // Hash helper
   private hashToken(token: string): string {
