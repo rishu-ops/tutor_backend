@@ -31,6 +31,8 @@ services:
         sync: false
       - key: SUPER_ADMIN_PASSWORD
         sync: false
+      - key: ALLOW_MOCK_SMS
+        value: 'true' # no real SMS gateway is wired up yet — see DEPLOYMENT.md
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

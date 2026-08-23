@@ -53,6 +53,14 @@ This app is five services, not one: the API, the web app, Postgres, MongoDB, and
 4. Deploy. The build step runs `prisma migrate deploy` automatically, so the Neon database gets its schema on first deploy.
 5. Once live, copy the Render URL (`https://project-tutor-api-xxxx.onrender.com`) — you'll need it in step 5.
 
+### No real SMS provider yet — logging in as a student/tutor
+
+Regular users log in with phone + OTP, and no real SMS gateway (Twilio, MSG91, etc.) is wired up. The app deliberately **refuses to start in production** unless you explicitly set `ALLOW_MOCK_SMS=true`, so this is a conscious choice, not a silent gap.
+
+With that flag set, OTPs are never sent by real SMS — they only appear in Render's **Logs** tab, as a line like `[SMS MOCK] To: +91... | Message: Your project-tutor verification code is 123456...`. To log in as a student/tutor on the live site: request the OTP as normal, then find that line in the logs and use the code from it. Fine for testing; wire a real SMS gateway (and remove `ALLOW_MOCK_SMS`) before pointing real users at this.
+
+Admin login (`/admin/login`, email + password) doesn't need this — it works regardless.
+
 ### Seed the super admin (one-time)
 
 Render's free tier doesn't include a one-off job runner, so run this **locally**, pointed at the production database:
