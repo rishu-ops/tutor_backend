@@ -33,8 +33,12 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false # resend.com free tier — OTPs are emailed through this
+      - key: GMAIL_USER
+        sync: false # free fallback if RESEND_API_KEY isn't set — see DEPLOYMENT.md
+      - key: GMAIL_APP_PASSWORD
+        sync: false # Google Account -> Security -> App Passwords (not your real Gmail password)
       - key: ALLOW_MOCK_EMAIL
-        value: 'false' # only set to 'true' as a temporary fallback if RESEND_API_KEY isn't set yet — see DEPLOYMENT.md
+        value: 'false' # only set to 'true' as a temporary fallback if neither Resend nor Gmail is set up yet — see DEPLOYMENT.md
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

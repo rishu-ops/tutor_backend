@@ -53,15 +53,26 @@ This app is five services, not one: the API, the web app, Postgres, MongoDB, and
 4. Deploy. The build step runs `prisma migrate deploy` automatically, so the Neon database gets its schema on first deploy.
 5. Once live, copy the Render URL (`https://project-tutor-api-xxxx.onrender.com`) — you'll need it in step 5.
 
-### OTP delivery — email via Resend
+### OTP delivery — email via Resend or Gmail
 
-Regular users log in with phone + email, and the OTP is sent to that email (not SMS — there's no free-forever SMS gateway, so this avoids a per-message cost entirely). Set it up:
+Regular users log in with phone + email, and the OTP is sent to that email (not SMS — there's no free-forever SMS gateway, so this avoids a per-message cost entirely). Pick one:
+
+**Option A — Resend:**
 
 1. Sign up at [resend.com](https://resend.com) (free tier: 3,000 emails/month, no credit card).
 2. Create an API key (Dashboard → API Keys).
-3. On Render, set `RESEND_API_KEY` to that key. No domain verification needed — it sends from Resend's own `onboarding@resend.dev` by default, which works out of the box. (Once you verify your own domain on Resend, set `RESEND_FROM_EMAIL` to send from it instead.)
+3. On Render, set `RESEND_API_KEY` to that key.
 
-Without `RESEND_API_KEY` set, the app **refuses to start in production** unless you explicitly set `ALLOW_MOCK_EMAIL=true` — a conscious fallback, not a silent gap. With that flag, OTPs only appear in Render's **Logs** tab (`[EMAIL MOCK] To: ... | Subject: ... | Body: ...`), never actually delivered. Prefer wiring up Resend — it's free and takes two minutes.
+Without a verified domain, Resend's default `onboarding@resend.dev` sender can **only deliver to the email address your Resend account was signed up with** — it rejects sends to any other recipient. That's fine for testing your own flow, but not for real users. Once you verify your own domain on Resend, set `RESEND_FROM_EMAIL` to send from it and it'll deliver to anyone.
+
+**Option B — Gmail SMTP (free, no domain needed, works for any recipient):**
+
+1. On the Gmail account you want to send from, enable 2-Step Verification, then generate an App Password (Google Account → Security → App Passwords).
+2. On Render, set `GMAIL_USER` (the Gmail address) and `GMAIL_APP_PASSWORD` (the generated app password, not your real Gmail password).
+
+This is used as a fallback only if `RESEND_API_KEY` isn't set. It can deliver to any recipient immediately since it rides on Gmail's own sending reputation — no domain or verification required. Not meant for high volume (Gmail will eventually throttle/flag heavy sending), but solid for early-stage usage.
+
+Without either configured, the app **refuses to start in production** unless you explicitly set `ALLOW_MOCK_EMAIL=true` — a conscious fallback, not a silent gap. With that flag, OTPs only appear in Render's **Logs** tab (`[EMAIL MOCK] To: ... | Subject: ... | Body: ...`), never actually delivered.
 
 Admin login (`/admin/login`, email + password) doesn't need any of this — it works regardless.
 
