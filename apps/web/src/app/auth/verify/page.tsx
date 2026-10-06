@@ -15,6 +15,7 @@ function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') || '';
+  const email = searchParams.get('email') || '';
   const defaultCode = searchParams.get('code') || '';
   const setAuth = useAuthStore((s) => s.setAuth);
 
@@ -25,12 +26,12 @@ function VerifyContent() {
   const [resending, setResending] = useState(false);
   const autoVerifyAttempted = useRef(false);
 
-  // Redirect if no phone
+  // Redirect if no phone/email
   useEffect(() => {
-    if (!phone) {
+    if (!phone || !email) {
       router.replace(ROUTES.AUTH_LOGIN);
     }
-  }, [phone, router]);
+  }, [phone, email, router]);
 
   // Cooldown timer
   useEffect(() => {
@@ -104,7 +105,7 @@ function VerifyContent() {
     setError('');
 
     try {
-      await authApi.sendOtp(phone);
+      await authApi.sendOtp(phone, email);
       setResendCooldown(RESEND_COOLDOWN);
       setOtp('');
     } catch (err: unknown) {
@@ -115,7 +116,13 @@ function VerifyContent() {
     }
   };
 
-  const maskedPhone = phone ? phone.slice(0, 4) + '****' + phone.slice(-2) : '';
+  const maskedEmail = (() => {
+    if (!email) return '';
+    const [name, domain] = email.split('@');
+    if (!domain) return email;
+    const visible = name.slice(0, 2);
+    return `${visible}${'*'.repeat(Math.max(name.length - 2, 2))}@${domain}`;
+  })();
 
   return (
     <div className="w-full max-w-sm mx-auto">
@@ -126,10 +133,10 @@ function VerifyContent() {
           <span className="text-[#00A453] font-bold text-xl tracking-tight">
             project<span className="font-extrabold text-[#00060c]">tutor</span>
           </span>
-          <h1 className="text-xl font-bold text-[#00060c] mt-4">Verify your phone</h1>
+          <h1 className="text-xl font-bold text-[#00060c] mt-4">Verify your email</h1>
           <p className="mt-1.5 text-sm text-[#384148]">
             We sent a 6-digit code to{' '}
-            <span className="font-semibold text-[#00060c]">{maskedPhone}</span>
+            <span className="font-semibold text-[#00060c]">{maskedEmail}</span>
           </p>
         </div>
 
@@ -171,7 +178,7 @@ function VerifyContent() {
 
       {/* Back link */}
       <p className="mt-4 text-center text-xs text-[#647380]">
-        Wrong number?{' '}
+        Wrong email?{' '}
         <button
           onClick={() => router.push(ROUTES.AUTH_LOGIN)}
           className="text-[#00A453] hover:underline font-semibold cursor-pointer"

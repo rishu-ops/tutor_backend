@@ -62,10 +62,10 @@ export async function api<T = unknown>(
 
 // Auth-specific API calls
 export const authApi = {
-  sendOtp: (phone: string) =>
+  sendOtp: (phone: string, email: string) =>
     api('/api/auth/send-otp', {
       method: 'POST',
-      body: { phone },
+      body: { phone, email },
     }),
 
   verifyOtp: (phone: string, otp: string) =>

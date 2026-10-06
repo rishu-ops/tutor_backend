@@ -35,8 +35,8 @@ export class AuthController {
         return;
       }
 
-      const { phone } = parseResult.data;
-      const otp = await this.service.sendOtp(phone);
+      const { phone, email } = parseResult.data;
+      const otp = await this.service.sendOtp(phone, email);
 
       const responseData: Record<string, any> = { success: true, message: 'OTP sent successfully' };
       if (process.env.NODE_ENV === 'development') {

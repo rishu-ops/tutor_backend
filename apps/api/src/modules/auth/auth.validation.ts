@@ -10,6 +10,7 @@ export const phoneSchema = z
 
 export const sendOtpSchema = z.object({
   phone: phoneSchema,
+  email: z.string().email('Invalid email address'),
 });
 
 export const verifyOtpSchema = z.object({

@@ -4,20 +4,22 @@ import { redis } from 'database';
 import config from '../../config/index.js';
 import { AuthRepository } from './auth.repository.js';
 import { generateOtp } from '../../common/utils/otp.util.js';
-import { createSmsProvider } from '../../providers/sms/index.js';
+import { createEmailProvider } from '../../providers/email/index.js';
 import { AuthError } from './auth.errors.js';
 
 export class AuthService {
   private repository = new AuthRepository();
-  private smsProvider = createSmsProvider();
+  private emailProvider = createEmailProvider();
 
   // Hash helper
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  // 1. Send OTP
-  async sendOtp(phone: string): Promise<string> {
+  // 1. Send OTP — delivered by email (no real SMS gateway is wired up; see
+  // providers/email). The email is carried through Redis alongside the OTP so
+  // verifyOtp can attach/update it on the user without the client resending it.
+  async sendOtp(phone: string, email: string): Promise<string> {
     const rateLimitKey = `rate-limit:otp:${phone}`;
     const otpKey = `otp:${phone}`;
 
@@ -37,6 +39,7 @@ export class AuthService {
       otp,
       attempts: 0,
       createdAt: new Date().toISOString(),
+      email,
     };
 
     // Save OTP (expires in config.auth.otpExpiry seconds)
@@ -50,9 +53,10 @@ export class AuthService {
       await redis.incr(rateLimitKey);
     }
 
-    // Send SMS (prints OTP to logger/console)
-    const smsMessage = `Your project-tutor verification code is ${otp}. It expires in 5 minutes.`;
-    await this.smsProvider.sendSms(phone, smsMessage);
+    // Send email (mock provider prints the OTP to logger/console instead)
+    const subject = 'Your project-tutor verification code';
+    const body = `Your project-tutor verification code is ${otp}. It expires in 5 minutes.`;
+    await this.emailProvider.sendEmail(email, subject, body);
 
     return otp;
   }
@@ -89,10 +93,22 @@ export class AuthService {
     // Successfully verified -> Delete OTP key
     await redis.del(otpKey);
 
+    const email: string | undefined = storedData.email;
+
     // Find or create User
     let user = await this.repository.findUserByPhone(phone);
     if (!user) {
-      user = await this.repository.createUser(phone);
+      if (!email) {
+        throw new AuthError('Email is required to create an account.', 400);
+      }
+      user = await this.repository.createUser(phone, email);
+    } else if (email && user.email !== email) {
+      // Keep the on-file email current with whatever was used to receive this OTP.
+      const existingOwner = await this.repository.findUserByEmail(email);
+      if (existingOwner && existingOwner.id !== user.id) {
+        throw new AuthError('This email is already associated with another account.', 409);
+      }
+      user = await this.repository.updateUserEmail(user.id, email);
     }
 
     if (!user.isActive) {

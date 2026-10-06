@@ -7,12 +7,26 @@ export class AuthRepository {
     });
   }
 
-  async createUser(phone: string) {
+  async findUserByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  async createUser(phone: string, email: string) {
     return prisma.user.create({
       data: {
         phone,
+        email,
         isPhoneVerified: true,
       },
+    });
+  }
+
+  async updateUserEmail(userId: string, email: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { email },
     });
   }
 

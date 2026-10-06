@@ -11,7 +11,9 @@ import { authApi } from '@/lib/api';
 export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const validatePhoneNumber = (phone: string): boolean => {
@@ -59,6 +61,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailError('');
 
     // Basic validation
     const cleanPhone = phone.replace(/\s/g, '');
@@ -75,11 +78,17 @@ export default function LoginPage() {
       return;
     }
 
+    const cleanEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await authApi.sendOtp(fullPhone);
+      const res = await authApi.sendOtp(fullPhone, cleanEmail);
       const devOtp = (res as any).otp;
-      const baseUrl = `/auth/verify?phone=${encodeURIComponent(fullPhone)}`;
+      const baseUrl = `/auth/verify?phone=${encodeURIComponent(fullPhone)}&email=${encodeURIComponent(cleanEmail)}`;
       const url = devOtp ? `${baseUrl}&code=${encodeURIComponent(devOtp)}` : baseUrl;
       router.push(url);
     } catch (err: unknown) {
@@ -122,7 +131,7 @@ export default function LoginPage() {
             </span>
             <h1 className="text-xl font-bold text-[#00060c] mt-4">Sign in or create account</h1>
             <p className="mt-2 text-sm text-[#647380] leading-relaxed">
-              Enter your mobile phone number to verify your identity.
+              Enter your phone number and email to verify your identity.
             </p>
           </div>
 
@@ -156,6 +165,29 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-xs font-bold text-[#647380] mb-2 uppercase tracking-wider"
+              >
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError('');
+                }}
+                error={emailError}
+                disabled={loading}
+                className="rounded-[12px] h-10 text-sm"
+              />
+              <p className="mt-1.5 text-xs text-[#647380]">Your verification code is sent here.</p>
             </div>
 
             <Button
