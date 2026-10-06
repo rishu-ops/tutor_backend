@@ -15,7 +15,7 @@ export function Hero() {
         {/* Unified Login Box Wrapper */}
         <div className="mt-12 flex items-center justify-between w-full max-w-5xl gap-8">
           {/* Left Doodle Illustration (Hidden on mobile) */}
-          <div className="hidden lg:block w-[280px] shrink-0 opacity-80">
+          <div className="hidden lg:block w-[280px] shrink-0 opacity-80 animate-float">
             <svg
               viewBox="0 0 200 200"
               fill="none"
@@ -73,6 +73,7 @@ export function Hero() {
                 strokeWidth="1.5"
                 fill="none"
                 strokeDasharray="3 3"
+                className="animate-heartbeat animate-dash"
               />
             </svg>
           </div>
@@ -125,7 +126,7 @@ export function Hero() {
           </div>
 
           {/* Right Doodle Illustration (Hidden on mobile) */}
-          <div className="hidden lg:block w-[280px] shrink-0 opacity-80">
+          <div className="hidden lg:block w-[280px] shrink-0 opacity-80 animate-float-delayed">
             <svg
               viewBox="0 0 200 200"
               fill="none"
@@ -153,6 +154,7 @@ export function Hero() {
                 stroke="#00060c"
                 strokeWidth="1.5"
                 fill="none"
+                className="animate-twinkle"
               />
             </svg>
           </div>
